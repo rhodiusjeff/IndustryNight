@@ -1,0 +1,178 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../providers/admin_state.dart';
+import '../features/auth/screens/admin_login_screen.dart';
+import '../features/dashboard/screens/dashboard_screen.dart';
+import '../features/users/screens/users_list_screen.dart';
+import '../features/users/screens/user_detail_screen.dart';
+import '../features/users/screens/add_user_screen.dart';
+import '../features/events/screens/events_list_screen.dart';
+import '../features/events/screens/create_event_screen.dart';
+import '../features/events/screens/event_detail_screen.dart';
+import '../features/sponsors/screens/sponsors_list_screen.dart';
+import '../features/sponsors/screens/sponsor_form_screen.dart';
+import '../features/sponsors/screens/discounts_screen.dart';
+import '../features/vendors/screens/vendors_list_screen.dart';
+import '../features/vendors/screens/vendor_form_screen.dart';
+import '../features/moderation/screens/posts_list_screen.dart';
+import '../features/moderation/screens/announcements_screen.dart';
+import '../features/settings/screens/admin_settings_screen.dart';
+import '../shared/widgets/sidebar.dart';
+
+class AdminRoutes {
+  static const String login = '/login';
+  static const String dashboard = '/';
+  static const String users = '/users';
+  static const String userDetail = '/users/:id';
+  static const String addUser = '/users/add';
+  static const String events = '/events';
+  static const String createEvent = '/events/create';
+  static const String eventDetail = '/events/:id';
+  static const String sponsors = '/sponsors';
+  static const String addSponsor = '/sponsors/add';
+  static const String editSponsor = '/sponsors/:id/edit';
+  static const String discounts = '/sponsors/:id/discounts';
+  static const String vendors = '/vendors';
+  static const String addVendor = '/vendors/add';
+  static const String editVendor = '/vendors/:id/edit';
+  static const String posts = '/moderation/posts';
+  static const String announcements = '/moderation/announcements';
+  static const String settings = '/settings';
+}
+
+class AdminRouter {
+  static GoRouter router(AdminState adminState) {
+    return GoRouter(
+      initialLocation: AdminRoutes.dashboard,
+      refreshListenable: adminState,
+      redirect: (context, state) {
+        final isLoggedIn = adminState.isLoggedIn;
+        final isLoginRoute = state.matchedLocation == AdminRoutes.login;
+
+        if (!isLoggedIn && !isLoginRoute) {
+          return AdminRoutes.login;
+        }
+
+        if (isLoggedIn && isLoginRoute) {
+          return AdminRoutes.dashboard;
+        }
+
+        return null;
+      },
+      routes: [
+        GoRoute(
+          path: AdminRoutes.login,
+          builder: (context, state) => const AdminLoginScreen(),
+        ),
+        ShellRoute(
+          builder: (context, state, child) => AdminScaffold(child: child),
+          routes: [
+            GoRoute(
+              path: AdminRoutes.dashboard,
+              builder: (context, state) => const DashboardScreen(),
+            ),
+            GoRoute(
+              path: AdminRoutes.users,
+              builder: (context, state) => const UsersListScreen(),
+            ),
+            GoRoute(
+              path: AdminRoutes.addUser,
+              builder: (context, state) => const AddUserScreen(),
+            ),
+            GoRoute(
+              path: '/users/:id',
+              builder: (context, state) {
+                final id = state.pathParameters['id']!;
+                return UserDetailScreen(userId: id);
+              },
+            ),
+            GoRoute(
+              path: AdminRoutes.events,
+              builder: (context, state) => const EventsListScreen(),
+            ),
+            GoRoute(
+              path: AdminRoutes.createEvent,
+              builder: (context, state) => const CreateEventScreen(),
+            ),
+            GoRoute(
+              path: '/events/:id',
+              builder: (context, state) {
+                final id = state.pathParameters['id']!;
+                return EventDetailScreen(eventId: id);
+              },
+            ),
+            GoRoute(
+              path: AdminRoutes.sponsors,
+              builder: (context, state) => const SponsorsListScreen(),
+            ),
+            GoRoute(
+              path: AdminRoutes.addSponsor,
+              builder: (context, state) => const SponsorFormScreen(),
+            ),
+            GoRoute(
+              path: '/sponsors/:id/edit',
+              builder: (context, state) {
+                final id = state.pathParameters['id']!;
+                return SponsorFormScreen(sponsorId: id);
+              },
+            ),
+            GoRoute(
+              path: '/sponsors/:id/discounts',
+              builder: (context, state) {
+                final id = state.pathParameters['id']!;
+                return DiscountsScreen(sponsorId: id);
+              },
+            ),
+            GoRoute(
+              path: AdminRoutes.vendors,
+              builder: (context, state) => const VendorsListScreen(),
+            ),
+            GoRoute(
+              path: AdminRoutes.addVendor,
+              builder: (context, state) => const VendorFormScreen(),
+            ),
+            GoRoute(
+              path: '/vendors/:id/edit',
+              builder: (context, state) {
+                final id = state.pathParameters['id']!;
+                return VendorFormScreen(vendorId: id);
+              },
+            ),
+            GoRoute(
+              path: AdminRoutes.posts,
+              builder: (context, state) => const PostsListScreen(),
+            ),
+            GoRoute(
+              path: AdminRoutes.announcements,
+              builder: (context, state) => const AnnouncementsScreen(),
+            ),
+            GoRoute(
+              path: AdminRoutes.settings,
+              builder: (context, state) => const AdminSettingsScreen(),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class AdminScaffold extends StatelessWidget {
+  final Widget child;
+
+  const AdminScaffold({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Row(
+        children: [
+          const AdminSidebar(),
+          Expanded(
+            child: child,
+          ),
+        ],
+      ),
+    );
+  }
+}

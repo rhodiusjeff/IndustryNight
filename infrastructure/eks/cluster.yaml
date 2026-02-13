@@ -1,0 +1,77 @@
+# eksctl cluster configuration
+# Create with: eksctl create cluster -f cluster.yaml
+
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: industrynight-prod
+  region: us-east-1
+  version: "1.31"
+
+# IAM configuration
+iam:
+  withOIDC: true
+  serviceAccounts:
+    # Service account for API pods (IRSA)
+    - metadata:
+        name: industrynight-api
+        namespace: industrynight
+      attachPolicyARNs:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/SecretsManagerReadWrite
+        - arn:aws:iam::aws:policy/AmazonSESFullAccess
+      wellKnownPolicies:
+        autoScaler: false
+        certManager: false
+        externalDNS: false
+        imageBuilder: false
+
+# VPC configuration
+vpc:
+  nat:
+    gateway: Single  # Use Single for cost savings, HighlyAvailable for production
+  clusterEndpoints:
+    publicAccess: true
+    privateAccess: true
+
+# Node groups
+managedNodeGroups:
+  - name: standard-workers
+    instanceType: t3.medium
+    desiredCapacity: 2
+    minSize: 1
+    maxSize: 4
+    volumeSize: 50
+    volumeType: gp3
+    amiFamily: AmazonLinux2
+    labels:
+      role: worker
+    tags:
+      Environment: production
+      Project: industrynight
+    iam:
+      withAddonPolicies:
+        albIngress: true
+        autoScaler: true
+        cloudWatch: true
+        ebs: true
+
+# Addons
+addons:
+  - name: vpc-cni
+    version: latest
+  - name: coredns
+    version: latest
+  - name: kube-proxy
+    version: latest
+
+# CloudWatch logging
+cloudWatch:
+  clusterLogging:
+    enableTypes:
+      - api
+      - audit
+      - authenticator
+      - controllerManager
+      - scheduler

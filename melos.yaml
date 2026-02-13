@@ -1,0 +1,63 @@
+name: industrynight
+repository: https://github.com/yourusername/industrynight
+
+packages:
+  - packages/**
+
+command:
+  bootstrap:
+    usePubspecOverrides: true
+
+scripts:
+  # Run all Dart/Flutter tests
+  test:
+    run: melos exec -- flutter test
+    description: Run tests in all packages
+    packageFilters:
+      flutter: true
+
+  # Analyze all Dart code
+  analyze:
+    run: melos exec -- flutter analyze
+    description: Analyze all Dart packages
+    packageFilters:
+      flutter: true
+
+  # Generate JSON serialization code
+  build_runner:
+    run: melos exec -- dart run build_runner build --delete-conflicting-outputs
+    description: Run build_runner in all packages
+    packageFilters:
+      dependsOn: build_runner
+
+  # Clean all packages
+  clean:
+    run: melos exec -- flutter clean
+    description: Clean all Flutter packages
+    packageFilters:
+      flutter: true
+
+  # Format all Dart code
+  format:
+    run: melos exec -- dart format .
+    description: Format all Dart code
+
+  # Run API tests
+  test:api:
+    run: cd packages/api && npm test
+    description: Run API tests
+
+  # Start API in development mode
+  dev:api:
+    run: cd packages/api && npm run dev
+    description: Start API in development mode
+
+  # Start mobile app
+  dev:mobile:
+    run: cd packages/mobile-app && flutter run
+    description: Start mobile app
+
+  # Start web app
+  dev:web:
+    run: cd packages/web-app && flutter run -d chrome
+    description: Start web app in Chrome

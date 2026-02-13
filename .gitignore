@@ -1,0 +1,66 @@
+# Dependencies
+node_modules/
+.dart_tool/
+.packages
+pubspec.lock
+
+# Build outputs
+build/
+dist/
+*.js.map
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Flutter/Dart
+*.g.dart
+*.freezed.dart
+
+# Mobile platforms (generated)
+packages/mobile-app/ios/Pods/
+packages/mobile-app/ios/.symlinks/
+packages/mobile-app/android/.gradle/
+packages/mobile-app/android/local.properties
+packages/mobile-app/android/app/debug/
+packages/mobile-app/android/app/release/
+*.apk
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Web
+packages/web-app/build/
+
+# API
+packages/api/dist/
+packages/api/coverage/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Secrets (never commit!)
+*.pem
+*.key
+credentials.json
+secrets.yaml
+
+# Melos
+.melos/
