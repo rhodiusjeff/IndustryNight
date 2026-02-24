@@ -26,8 +26,9 @@ COPY package*.json ./
 # Install production dependencies only
 RUN npm ci --only=production
 
-# Copy built files
+# Copy built files and TypeScript source (source maps reference ../src/)
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/src ./src
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs

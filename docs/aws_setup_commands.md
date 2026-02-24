@@ -474,9 +474,9 @@ aws secretsmanager delete-secret \
 ### Create Hosted Zone
 
 ```bash
-# Create hosted zone for industrynight.app
+# Create hosted zone for industrynight.net
 aws route53 create-hosted-zone \
-  --name industrynight.app \
+  --name industrynight.net \
   --caller-reference "industrynight-$(date +%s)" \
   --profile industrynight-admin
 ```
@@ -645,6 +645,6 @@ kubectl delete pod db-proxy -n industrynight
 | Secrets Manager | industrynight/database | DB credentials |
 | Namespace | industrynight | Application namespace |
 | Service Account | industrynight-api | IRSA for S3, Secrets, SES |
-| **Route 53 Zone** | Z06747281HOR0DFK445GN | industrynight.app |
+| **Route 53 Zone** | Z06747281HOR0DFK445GN | industrynight.net |
 | **ECR Repository** | industrynight-api | 047593684855.dkr.ecr.us-east-1.amazonaws.com/industrynight-api |
 | **S3 Bucket** | industrynight-assets-prod | User assets |

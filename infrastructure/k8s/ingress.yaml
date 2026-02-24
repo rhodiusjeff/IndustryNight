@@ -5,24 +5,17 @@ metadata:
   namespace: industrynight
   annotations:
     # AWS Load Balancer Controller annotations
-    kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
-    alb.ingress.kubernetes.io/ssl-redirect: "443"
-    # Certificate ARN - update with your ACM certificate
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:${AWS_ACCOUNT_ID}:certificate/YOUR_CERT_ID
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:047593684855:certificate/97021927-0213-4347-90fa-8e8113ef4a52
     # Health check
     alb.ingress.kubernetes.io/healthcheck-path: /health
     alb.ingress.kubernetes.io/healthcheck-interval-seconds: "30"
-    # Security
-    alb.ingress.kubernetes.io/security-groups: sg-XXXXXXXXX
-    # Logging
-    alb.ingress.kubernetes.io/load-balancer-attributes: access_logs.s3.enabled=true,access_logs.s3.bucket=industrynight-logs
 spec:
   ingressClassName: alb
   rules:
-    - host: api.industrynight.app
+    - host: api.industrynight.net
       http:
         paths:
           - path: /
