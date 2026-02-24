@@ -5,6 +5,7 @@ import compression from 'compression';
 import morgan from 'morgan';
 import { config } from './config/env';
 import { errorHandler } from './utils/errors';
+import { query } from './config/database';
 
 // Routes
 import authRoutes from './routes/auth';
@@ -34,6 +35,18 @@ app.use(morgan('combined'));
 // Health check
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Public reference data
+app.get('/specialties', async (_req, res, next) => {
+  try {
+    const specialties = await query(
+      'SELECT id, name, category, sort_order FROM specialties WHERE is_active = true ORDER BY sort_order'
+    );
+    res.json({ specialties });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // API routes
