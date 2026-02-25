@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 /// Exception thrown when an API request fails
@@ -62,6 +63,11 @@ class ApiClient {
 
   /// Parse response and throw on error
   dynamic _handleResponse(http.Response response) {
+    debugPrint('[API] ${response.request?.method} ${response.request?.url} → ${response.statusCode}');
+    if (response.statusCode >= 400) {
+      debugPrint('[API] Error body: ${response.body}');
+    }
+
     final body = response.body.isNotEmpty ? jsonDecode(response.body) : null;
 
     if (response.statusCode >= 200 && response.statusCode < 300) {

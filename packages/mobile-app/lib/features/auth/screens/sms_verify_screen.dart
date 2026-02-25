@@ -7,8 +7,9 @@ import '../../../shared/theme/app_theme.dart';
 
 class SmsVerifyScreen extends StatefulWidget {
   final String phone;
+  final String? devCode;
 
-  const SmsVerifyScreen({super.key, required this.phone});
+  const SmsVerifyScreen({super.key, required this.phone, this.devCode});
 
   @override
   State<SmsVerifyScreen> createState() => _SmsVerifyScreenState();
@@ -17,6 +18,16 @@ class SmsVerifyScreen extends StatefulWidget {
 class _SmsVerifyScreenState extends State<SmsVerifyScreen> {
   final _codeController = TextEditingController();
   bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-fill dev code for simulator testing (no Twilio configured)
+    if (widget.devCode != null) {
+      _codeController.text = widget.devCode!;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _verifyCode());
+    }
+  }
 
   @override
   void dispose() {
@@ -52,8 +63,12 @@ class _SmsVerifyScreenState extends State<SmsVerifyScreen> {
 
   Future<void> _resendCode() async {
     try {
-      await context.read<AppState>().requestVerificationCode(widget.phone);
+      final devCode =
+          await context.read<AppState>().requestVerificationCode(widget.phone);
       if (mounted) {
+        if (devCode != null) {
+          _codeController.text = devCode;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Code sent!')),
         );
@@ -95,6 +110,25 @@ class _SmsVerifyScreenState extends State<SmsVerifyScreen> {
                   color: AppColors.textSecondary,
                 ),
               ),
+              const SizedBox(height: 4),
+              Text(
+                'Code expires in 10 minutes',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+
+              // Dev mode indicator
+              if (widget.devCode != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'DEV MODE — code auto-filled',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.primary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
 
               const SizedBox(height: 32),
 

@@ -57,6 +57,22 @@
 
 ---
 
+### 8. A2P 10DLC Registration
+**Question:** When to register for A2P 10DLC messaging compliance?
+
+**Context:**
+- Currently using Twilio Verify API for auth/OTP, which handles its own compliance — no 10DLC needed for auth flow
+- A2P 10DLC is only required if we use the Messages API for non-auth SMS (event reminders, connection notifications, marketing)
+- Industry Night does not currently have its own EIN, which is required for standard brand registration
+- Rhodius Labs (ISV) could register as the brand using its own EIN as a stopgap
+- Sole proprietor registration is also an option (lower throughput limits)
+
+**Decision:** Defer until non-auth SMS messaging is needed or Industry Night obtains its own EIN. Twilio Verify covers the critical auth path without 10DLC.
+
+**Status:** Deferred — revisit when adding non-auth SMS features
+
+---
+
 ## Low Priority (Future Considerations)
 
 ### 5. Verification Expiration

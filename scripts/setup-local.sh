@@ -28,15 +28,17 @@ flutter --version | head -n 1
 node --version
 npm --version
 
-# Install melos
+# Install Flutter dependencies
 echo ""
-echo "Installing Melos..."
-dart pub global activate melos
+echo "Installing Flutter package dependencies..."
+cd packages/shared && flutter pub get && cd ../..
+cd packages/mobile-app && flutter pub get && cd ../..
+cd packages/web-app && flutter pub get && cd ../..
 
-# Bootstrap the monorepo
+# Generate JSON serialization code
 echo ""
-echo "Bootstrapping monorepo..."
-melos bootstrap
+echo "Running build_runner for code generation..."
+cd packages/shared && dart run build_runner build --delete-conflicting-outputs && cd ../..
 
 # Install API dependencies
 echo ""

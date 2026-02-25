@@ -30,12 +30,15 @@ class _PhoneEntryScreenState extends State<PhoneEntryScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      await context.read<AppState>().requestVerificationCode(
+      final devCode = await context.read<AppState>().requestVerificationCode(
             _phoneController.text,
           );
 
       if (mounted) {
-        context.push(Routes.smsVerify, extra: _phoneController.text);
+        context.push(Routes.smsVerify, extra: {
+          'phone': _phoneController.text,
+          'devCode': devCode,
+        });
       }
     } catch (e) {
       if (mounted) {

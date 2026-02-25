@@ -14,7 +14,7 @@ enum DiscountType {
 }
 
 /// Discount model representing a perk/discount from a sponsor
-@JsonSerializable()
+@JsonSerializable(fieldRename: FieldRename.snake)
 class Discount extends Equatable {
   final String id;
   final String sponsorId;

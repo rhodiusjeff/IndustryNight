@@ -17,14 +17,33 @@ class ProfileSetupScreen extends StatefulWidget {
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _bioController = TextEditingController();
+  final _emailFocusNode = FocusNode();
+  final _nameKey = GlobalKey();
+  final _emailKey = GlobalKey();
+  final _emailFieldKey = GlobalKey<FormFieldState>();
+  final _specialtiesKey = GlobalKey();
   final List<String> _selectedSpecialties = [];
   bool _isSubmitting = false;
+  bool _emailTouched = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailFocusNode.addListener(() {
+      if (!_emailFocusNode.hasFocus && _emailController.text.isNotEmpty) {
+        setState(() => _emailTouched = true);
+      }
+    });
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _emailController.dispose();
     _bioController.dispose();
+    _emailFocusNode.dispose();
     super.dispose();
   }
 
@@ -38,12 +57,43 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     });
   }
 
+  void _scrollToKey(GlobalKey key) {
+    final context = key.currentContext;
+    if (context != null) {
+      Scrollable.ensureVisible(context,
+          duration: const Duration(milliseconds: 300), alignment: 0.3);
+    }
+  }
+
+  void _showValidationError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
   Future<void> _saveProfile() async {
-    if (!_formKey.currentState!.validate()) return;
+    // Run form validation (name, email, bio)
+    final formValid = _formKey.currentState!.validate();
+
+    // Check which field is invalid for scroll + snackbar
+    if (!formValid) {
+      final nameEmpty = _nameController.text.trim().isEmpty;
+      final emailInvalid = _emailController.text.trim().isNotEmpty &&
+          !isValidEmail(_emailController.text.trim());
+
+      if (nameEmpty) {
+        _scrollToKey(_nameKey);
+        _showValidationError('Please enter your display name');
+      } else if (emailInvalid) {
+        _scrollToKey(_emailKey);
+        _showValidationError('Please enter a valid email address');
+      }
+      return;
+    }
+
     if (_selectedSpecialties.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select at least one specialty')),
-      );
+      _scrollToKey(_specialtiesKey);
+      _showValidationError('Please select at least one specialty');
       return;
     }
 
@@ -52,6 +102,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     try {
       await context.read<AppState>().updateProfile(
             name: _nameController.text,
+            email: _emailController.text.isNotEmpty ? _emailController.text : null,
             bio: _bioController.text.isNotEmpty ? _bioController.text : null,
             specialties: _selectedSpecialties,
           );
@@ -122,7 +173,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 const SizedBox(height: 32),
 
                 // Name
-                Text('Display Name', style: AppTypography.titleMedium),
+                Text('Display Name', key: _nameKey, style: AppTypography.titleMedium),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _nameController,
@@ -134,6 +185,45 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       return 'Please enter your name';
                     }
                     return validateDisplayName(value);
+                  },
+                ),
+
+                const SizedBox(height: 24),
+
+                // Email
+                Text('Email (optional)', key: _emailKey, style: AppTypography.titleMedium),
+                const SizedBox(height: 8),
+                TextFormField(
+                  key: _emailFieldKey,
+                  controller: _emailController,
+                  focusNode: _emailFocusNode,
+                  keyboardType: TextInputType.emailAddress,
+                  autocorrect: false,
+                  decoration: InputDecoration(
+                    hintText: 'you@example.com',
+                    suffixIcon: _emailController.text.trim().isEmpty
+                        ? null
+                        : isValidEmail(_emailController.text.trim())
+                            ? const Icon(Icons.check_circle, color: AppColors.success)
+                            : _emailTouched
+                                ? const Icon(Icons.error, color: AppColors.error)
+                                : null,
+                  ),
+                  onChanged: (_) {
+                    // Re-validate to clear error state when email becomes valid
+                    if (_emailTouched) {
+                      _emailFieldKey.currentState?.validate();
+                    }
+                    setState(() {});
+                  },
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return null; // Optional field
+                    }
+                    if (!isValidEmail(value.trim())) {
+                      return 'Please enter a valid email address';
+                    }
+                    return null;
                   },
                 ),
 
@@ -155,7 +245,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 const SizedBox(height: 24),
 
                 // Specialties
-                Text('What do you do?', style: AppTypography.titleMedium),
+                Text('What do you do?', key: _specialtiesKey, style: AppTypography.titleMedium),
                 const SizedBox(height: 4),
                 Text(
                   'Select all that apply',
@@ -165,11 +255,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: specialtyDisplayNames.map((specialty) {
+                  children: Specialty.all.map((specialty) {
                     return SpecialtyChip(
-                      specialty: specialty,
-                      selected: _selectedSpecialties.contains(specialty),
-                      onTap: () => _toggleSpecialty(specialty),
+                      specialty: specialty.name,
+                      selected: _selectedSpecialties.contains(specialty.id),
+                      onTap: () => _toggleSpecialty(specialty.id),
                     );
                   }).toList(),
                 ),

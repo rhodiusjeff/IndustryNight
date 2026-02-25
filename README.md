@@ -32,7 +32,6 @@ industrynight/
 - [Flutter SDK](https://docs.flutter.dev/get-started/install) (3.16+)
 - [Node.js](https://nodejs.org/) (20 LTS)
 - [Dart](https://dart.dev/get-dart) (3.2+)
-- [Melos](https://melos.invertase.dev/) (`dart pub global activate melos`)
 - [Docker](https://www.docker.com/) (for local development)
 
 ### Setup
@@ -48,30 +47,32 @@ industrynight/
    ./scripts/setup-local.sh
    ```
 
-3. Bootstrap the monorepo:
+3. Install dependencies:
    ```bash
-   melos bootstrap
+   cd packages/shared && flutter pub get && cd ../..
+   cd packages/mobile-app && flutter pub get && cd ../..
+   cd packages/web-app && flutter pub get && cd ../..
    ```
 
 ### Development
 
 **Start the API:**
 ```bash
-melos run dev:api
+cd packages/api && npm run dev
 # or
 ./scripts/run-api.sh
 ```
 
 **Start the mobile app:**
 ```bash
-melos run dev:mobile
+cd packages/mobile-app && flutter run
 # or
 ./scripts/run-mobile.sh
 ```
 
 **Start the web app:**
 ```bash
-melos run dev:web
+cd packages/web-app && flutter run -d chrome
 # or
 ./scripts/run-web.sh
 ```
@@ -79,18 +80,18 @@ melos run dev:web
 ### Testing
 
 ```bash
-# Run all tests
-melos run test
+# Run mobile app tests
+cd packages/mobile-app && flutter test
 
-# Run API tests only
-melos run test:api
+# Run API tests
+cd packages/api && npm test
 ```
 
 ### Code Generation
 
 After modifying models with JSON serialization:
 ```bash
-melos run build_runner
+cd packages/shared && dart run build_runner build --delete-conflicting-outputs
 ```
 
 ## Documentation

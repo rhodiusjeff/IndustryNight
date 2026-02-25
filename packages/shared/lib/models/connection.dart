@@ -6,7 +6,7 @@ part 'connection.g.dart';
 
 /// Connection model representing a networking connection between users
 /// Created instantly via QR code scan - no pending/accept flow
-@JsonSerializable()
+@JsonSerializable(fieldRename: FieldRename.snake)
 class Connection extends Equatable {
   final String id;
   final String userAId;

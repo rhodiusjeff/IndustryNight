@@ -265,7 +265,6 @@ async function main() {
 
   } finally {
     await pool.end();
-    stopPortForward();
   }
 
   // ---- Step: Scale back up ----
@@ -294,7 +293,12 @@ async function main() {
     }
   }
 
-  console.log('\n=== Database reset complete! ===\n');
+  console.log('\n=== Database reset complete! ===');
+  if (portForwardProc) {
+    console.log(`  Port-forward still active on localhost:${DB_CONFIG.port} (PID ${portForwardProc.pid})`);
+    console.log('  Kill it when done: kill ' + portForwardProc.pid);
+  }
+  console.log('');
 }
 
 main().catch(err => {

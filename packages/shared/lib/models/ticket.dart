@@ -12,7 +12,7 @@ enum TicketStatus {
 }
 
 /// Ticket model representing an event ticket (from Posh integration)
-@JsonSerializable()
+@JsonSerializable(fieldRename: FieldRename.snake)
 class Ticket extends Equatable {
   final String id;
   final String userId;

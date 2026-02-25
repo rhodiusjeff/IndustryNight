@@ -73,6 +73,7 @@ class AppState extends ChangeNotifier {
         }
       }
     } catch (e) {
+      debugPrint('[AppState] Initialize error: $e');
       _error = e.toString();
     } finally {
       _isInitialized = true;
@@ -82,13 +83,14 @@ class AppState extends ChangeNotifier {
   }
 
   /// Request SMS verification code
-  Future<void> requestVerificationCode(String phone) async {
+  /// Returns a dev code if Twilio is not configured (for simulator testing)
+  Future<String?> requestVerificationCode(String phone) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      await authApi.requestCode(normalizePhoneNumber(phone));
+      return await authApi.requestCode(normalizePhoneNumber(phone));
     } catch (e) {
       _error = e.toString();
       rethrow;
@@ -119,10 +121,13 @@ class AppState extends ChangeNotifier {
       notifyListeners();
       return true;
     } on ApiException catch (e) {
+      debugPrint('[AppState] verifyCode API error: ${e.statusCode} ${e.message}');
       _error = e.message;
       return false;
-    } catch (e) {
-      _error = 'An unexpected error occurred';
+    } catch (e, stackTrace) {
+      debugPrint('[AppState] verifyCode unexpected error: $e');
+      debugPrint('[AppState] Stack trace: $stackTrace');
+      _error = 'An unexpected error occurred: $e';
       return false;
     } finally {
       _isLoading = false;
@@ -170,6 +175,33 @@ class AppState extends ChangeNotifier {
     } catch (e) {
       _error = e.toString();
       rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Delete the current user's account and clear all local data
+  Future<bool> deleteAccount() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await authApi.deleteAccount();
+      await _storage.clearAll();
+      _currentUser = null;
+      notifyListeners();
+      return true;
+    } on ApiException catch (e) {
+      debugPrint('[AppState] deleteAccount API error: ${e.statusCode} ${e.message}');
+      _error = e.message;
+      return false;
+    } catch (e, stackTrace) {
+      debugPrint('[AppState] deleteAccount unexpected error: $e');
+      debugPrint('[AppState] Stack trace: $stackTrace');
+      _error = 'An unexpected error occurred: $e';
+      return false;
     } finally {
       _isLoading = false;
       notifyListeners();

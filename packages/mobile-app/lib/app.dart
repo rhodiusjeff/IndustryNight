@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'config/routes.dart';
 import 'shared/theme/app_theme.dart';
@@ -12,26 +13,32 @@ class IndustryNightApp extends StatefulWidget {
 }
 
 class _IndustryNightAppState extends State<IndustryNightApp> {
+  late final GoRouter _router;
+
   @override
   void initState() {
     super.initState();
+    final appState = context.read<AppState>();
+    _router = AppRouter.router(appState);
     // Initialize app state
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AppState>().initialize();
+      appState.initialize();
     });
   }
 
   @override
+  void dispose() {
+    _router.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Consumer<AppState>(
-      builder: (context, appState, _) {
-        return MaterialApp.router(
-          title: 'Industry Night',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.darkTheme,
-          routerConfig: AppRouter.router(appState),
-        );
-      },
+    return MaterialApp.router(
+      title: 'Industry Night',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.darkTheme,
+      routerConfig: _router,
     );
   }
 }

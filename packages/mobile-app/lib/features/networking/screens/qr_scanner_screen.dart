@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:provider/provider.dart';
+import '../../../providers/app_state.dart';
 import '../../../shared/theme/app_theme.dart';
+import '../networking_state.dart';
+import '../widgets/scanned_user_sheet.dart';
 
 class QrScannerScreen extends StatefulWidget {
   const QrScannerScreen({super.key});
@@ -29,38 +32,67 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     final value = barcode!.rawValue!;
     if (!value.startsWith('industrynight://connect/')) return;
 
+    final userId = value.replaceFirst('industrynight://connect/', '');
+    if (userId.isEmpty) return;
+
+    // Self-scan check
+    final currentUserId = context.read<AppState>().currentUser?.id;
+    if (userId == currentUserId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You scanned your own code!')),
+      );
+      return;
+    }
+
     setState(() => _isProcessing = true);
 
-    // Extract user ID from QR code
-    final userId = value.replaceFirst('industrynight://connect/', '');
+    final networkingState = context.read<NetworkingState>();
+    final user = await networkingState.lookupScannedUser(userId);
 
-    // TODO: Create connection via API
+    if (!mounted) return;
 
-    if (mounted) {
-      // Show success dialog
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Connected!'),
-          content: const Text('You are now connected with this user.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                context.pop();
-              },
-              child: const Text('OK'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                context.push('/users/$userId');
-              },
-              child: const Text('View Profile'),
-            ),
-          ],
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(networkingState.error ?? 'User not found'),
         ),
       );
+      setState(() => _isProcessing = false);
+      return;
+    }
+
+    // Show profile preview bottom sheet
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => ChangeNotifierProvider.value(
+        value: networkingState,
+        child: ScannedUserSheet(
+          user: user,
+          qrData: value,
+          onConnected: () {
+            Navigator.of(sheetContext).pop(true);
+          },
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+
+    if (result == true) {
+      // Connection was made — pop scanner back to Connect tab
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Connected with ${user.name ?? 'user'}!'),
+        ),
+      );
+      Navigator.of(context).pop();
+    } else {
+      // Sheet dismissed without connecting — resume scanning
+      setState(() => _isProcessing = false);
     }
   }
 
@@ -71,16 +103,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         title: const Text('Scan QR Code'),
         actions: [
           IconButton(
-            icon: ValueListenableBuilder(
-              valueListenable: _controller,
-              builder: (context, state, child) {
-                return Icon(
-                  state.torchState == TorchState.on
-                      ? Icons.flash_on
-                      : Icons.flash_off,
-                );
-              },
-            ),
+            icon: const Icon(Icons.flash_off),
             onPressed: () => _controller.toggleTorch(),
           ),
         ],

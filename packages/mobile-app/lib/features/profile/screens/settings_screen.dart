@@ -10,6 +10,9 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AppState>().currentUser;
+    final hasEmail = user?.email != null && user!.email!.isNotEmpty;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
@@ -19,19 +22,11 @@ class SettingsScreen extends StatelessWidget {
           // Account section
           _buildSectionHeader('Account'),
           ListTile(
-            leading: const Icon(Icons.person),
-            title: const Text('Edit Profile'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {},
-          ),
-          ListTile(
             leading: const Icon(Icons.phone),
             title: const Text('Phone Number'),
             subtitle: Text(
-              context.read<AppState>().currentUser?.phone ?? '',
+              user?.phone ?? '',
             ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {},
           ),
 
           const Divider(),
@@ -47,8 +42,16 @@ class SettingsScreen extends StatelessWidget {
           SwitchListTile(
             secondary: const Icon(Icons.email),
             title: const Text('Email Notifications'),
+            subtitle: hasEmail
+                ? null
+                : Text(
+                    'Add an email in Edit Profile to enable',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textTertiary,
+                    ),
+                  ),
             value: false, // TODO: Get from settings
-            onChanged: (value) {},
+            onChanged: hasEmail ? (value) {} : null,
           ),
 
           const Divider(),
