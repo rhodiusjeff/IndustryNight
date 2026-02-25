@@ -29,14 +29,18 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Install Melos
-        run: dart pub global activate melos
+      - name: Install dependencies
+        run: |
+          cd packages/shared && flutter pub get
+          cd ../../packages/mobile-app && flutter pub get
 
-      - name: Bootstrap
-        run: melos bootstrap
+      - name: Generate code
+        working-directory: packages/shared
+        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Analyze
-        run: melos run analyze
+        working-directory: packages/mobile-app
+        run: flutter analyze
 
   test:
     name: Test
@@ -52,14 +56,18 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Install Melos
-        run: dart pub global activate melos
+      - name: Install dependencies
+        run: |
+          cd packages/shared && flutter pub get
+          cd ../../packages/mobile-app && flutter pub get
 
-      - name: Bootstrap
-        run: melos bootstrap
+      - name: Generate code
+        working-directory: packages/shared
+        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Run tests
-        run: melos run test
+        working-directory: packages/mobile-app
+        run: flutter test
 
   build-android:
     name: Build Android
@@ -83,11 +91,14 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Install Melos
-        run: dart pub global activate melos
+      - name: Install dependencies
+        run: |
+          cd packages/shared && flutter pub get
+          cd ../../packages/mobile-app && flutter pub get
 
-      - name: Bootstrap
-        run: melos bootstrap
+      - name: Generate code
+        working-directory: packages/shared
+        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Build APK
         working-directory: packages/mobile-app
@@ -115,11 +126,14 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Install Melos
-        run: dart pub global activate melos
+      - name: Install dependencies
+        run: |
+          cd packages/shared && flutter pub get
+          cd ../../packages/mobile-app && flutter pub get
 
-      - name: Bootstrap
-        run: melos bootstrap
+      - name: Generate code
+        working-directory: packages/shared
+        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Build iOS (no codesign)
         working-directory: packages/mobile-app

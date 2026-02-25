@@ -18,7 +18,7 @@ class SponsorDetailScreen extends StatelessWidget {
             flexibleSpace: FlexibleSpaceBar(
               title: const Text('Sponsor Name'),
               background: Container(
-                color: AppColors.primary.withOpacity(0.2),
+                color: AppColors.primary.withValues(alpha: 0.2),
                 child: const Center(
                   child: Icon(
                     Icons.store,

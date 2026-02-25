@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../features/auth/screens/phone_entry_screen.dart';
 import '../features/auth/screens/sms_verify_screen.dart';
-import '../features/auth/screens/not_registered_screen.dart';
 import '../features/onboarding/screens/profile_setup_screen.dart';
 import '../features/events/screens/events_list_screen.dart';
 import '../features/events/screens/event_detail_screen.dart';
 import '../features/events/screens/activation_code_screen.dart';
-import '../features/networking/screens/my_qr_screen.dart';
+import '../features/networking/networking_state.dart';
+import '../features/networking/screens/connect_tab_screen.dart';
 import '../features/networking/screens/qr_scanner_screen.dart';
 import '../features/networking/screens/connections_list_screen.dart';
 import '../features/community/screens/community_feed_screen.dart';
@@ -17,35 +18,36 @@ import '../features/community/screens/post_detail_screen.dart';
 import '../features/search/screens/search_screen.dart';
 import '../features/search/screens/user_profile_screen.dart';
 import '../features/profile/screens/my_profile_screen.dart';
+import '../features/profile/screens/edit_profile_screen.dart';
 import '../features/profile/screens/settings_screen.dart';
 import '../features/perks/screens/perks_screen.dart';
 import '../features/perks/screens/sponsor_detail_screen.dart';
 
 /// Route names for navigation
 class Routes {
+  // Splash
+  static const String splash = '/splash';
+
   // Auth
   static const String phoneEntry = '/auth/phone';
   static const String smsVerify = '/auth/verify';
-  static const String notRegistered = '/auth/not-registered';
 
   // Onboarding
   static const String profileSetup = '/onboarding/profile';
 
   // Main tabs
   static const String events = '/events';
-  static const String networking = '/networking';
+  static const String connect = '/connect';
   static const String community = '/community';
-  static const String perks = '/perks';
+  static const String network = '/network';
   static const String profile = '/profile';
 
   // Events
   static const String eventDetail = '/events/:id';
   static const String activationCode = '/events/:id/checkin';
 
-  // Networking
-  static const String myQr = '/networking/qr';
-  static const String qrScanner = '/networking/scan';
-  static const String connections = '/networking/connections';
+  // Connect
+  static const String qrScanner = '/connect/scan';
 
   // Community
   static const String createPost = '/community/create';
@@ -57,21 +59,35 @@ class Routes {
 
   // Profile
   static const String settings = '/profile/settings';
-
-  // Perks
-  static const String sponsorDetail = '/perks/:id';
+  static const String editProfile = '/profile/edit';
+  static const String perks = '/profile/perks';
+  static const String sponsorDetail = '/profile/perks/:id';
 }
 
 class AppRouter {
   static GoRouter router(AppState appState) {
     return GoRouter(
-      initialLocation: Routes.phoneEntry,
+      initialLocation: Routes.splash,
       refreshListenable: appState,
       redirect: (context, state) {
+        final isInitialized = appState.isInitialized;
         final isLoggedIn = appState.isLoggedIn;
         final isOnboarded = appState.isOnboarded;
+        final isSplash = state.matchedLocation == Routes.splash;
         final isAuthRoute = state.matchedLocation.startsWith('/auth');
         final isOnboardingRoute = state.matchedLocation.startsWith('/onboarding');
+
+        // Still initializing → stay on splash
+        if (!isInitialized) {
+          return isSplash ? null : Routes.splash;
+        }
+
+        // Initialized → leave splash
+        if (isSplash) {
+          if (!isLoggedIn) return Routes.phoneEntry;
+          if (!isOnboarded) return Routes.profileSetup;
+          return Routes.events;
+        }
 
         // Not logged in and not on auth route → redirect to login
         if (!isLoggedIn && !isAuthRoute) {
@@ -91,6 +107,12 @@ class AppRouter {
         return null;
       },
       routes: [
+        // Splash screen (shown while checking auth state)
+        GoRoute(
+          path: Routes.splash,
+          builder: (context, state) => const _SplashScreen(),
+        ),
+
         // Auth routes
         GoRoute(
           path: Routes.phoneEntry,
@@ -99,13 +121,12 @@ class AppRouter {
         GoRoute(
           path: Routes.smsVerify,
           builder: (context, state) {
-            final phone = state.extra as String? ?? '';
-            return SmsVerifyScreen(phone: phone);
+            final extras = state.extra as Map<String, dynamic>? ?? {};
+            return SmsVerifyScreen(
+              phone: extras['phone'] as String? ?? '',
+              devCode: extras['devCode'] as String?,
+            );
           },
-        ),
-        GoRoute(
-          path: Routes.notRegistered,
-          builder: (context, state) => const NotRegisteredScreen(),
         ),
 
         // Onboarding
@@ -116,7 +137,17 @@ class AppRouter {
 
         // Main app with bottom navigation
         ShellRoute(
-          builder: (context, state, child) => MainScaffold(child: child),
+          builder: (context, state, child) {
+            final appState = context.read<AppState>();
+            return ChangeNotifierProvider(
+              create: (_) => NetworkingState(
+                connectionsApi: appState.connectionsApi,
+                usersApi: appState.usersApi,
+                getCurrentUserId: () => appState.currentUser?.id ?? '',
+              ),
+              child: MainScaffold(child: child),
+            );
+          },
           routes: [
             GoRoute(
               path: Routes.events,
@@ -141,16 +172,12 @@ class AppRouter {
               ],
             ),
             GoRoute(
-              path: Routes.networking,
-              builder: (context, state) => const MyQrScreen(),
+              path: Routes.connect,
+              builder: (context, state) => const ConnectTabScreen(),
               routes: [
                 GoRoute(
                   path: 'scan',
                   builder: (context, state) => const QrScannerScreen(),
-                ),
-                GoRoute(
-                  path: 'connections',
-                  builder: (context, state) => const ConnectionsListScreen(),
                 ),
               ],
             ),
@@ -172,25 +199,33 @@ class AppRouter {
               ],
             ),
             GoRoute(
-              path: Routes.perks,
-              builder: (context, state) => const PerksScreen(),
-              routes: [
-                GoRoute(
-                  path: ':id',
-                  builder: (context, state) {
-                    final id = state.pathParameters['id']!;
-                    return SponsorDetailScreen(sponsorId: id);
-                  },
-                ),
-              ],
+              path: Routes.network,
+              builder: (context, state) => const ConnectionsListScreen(),
             ),
             GoRoute(
               path: Routes.profile,
               builder: (context, state) => const MyProfileScreen(),
               routes: [
                 GoRoute(
+                  path: 'edit',
+                  builder: (context, state) => const EditProfileScreen(),
+                ),
+                GoRoute(
                   path: 'settings',
                   builder: (context, state) => const SettingsScreen(),
+                ),
+                GoRoute(
+                  path: 'perks',
+                  builder: (context, state) => const PerksScreen(),
+                  routes: [
+                    GoRoute(
+                      path: ':id',
+                      builder: (context, state) {
+                        final id = state.pathParameters['id']!;
+                        return SponsorDetailScreen(sponsorId: id);
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -227,28 +262,28 @@ class MainScaffold extends StatelessWidget {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _calculateSelectedIndex(context),
         onDestinationSelected: (index) => _onItemTapped(index, context),
-        destinations: const [
-          NavigationDestination(
+        destinations: [
+          const NavigationDestination(
             icon: Icon(Icons.event_outlined),
             selectedIcon: Icon(Icons.event),
             label: 'Events',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.qr_code_outlined),
-            selectedIcon: Icon(Icons.qr_code),
+          const NavigationDestination(
+            icon: Icon(Icons.people_outline),
+            selectedIcon: Icon(Icons.people),
             label: 'Network',
           ),
           NavigationDestination(
+            icon: Icon(Icons.qr_code_outlined, size: 48),
+            selectedIcon: Icon(Icons.qr_code, size: 48),
+            label: 'Connect',
+          ),
+          const NavigationDestination(
             icon: Icon(Icons.forum_outlined),
             selectedIcon: Icon(Icons.forum),
             label: 'Community',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.local_offer_outlined),
-            selectedIcon: Icon(Icons.local_offer),
-            label: 'Perks',
-          ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),
             label: 'Profile',
@@ -261,9 +296,9 @@ class MainScaffold extends StatelessWidget {
   int _calculateSelectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
     if (location.startsWith('/events')) return 0;
-    if (location.startsWith('/networking')) return 1;
-    if (location.startsWith('/community')) return 2;
-    if (location.startsWith('/perks')) return 3;
+    if (location.startsWith('/network')) return 1;
+    if (location.startsWith('/connect')) return 2;
+    if (location.startsWith('/community')) return 3;
     if (location.startsWith('/profile')) return 4;
     return 0;
   }
@@ -274,17 +309,31 @@ class MainScaffold extends StatelessWidget {
         context.go(Routes.events);
         break;
       case 1:
-        context.go(Routes.networking);
+        context.go(Routes.network);
         break;
       case 2:
-        context.go(Routes.community);
+        context.go(Routes.connect);
         break;
       case 3:
-        context.go(Routes.perks);
+        context.go(Routes.community);
         break;
       case 4:
         context.go(Routes.profile);
         break;
     }
+  }
+}
+
+/// Splash screen shown while checking auth state on startup
+class _SplashScreen extends StatelessWidget {
+  const _SplashScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
   }
 }

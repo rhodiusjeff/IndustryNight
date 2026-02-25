@@ -15,7 +15,7 @@ class AdminState extends ChangeNotifier {
     ApiClient? apiClient,
     SecureStorage? storage,
   })  : _apiClient = apiClient ??
-            ApiClient(baseUrl: apiBaseUrl ?? 'https://api.industrynight.app'),
+            ApiClient(baseUrl: apiBaseUrl ?? 'https://api.industrynight.net'),
         _storage = storage ?? SecureStorage();
 
   User? get currentUser => _currentUser;

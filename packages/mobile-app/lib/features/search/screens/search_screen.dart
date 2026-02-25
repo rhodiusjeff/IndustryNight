@@ -43,18 +43,18 @@ class _SearchScreenState extends State<SearchScreen> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
-              children: specialtyDisplayNames.take(6).map((specialty) {
+              children: Specialty.all.take(6).map((specialty) {
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: SpecialtyChip(
-                    specialty: specialty,
-                    selected: _selectedSpecialties.contains(specialty),
+                    specialty: specialty.name,
+                    selected: _selectedSpecialties.contains(specialty.id),
                     onTap: () {
                       setState(() {
-                        if (_selectedSpecialties.contains(specialty)) {
-                          _selectedSpecialties.remove(specialty);
+                        if (_selectedSpecialties.contains(specialty.id)) {
+                          _selectedSpecialties.remove(specialty.id);
                         } else {
-                          _selectedSpecialties.add(specialty);
+                          _selectedSpecialties.add(specialty.id);
                         }
                       });
                     },

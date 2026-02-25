@@ -3,26 +3,31 @@ import 'package:industrynight_shared/shared.dart';
 import '../../../shared/theme/app_theme.dart';
 
 class ConnectionCard extends StatelessWidget {
-  final String userId;
-  final String name;
-  final String? specialty;
-  final String? imageUrl;
+  final Connection connection;
+  final String currentUserId;
   final VoidCallback? onTap;
 
   const ConnectionCard({
     super.key,
-    required this.userId,
-    required this.name,
-    this.specialty,
-    this.imageUrl,
+    required this.connection,
+    required this.currentUserId,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final otherUser = connection.getOtherUser(currentUserId);
+    final name = otherUser?.name ?? 'Unknown';
+    final imageUrl = otherUser?.profilePhotoUrl;
+    final specialties = otherUser?.specialties ?? [];
+    final specialtyDisplay = specialties
+        .take(2)
+        .map((id) => Specialty.fromId(id)?.name ?? id)
+        .join(' · ');
+
     return ListTile(
       leading: CircleAvatar(
-        backgroundImage: imageUrl != null ? NetworkImage(imageUrl!) : null,
+        backgroundImage: imageUrl != null ? NetworkImage(imageUrl) : null,
         backgroundColor: AppColors.surfaceLight,
         child: imageUrl == null
             ? Text(
@@ -32,9 +37,9 @@ class ConnectionCard extends StatelessWidget {
             : null,
       ),
       title: Text(name),
-      subtitle: specialty != null
+      subtitle: specialtyDisplay.isNotEmpty
           ? Text(
-              specialty!,
+              specialtyDisplay,
               style: AppTypography.bodySmall,
             )
           : null,

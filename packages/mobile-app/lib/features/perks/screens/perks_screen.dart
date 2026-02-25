@@ -34,13 +34,13 @@ class PerksScreen extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => context.push('/perks/sponsor_featured'),
+        onTap: () => context.push('/profile/perks/sponsor_featured'),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
               height: 150,
-              color: AppColors.primary.withOpacity(0.2),
+              color: AppColors.primary.withValues(alpha: 0.2),
               child: const Center(
                 child: Icon(
                   Icons.local_offer,
@@ -81,7 +81,7 @@ class PerksScreen extends StatelessWidget {
         title: Text('Sponsor ${index + 1}'),
         subtitle: const Text('15% off for verified members'),
         trailing: const Icon(Icons.chevron_right),
-        onTap: () => context.push('/perks/sponsor_$index'),
+        onTap: () => context.push('/profile/perks/sponsor_$index'),
       ),
     );
   }

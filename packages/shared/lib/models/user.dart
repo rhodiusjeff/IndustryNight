@@ -24,7 +24,7 @@ ProfileVisibility _profileVisibilityFromJson(String value) {
 String _profileVisibilityToJson(ProfileVisibility visibility) => visibility.name;
 
 /// Social media links for a user profile
-@JsonSerializable()
+@JsonSerializable(fieldRename: FieldRename.snake)
 class SocialLinks extends Equatable {
   final String? instagram;
   final String? tiktok;
@@ -62,7 +62,7 @@ class SocialLinks extends Equatable {
 }
 
 /// User model representing an Industry Night user
-@JsonSerializable()
+@JsonSerializable(fieldRename: FieldRename.snake)
 class User extends Equatable {
   final String id;
   final String phone;

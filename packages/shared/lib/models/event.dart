@@ -12,7 +12,7 @@ enum EventStatus {
 }
 
 /// Event model representing an Industry Night event
-@JsonSerializable()
+@JsonSerializable(fieldRename: FieldRename.snake)
 class Event extends Equatable {
   final String id;
   final String name;

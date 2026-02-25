@@ -15,9 +15,25 @@ router.get('/', authenticate, validate(paginationSchema), async (req, res, next)
     const userId = req.user!.userId;
 
     const connections = await query(
-      `SELECT c.*,
-              ua.id as user_a_id, ua.name as user_a_name, ua.profile_photo_url as user_a_photo, ua.specialties as user_a_specialties,
-              ub.id as user_b_id, ub.name as user_b_name, ub.profile_photo_url as user_b_photo, ub.specialties as user_b_specialties
+      `SELECT c.id, c.user_a_id, c.user_b_id, c.event_id, c.created_at,
+              json_build_object(
+                'id', ua.id, 'phone', ua.phone, 'name', ua.name,
+                'profile_photo_url', ua.profile_photo_url,
+                'specialties', ua.specialties,
+                'verification_status', ua.verification_status,
+                'role', ua.role, 'source', ua.source,
+                'profile_completed', ua.profile_completed,
+                'banned', ua.banned, 'created_at', ua.created_at
+              ) as user_a,
+              json_build_object(
+                'id', ub.id, 'phone', ub.phone, 'name', ub.name,
+                'profile_photo_url', ub.profile_photo_url,
+                'specialties', ub.specialties,
+                'verification_status', ub.verification_status,
+                'role', ub.role, 'source', ub.source,
+                'profile_completed', ub.profile_completed,
+                'banned', ub.banned, 'created_at', ub.created_at
+              ) as user_b
        FROM connections c
        JOIN users ua ON c.user_a_id = ua.id
        JOIN users ub ON c.user_b_id = ub.id

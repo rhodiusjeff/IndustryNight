@@ -6,11 +6,13 @@ class AuthResponse {
   final String accessToken;
   final String refreshToken;
   final User user;
+  final bool isNewUser;
 
   AuthResponse({
     required this.accessToken,
     required this.refreshToken,
     required this.user,
+    this.isNewUser = false,
   });
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
@@ -18,6 +20,7 @@ class AuthResponse {
       accessToken: json['accessToken'] as String,
       refreshToken: json['refreshToken'] as String,
       user: User.fromJson(json['user'] as Map<String, dynamic>),
+      isNewUser: json['isNewUser'] as bool? ?? false,
     );
   }
 }
@@ -29,12 +32,14 @@ class AuthApi {
   AuthApi(this._client);
 
   /// Request an SMS verification code
-  Future<void> requestCode(String phone) async {
-    await _client.post(
+  /// Returns a dev code if Twilio is not configured (for simulator testing)
+  Future<String?> requestCode(String phone) async {
+    final response = await _client.post<Map<String, dynamic>>(
       '/auth/request-code',
       body: {'phone': phone},
       requiresAuth: false,
     );
+    return response['devCode'] as String?;
   }
 
   /// Verify SMS code and get tokens
@@ -73,5 +78,11 @@ class AuthApi {
   Future<User> getCurrentUser() async {
     final response = await _client.get<Map<String, dynamic>>('/auth/me');
     return User.fromJson(response['user'] as Map<String, dynamic>);
+  }
+
+  /// Delete the current user's account
+  Future<void> deleteAccount() async {
+    await _client.delete('/auth/me');
+    _client.clearToken();
   }
 }

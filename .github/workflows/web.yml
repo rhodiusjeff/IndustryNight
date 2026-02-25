@@ -34,14 +34,18 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Install Melos
-        run: dart pub global activate melos
+      - name: Install dependencies
+        run: |
+          cd packages/shared && flutter pub get
+          cd ../../packages/web-app && flutter pub get
 
-      - name: Bootstrap
-        run: melos bootstrap
+      - name: Generate code
+        working-directory: packages/shared
+        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Analyze
-        run: melos run analyze
+        working-directory: packages/web-app
+        run: flutter analyze
 
   test:
     name: Test
@@ -57,14 +61,18 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Install Melos
-        run: dart pub global activate melos
+      - name: Install dependencies
+        run: |
+          cd packages/shared && flutter pub get
+          cd ../../packages/web-app && flutter pub get
 
-      - name: Bootstrap
-        run: melos bootstrap
+      - name: Generate code
+        working-directory: packages/shared
+        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Run tests
-        run: melos run test
+        working-directory: packages/web-app
+        run: flutter test
 
   build-and-deploy:
     name: Build and Deploy
@@ -85,11 +93,14 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Install Melos
-        run: dart pub global activate melos
+      - name: Install dependencies
+        run: |
+          cd packages/shared && flutter pub get
+          cd ../../packages/web-app && flutter pub get
 
-      - name: Bootstrap
-        run: melos bootstrap
+      - name: Generate code
+        working-directory: packages/shared
+        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Build web
         working-directory: packages/web-app

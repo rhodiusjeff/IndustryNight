@@ -52,9 +52,7 @@ class MyProfileScreen extends StatelessWidget {
                     backgroundColor: AppColors.primary,
                     child: IconButton(
                       icon: const Icon(Icons.camera_alt, size: 16),
-                      onPressed: () {
-                        // TODO: Implement photo picker
-                      },
+                      onPressed: () => context.push('/profile/edit'),
                       padding: EdgeInsets.zero,
                     ),
                   ),
@@ -85,7 +83,9 @@ class MyProfileScreen extends StatelessWidget {
             // Specialties
             if (user?.specialties.isNotEmpty ?? false)
               SpecialtyChipList(
-                specialties: user!.specialties,
+                specialties: user!.specialties
+                    .map((id) => Specialty.fromId(id)?.name ?? id)
+                    .toList(),
                 wrap: false,
               ),
 
@@ -105,9 +105,7 @@ class MyProfileScreen extends StatelessWidget {
 
             // Edit profile button
             OutlinedButton(
-              onPressed: () {
-                // TODO: Navigate to edit profile
-              },
+              onPressed: () => context.push('/profile/edit'),
               child: const Text('Edit Profile'),
             ),
 
@@ -161,7 +159,13 @@ class MyProfileScreen extends StatelessWidget {
               context,
               icon: Icons.people,
               title: 'My Connections',
-              onTap: () => context.push('/networking/connections'),
+              onTap: () => context.go('/network'),
+            ),
+            _buildMenuItem(
+              context,
+              icon: Icons.local_offer,
+              title: 'Perks & Discounts',
+              onTap: () => context.push('/profile/perks'),
             ),
             _buildMenuItem(
               context,

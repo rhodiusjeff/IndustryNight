@@ -31,6 +31,7 @@ const envSchema = z.object({
   TWILIO_ACCOUNT_SID: z.string().optional(),
   TWILIO_AUTH_TOKEN: z.string().optional(),
   TWILIO_PHONE_NUMBER: z.string().optional(),
+  TWILIO_VERIFY_SERVICE_SID: z.string().optional(),
 
   // Posh
   POSH_WEBHOOK_SECRET: z.string().optional(),
@@ -77,6 +78,7 @@ export const config = {
     accountSid: env.data.TWILIO_ACCOUNT_SID,
     authToken: env.data.TWILIO_AUTH_TOKEN,
     phoneNumber: env.data.TWILIO_PHONE_NUMBER,
+    verifyServiceSid: env.data.TWILIO_VERIFY_SERVICE_SID,
   },
 
   posh: {

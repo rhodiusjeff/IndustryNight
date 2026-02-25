@@ -35,7 +35,7 @@
                                   │
                     ┌─────────────▼─────────────┐
                     │   Route 53 (DNS)          │
-                    │   industrynight.app       │
+                    │   industrynight.net       │
                     └─────────────┬─────────────┘
                                   │
                     ┌─────────────▼─────────────┐
@@ -535,7 +535,7 @@ I'll explain each concept as we encounter it:
    - Configure AWS CLI locally
 
 2. **Together:** Domain selection and purchase
-   - Check availability of industrynight.app, .io, .co, etc.
+   - Check availability of industrynight.net, .io, .co, etc.
    - Register via Route 53 or external registrar
 
 3. **Together (with review-before-execute):**
