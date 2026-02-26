@@ -30,23 +30,36 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
     setState(() => _isSubmitting = true);
 
-    final success = await context.read<AdminState>().login(
-          _emailController.text.trim(),
-          _passwordController.text,
-        );
+    try {
+      final success = await context.read<AdminState>().login(
+            _emailController.text.trim(),
+            _passwordController.text,
+          );
 
-    if (mounted) {
-      setState(() => _isSubmitting = false);
-      if (success) {
-        context.go(AdminRoutes.dashboard);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.read<AdminState>().error ?? 'Login failed'),
-          ),
-        );
+      if (mounted) {
+        if (success) {
+          context.go(AdminRoutes.dashboard);
+        } else {
+          _showError(context.read<AdminState>().error ?? 'Login failed');
+        }
       }
+    } catch (e) {
+      if (mounted) {
+        _showError('Network error: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red.shade700,
+        duration: const Duration(seconds: 5),
+      ),
+    );
   }
 
   @override
