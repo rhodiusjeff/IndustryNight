@@ -28,15 +28,17 @@ flutter --version | head -n 1
 node --version
 npm --version
 
-# Install melos
+# Install Flutter dependencies
 echo ""
-echo "Installing Melos..."
-dart pub global activate melos
+echo "Installing Flutter package dependencies..."
+cd packages/shared && flutter pub get && cd ../..
+cd packages/social-app && flutter pub get && cd ../..
+cd packages/admin-app && flutter pub get && cd ../..
 
-# Bootstrap the monorepo
+# Generate JSON serialization code
 echo ""
-echo "Bootstrapping monorepo..."
-melos bootstrap
+echo "Running build_runner for code generation..."
+cd packages/shared && dart run build_runner build --delete-conflicting-outputs && cd ../..
 
 # Install API dependencies
 echo ""
@@ -100,7 +102,7 @@ echo "3. Run database migrations: cd packages/database && ./scripts/migrate.sh"
 echo "4. (Optional) Load seed data: cd packages/database && psql -d industrynight -f seeds/dev_seed.sql"
 echo ""
 echo "To start development:"
-echo "  API:    ./scripts/run-api.sh"
-echo "  Mobile: ./scripts/run-mobile.sh"
-echo "  Web:    ./scripts/run-web.sh"
+echo "  API:        ./scripts/run-api.sh"
+echo "  Social App: ./scripts/run-mobile.sh"
+echo "  Admin App:  ./scripts/run-web.sh"
 echo "=========================================="

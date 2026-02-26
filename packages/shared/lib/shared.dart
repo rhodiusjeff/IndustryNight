@@ -6,6 +6,7 @@ library industrynight_shared;
 
 // Models
 export 'models/user.dart';
+export 'models/admin_user.dart';
 export 'models/event.dart';
 export 'models/connection.dart';
 export 'models/post.dart';
@@ -17,6 +18,7 @@ export 'models/ticket.dart';
 // API
 export 'api/api_client.dart';
 export 'api/auth_api.dart';
+export 'api/admin_auth_api.dart';
 export 'api/users_api.dart';
 export 'api/events_api.dart';
 export 'api/connections_api.dart';

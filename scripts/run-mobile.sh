@@ -2,9 +2,9 @@
 
 # Start mobile app in development mode
 
-cd "$(dirname "$0")/../packages/mobile-app"
+cd "$(dirname "$0")/../packages/social-app"
 
-echo "Starting Industry Night Mobile App..."
+echo "Starting Industry Night Social App..."
 echo ""
 
 # Check for connected devices

@@ -20,7 +20,7 @@ enum PostType {
 }
 
 /// Post model representing a community feed post
-@JsonSerializable()
+@JsonSerializable(fieldRename: FieldRename.snake)
 class Post extends Equatable {
   final String id;
   final String authorId;
@@ -117,7 +117,7 @@ class Post extends Equatable {
 }
 
 /// Comment on a post
-@JsonSerializable()
+@JsonSerializable(fieldRename: FieldRename.snake)
 class PostComment extends Equatable {
   final String id;
   final String postId;

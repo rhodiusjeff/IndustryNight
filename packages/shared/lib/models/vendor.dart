@@ -14,7 +14,7 @@ enum VendorCategory {
 }
 
 /// Vendor model representing a service provider at events
-@JsonSerializable()
+@JsonSerializable(fieldRename: FieldRename.snake)
 class Vendor extends Equatable {
   final String id;
   final String name;

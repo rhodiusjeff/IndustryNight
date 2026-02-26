@@ -37,12 +37,12 @@ vpc:
 
 # Node groups
 managedNodeGroups:
-  - name: standard-workers
-    instanceType: t3.medium
+  - name: standard-workers-v2
+    instanceType: t3.small
     desiredCapacity: 2
     minSize: 1
     maxSize: 4
-    volumeSize: 50
+    volumeSize: 20
     volumeType: gp3
     amiFamily: AmazonLinux2
     labels:

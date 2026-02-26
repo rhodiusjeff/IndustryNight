@@ -12,7 +12,7 @@ enum SponsorTier {
 }
 
 /// Sponsor model representing a business sponsor
-@JsonSerializable()
+@JsonSerializable(fieldRename: FieldRename.snake)
 class Sponsor extends Equatable {
   final String id;
   final String name;

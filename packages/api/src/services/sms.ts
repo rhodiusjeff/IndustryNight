@@ -13,30 +13,40 @@ function getClient(): Twilio.Twilio {
   return twilioClient;
 }
 
-export async function sendVerificationCode(phone: string, code: string): Promise<void> {
-  // In development, log instead of sending
-  if (config.nodeEnv === 'development') {
-    console.log(`[DEV] SMS to ${phone}: Your Industry Night verification code is ${code}`);
-    return;
+export const twilioAvailable = !!(config.twilio.accountSid && config.twilio.authToken);
+export const verifyAvailable = !!(twilioAvailable && config.twilio.verifyServiceSid);
+
+export async function sendVerification(phone: string): Promise<void> {
+  if (!verifyAvailable) {
+    throw new Error('Twilio Verify not configured');
   }
 
   const client = getClient();
+  await client.verify.v2
+    .services(config.twilio.verifyServiceSid!)
+    .verifications.create({ to: phone, channel: 'sms' });
+}
 
-  await client.messages.create({
-    body: `Your Industry Night verification code is ${code}. Valid for 10 minutes.`,
-    from: config.twilio.phoneNumber,
-    to: phone,
-  });
+export async function checkVerification(phone: string, code: string): Promise<boolean> {
+  if (!verifyAvailable) {
+    throw new Error('Twilio Verify not configured');
+  }
+
+  const client = getClient();
+  const check = await client.verify.v2
+    .services(config.twilio.verifyServiceSid!)
+    .verificationChecks.create({ to: phone, code });
+
+  return check.status === 'approved';
 }
 
 export async function sendSms(phone: string, message: string): Promise<void> {
-  if (config.nodeEnv === 'development') {
-    console.log(`[DEV] SMS to ${phone}: ${message}`);
+  if (!twilioAvailable || !config.twilio.phoneNumber) {
+    console.log(`[SMS-DEV] SMS to ${phone}: ${message}`);
     return;
   }
 
   const client = getClient();
-
   await client.messages.create({
     body: message,
     from: config.twilio.phoneNumber,
