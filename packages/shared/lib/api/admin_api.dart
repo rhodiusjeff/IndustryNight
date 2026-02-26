@@ -26,12 +26,12 @@ class DashboardStats {
 
   factory DashboardStats.fromJson(Map<String, dynamic> json) {
     return DashboardStats(
-      totalUsers: json['totalUsers'] as int,
-      verifiedUsers: json['verifiedUsers'] as int,
-      totalEvents: json['totalEvents'] as int,
-      upcomingEvents: json['upcomingEvents'] as int,
-      totalConnections: json['totalConnections'] as int,
-      totalPosts: json['totalPosts'] as int,
+      totalUsers: json['total_users'] as int,
+      verifiedUsers: json['verified_users'] as int,
+      totalEvents: json['total_events'] as int,
+      upcomingEvents: json['upcoming_events'] as int,
+      totalConnections: json['total_connections'] as int,
+      totalPosts: json['total_posts'] as int,
     );
   }
 }
