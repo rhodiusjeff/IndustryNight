@@ -316,6 +316,58 @@ Key commands:
 ./scripts/coop/coop.sh rebuild --import backups/YYYY-MM-DD_HHMMSS  # Rebuild + restore data
 ```
 
+## Git Workflow
+
+### Branch strategy
+
+```
+feature/your-feature  →  integration  →  master
+```
+
+- **`master`** — production only. Never commit directly. Only receives merges from `integration` via PR.
+- **`integration`** — staging / ongoing development. All feature branches merge here first via PR.
+- **feature branches** — one branch per feature or fix, branched off `integration`.
+
+Both `master` and `integration` are protected:
+- Direct pushes are blocked (PRs required)
+- 1 approving review required before merge
+- Force pushes and branch deletion blocked
+- Admins can bypass in genuine emergencies (e.g. syncing diverged branches), but this should be rare
+
+### Day-to-day workflow
+
+```bash
+# 1. Start new work from integration
+git checkout integration && git pull
+git checkout -b feature/my-feature
+
+# 2. Do work, commit locally
+git add <files>
+git commit -m "..."
+
+# 3. Push and open PR → integration
+git push -u origin feature/my-feature
+gh pr create --base integration
+
+# 4. After PR is reviewed and merged to integration,
+#    open a separate PR from integration → master to ship to production
+gh pr create --base master --head integration
+```
+
+### Releasing to production
+
+Open a PR from `integration` → `master`. This is the only path to production. The PR title should summarize what's being shipped (e.g. "Release: profile image upload + remember phone number").
+
+### GitHub issue labels
+
+Package labels for routing issues to the right area:
+- `pkg:social-app` — Flutter social app (iOS/Android/Web)
+- `pkg:admin-app` — Flutter admin dashboard
+- `pkg:api` — Node.js/Express backend
+- `pkg:database` — Schema, migrations, seeds
+- `pkg:shared` — Shared Dart package
+- `pkg:infra` — AWS, Kubernetes, CI/CD
+
 ## Development
 
 ### Running locally
