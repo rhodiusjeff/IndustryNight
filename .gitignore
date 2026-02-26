@@ -29,20 +29,26 @@ Thumbs.db
 *.g.dart
 *.freezed.dart
 
-# Mobile platforms (generated)
-packages/mobile-app/ios/Pods/
-packages/mobile-app/ios/.symlinks/
-packages/mobile-app/android/.gradle/
-packages/mobile-app/android/local.properties
-packages/mobile-app/android/app/debug/
-packages/mobile-app/android/app/release/
+# Social app platforms (generated)
+packages/social-app/ios/Pods/
+packages/social-app/ios/.symlinks/
+packages/social-app/android/.gradle/
+packages/social-app/android/local.properties
+packages/social-app/android/app/debug/
+packages/social-app/android/app/release/
+
+# Admin app platforms (generated)
+packages/admin-app/ios/Pods/
+packages/admin-app/ios/.symlinks/
+packages/admin-app/android/.gradle/
+packages/admin-app/android/local.properties
+packages/admin-app/android/app/debug/
+packages/admin-app/android/app/release/
+
 *.apk
 *.ipa
 *.dSYM.zip
 *.dSYM
-
-# Web
-packages/web-app/build/
 
 # API
 packages/api/dist/
@@ -61,3 +67,6 @@ coverage/
 *.key
 credentials.json
 secrets.yaml
+
+# COOP backups (database exports)
+backups/

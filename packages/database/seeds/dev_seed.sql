@@ -1,6 +1,10 @@
 -- Development Seed Data
 -- Use for local development only
 
+-- Create test admin user (email: admin@industrynight.net, password: admin123456)
+INSERT INTO admin_users (id, email, password_hash, name, role, is_active) VALUES
+    ('ad000000-0000-0000-0000-000000000001', 'admin@industrynight.net', '$2a$12$MnKczAZv50NMkt8eTaXMiuKir9R0G05NcGaNwXJdGP2/x.XmdXAOG', 'Dev Admin', 'platformAdmin', true);
+
 -- Create a test venue
 INSERT INTO venues (id, name, address, city, state, zip) VALUES
     ('11111111-1111-1111-1111-111111111111', 'The Grand Venue', '123 Main St', 'Los Angeles', 'CA', '90001');

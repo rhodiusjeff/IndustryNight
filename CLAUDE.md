@@ -4,16 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Industry Night is a mobile app + companion website for discovering, promoting, and managing industry night events (hair stylists, makeup artists, photographers, videographers, producers, directors — creative workers). The mobile app serves operational users making connections; the website handles administrative functions.
+Industry Night is a platform for discovering, promoting, and managing industry night events (hair stylists, makeup artists, photographers, videographers, producers, directors — creative workers). It consists of two apps with a shared backend:
+
+- **Social App** — for creative workers attending events, making QR-code connections, browsing the community feed. Mobile-first (iOS, Android), with web planned.
+- **Admin App** — for platform operators managing events, sponsors, vendors, users, and moderation. Web-first, with limited mobile (field ops) planned.
 
 ## Tech Stack
 
-- **Mobile App:** Flutter/Dart (iOS first, Android later) — `packages/mobile-app`
-- **Web Admin:** Flutter/Dart for web — `packages/web-app`
+- **Social App:** Flutter/Dart (iOS, Android, Web) — `packages/social-app`
+- **Admin App:** Flutter/Dart (Web, iOS, Android) — `packages/admin-app`
 - **Shared Library:** Flutter/Dart package with models, API clients, constants — `packages/shared`
 - **Backend API:** Node.js + Express + TypeScript — `packages/api`
 - **Database:** PostgreSQL 15 on AWS RDS (via `pg` library, no ORM)
-- **Authentication:** Phone number + SMS verification code (passwordless), JWT access/refresh tokens
+- **Authentication:** Phone + SMS OTP for social users; email/password for admin users. JWT access/refresh tokens with `tokenFamily` claim.
 - **SMS:** Twilio (optional — dev mode returns code in API response)
 - **Cloud:** AWS (EKS, ECR, RDS, S3, SES, ALB)
 - **Validation:** Zod (backend), Equatable + json_annotation (Flutter)
@@ -48,8 +51,8 @@ infrastructure/
 packages/
   api/                              # Express API server
   shared/                           # Shared Flutter/Dart package
-  mobile-app/                       # Mobile app (iOS/Android)
-  web-app/                          # Admin web dashboard
+  social-app/                       # Social networking app (iOS, Android, Web)
+  admin-app/                        # Admin dashboard app (Web, iOS, Android)
   database/                         # Schema migrations and seeds
 .github/workflows/
   api.yml                           # API CI/CD
@@ -62,6 +65,7 @@ packages/
 PostgreSQL 15 on RDS. Schema in `packages/database/migrations/001_initial_schema.sql`.
 
 ### Enum types
+- `admin_role`: `platformAdmin`
 - `user_role`: `user`, `venueStaff`, `platformAdmin`
 - `user_source`: `app`, `posh`, `admin`
 - `verification_status`: `unverified`, `pending`, `verified`, `rejected`
@@ -73,7 +77,8 @@ PostgreSQL 15 on RDS. Schema in `packages/database/migrations/001_initial_schema
 ### Tables
 | Table | Purpose | User FK behavior |
 |-------|---------|-----------------|
-| `users` | Core user profiles | — |
+| `admin_users` | Admin user accounts (email/password) | — |
+| `users` | Social user profiles | — |
 | `verification_codes` | SMS login codes (phone is PK) | Manual cleanup |
 | `specialties` | Reference data (admin-managed) | — |
 | `venues` | Event locations | — |
@@ -122,9 +127,11 @@ Optional (with defaults):
 | `/vendors` | routes/vendors.ts | Vendor management |
 | `/discounts` | routes/discounts.ts | Discount/perk management |
 | `/webhooks` | routes/webhooks.ts | Posh webhook receiver |
+| `/admin/auth` | routes/admin-auth.ts | `POST /login`, `POST /refresh`, `GET /me`, `POST /logout` |
 | `/admin` | routes/admin.ts | Admin dashboard endpoints (users, stats) |
 
 ### Middleware
+- `authenticateAdmin` (`middleware/admin-auth.ts`) — verifies JWT with `tokenFamily: 'admin'`, used on all `/admin` routes
 - `authenticate` (`middleware/auth.ts`) — verifies JWT, sets `req.user` with `{ userId, role, type }`
 - `requireAdmin` (`middleware/admin.ts`) — checks `role` is in `ADMIN_ROLES` (`['platformAdmin']`)
 - `requirePlatformAdmin` (`middleware/admin.ts`) — checks `role === 'platformAdmin'` exactly
@@ -135,7 +142,7 @@ Optional (with defaults):
 - `email.ts` — AWS SES email
 - `posh.ts` — Posh ticketing integration
 
-## Mobile App (packages/mobile-app)
+## Social App (packages/social-app)
 
 ### Features (lib/features/)
 | Feature | Screens | Description |
@@ -161,9 +168,11 @@ Optional (with defaults):
 - `AppState` is the single global provider
 - API clients are `late final` on AppState: `authApi`, `usersApi`, `eventsApi`, `connectionsApi`, `postsApi`
 
-## Web Admin (packages/web-app)
+## Admin App (packages/admin-app)
 
-Admin dashboard for platform operators. Features:
+Admin dashboard for platform operators. Authentication: email/password (separate `admin_users` table).
+
+Features:
 - `auth` — admin login screen
 - `dashboard` — stats overview
 - `users` — user list, detail, add user (with role dropdown)
@@ -174,11 +183,15 @@ Admin dashboard for platform operators. Features:
 - `settings` — admin settings
 
 State: `AdminState` provider in `lib/providers/admin_state.dart`
+- Properties: `currentAdmin` (AdminUser?), `isLoggedIn`, `isLoading`, `error`
+- API clients: `adminAuthApi` (AdminAuthApi), `adminApi` (AdminApi)
+- Auth: `login(email, password)`, `logout()`, `initialize()` (token restore + refresh)
 
 ## Shared Package (packages/shared)
 
-### Models (lib/models/) — all use `@JsonSerializable(fieldRename: FieldRename.snake)`
-- `User`, `SocialLinks` (user.dart)
+### Models (lib/models/) — use `@JsonSerializable(fieldRename: FieldRename.snake)` except where noted
+- `AdminUser` (admin_user.dart) — admin dashboard user (email/password auth). Uses `@JsonSerializable()` (camelCase) because the admin-auth API returns camelCase keys.
+- `User`, `SocialLinks` (user.dart) — social app user (phone OTP auth)
 - `Event` (event.dart)
 - `Connection` (connection.dart)
 - `Ticket` (ticket.dart)
@@ -194,7 +207,8 @@ cd packages/shared && dart run build_runner build --delete-conflicting-outputs
 
 ### API Clients (lib/api/)
 - `ApiClient` — base HTTP client with token management and debug logging
-- `AuthApi` — auth endpoints (requestCode, verifyCode, refreshToken, logout, getCurrentUser, deleteAccount)
+- `AdminAuthApi` — admin auth endpoints (login, refreshToken, getCurrentAdmin, logout)
+- `AuthApi` — social auth endpoints (requestCode, verifyCode, refreshToken, logout, getCurrentUser, deleteAccount)
 - `UsersApi` — user search, profile updates, photo upload
 - `EventsApi` — event listing and details
 - `ConnectionsApi` — connection management
@@ -250,12 +264,57 @@ AWS_PROFILE=industrynight-admin kubectl rollout status deployment/industrynight-
 
 | Script | Purpose | Usage |
 |--------|---------|-------|
+| `scripts/seed-admin.js` | Create initial admin user | `node scripts/seed-admin.js --email x --name y --password z` |
 | `scripts/db-reset.js` | Full DB reset (drop all, re-run migrations + seeds) | `DB_PASSWORD=xxx node scripts/db-reset.js [--skip-k8s] [--yes]` |
 | `scripts/db-scrub-user.js` | Delete specific users by phone | `DB_PASSWORD=xxx node scripts/db-scrub-user.js [--skip-k8s] [--yes] +15551234567` |
 | `scripts/maintenance.sh` | Toggle k8s maintenance mode | `./scripts/maintenance.sh on/off` |
 | `scripts/setup-local.sh` | Local dev environment setup | `./scripts/setup-local.sh` |
 
 DB scripts use `pg` from `packages/api/node_modules` (no separate install needed). They auto-start kubectl port-forward unless `--skip-k8s` is passed.
+
+### Executive Brief Generator
+
+`scripts/generate-exec-brief.py` generates a 13-slide PowerPoint presentation at `docs/Industry Night - Executive Brief.pptx`. Dark theme, purple accents, widescreen (16:9).
+
+**Slides:** Title, What Is IN, How It Works, Timeline, Codebase Metrics, Built (Backend/DB), Built (Apps), Infrastructure, Architecture Decisions, Implementation Status, Current WIP + Next, Tech Debt, Summary.
+
+**To regenerate:**
+```bash
+python3 -m venv /tmp/pptx-env && source /tmp/pptx-env/bin/activate && pip install python-pptx
+python3 scripts/generate-exec-brief.py
+```
+
+**To update for a weekly brief:** Edit the data values directly in `scripts/generate-exec-brief.py`:
+- `REPORT_DATE` / `PERIOD` — auto-set from `date.today()`, update `PERIOD` string
+- Slide 4 (Timeline) — add new milestones to the `milestones` list
+- Slide 5 (Metrics) — update `stats` and `stats2` number values, update `add_table_data` LOC counts
+- Slide 6-7 (What's Built) — add new bullet items to card text frames
+- Slide 10 (Status) — update `phases` list statuses and colors (`GREEN`=done, `AMBER`=partial, `ACCENT_LIGHT`=in progress, `MID_GRAY`=not started)
+- Slide 11 (WIP/Next) — update current branch work and next items
+- Slide 12 (Tech Debt) — add/remove rows from the table data
+
+The companion markdown brief is at `docs/executive-brief.md`.
+
+### COOP Scripts (scripts/coop/)
+
+Infrastructure lifecycle management — tear down AWS to save costs, rebuild from scratch, backup/restore data. Full documentation in `docs/coop.md`.
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `scripts/coop/coop.sh` | Controller (single entry point) | `./scripts/coop/coop.sh <command>` |
+| `scripts/coop/config.sh` | Shared constants and helpers | Sourced by other scripts |
+| `scripts/coop/infra-status.sh` | Color-coded AWS resource status | `./scripts/coop/coop.sh status` |
+| `scripts/coop/db-export.sh` | Database backup (pg_dump + per-table) | `./scripts/coop/coop.sh export` |
+| `scripts/coop/db-import.sh` | Database restore (full or selective) | `./scripts/coop/coop.sh import <dir>` |
+| `scripts/coop/infra-teardown.sh` | Tear down EKS + RDS (~$160→$3/mo) | `./scripts/coop/coop.sh teardown` |
+| `scripts/coop/infra-rebuild.sh` | Rebuild all infra from scratch | `./scripts/coop/coop.sh rebuild` |
+
+Key commands:
+```bash
+./scripts/coop/coop.sh status                                    # What's running? What's it costing?
+./scripts/coop/coop.sh teardown                                  # Export data + tear down (saves ~$155/mo)
+./scripts/coop/coop.sh rebuild --import backups/YYYY-MM-DD_HHMMSS  # Rebuild + restore data
+```
 
 ## Development
 
@@ -264,11 +323,11 @@ DB scripts use `pg` from `packages/api/node_modules` (no separate install needed
 # API (needs port-forward to RDS or local PG)
 cd packages/api && npm run dev
 
-# Mobile (iOS simulator)
-cd packages/mobile-app && flutter run
+# Social app (iOS simulator)
+cd packages/social-app && flutter run
 
-# Web admin
-cd packages/web-app && flutter run -d chrome
+# Admin app (web)
+cd packages/admin-app && flutter run -d chrome
 ```
 
 ### DevCode system (simulator testing without Twilio)
@@ -286,7 +345,7 @@ When `TWILIO_VERIFY_SERVICE_SID` is set (production):
 ### iOS setup
 - Deployment target: iOS 14.0
 - Platform created via `flutter create --platforms=ios`
-- Fonts: Space Grotesk downloaded to `packages/mobile-app/assets/fonts/`
+- Fonts: Inter downloaded to `packages/social-app/assets/fonts/`
 
 ## Key Gotchas
 
@@ -314,9 +373,11 @@ When `TWILIO_VERIFY_SERVICE_SID` is set (production):
 
 ## Architecture Decisions
 
-- **Phone-based identity:** Users authenticate via SMS code sent to phone number — no passwords
-- **Dual-platform Flutter:** Single Flutter codebase targets mobile (iOS first) and web admin
-- **Role separation:** Mobile app for end users; web for platform admins
+- **Phone-based identity:** Social users authenticate via SMS code sent to phone number — no passwords
+- **Email-based admin auth:** Admin users authenticate via email/password, stored in a separate `admin_users` table
+- **Two-app architecture:** Social app (mobile-first) and Admin app (web-first), each targeting iOS, Android, and Web
+- **Shared package:** Both apps share `packages/shared` for models, API clients, and utilities
+- **JWT token families:** Tokens include `tokenFamily: 'social'|'admin'` to prevent cross-app token use
 - **No ORM:** Direct SQL via `pg` library with parameterized queries
 - **CASCADE deletes:** All user FKs use CASCADE except audit_log (SET NULL to preserve history)
 - **Open registration:** First SMS verify auto-creates user if phone not found
@@ -333,3 +394,59 @@ The `docs/` directory is the project memory:
 - `app_creative_direction.md` — UI/UX creative direction
 - `app_rationale_treatise.md` — Product rationale
 - `open_questions.md` — Open design questions
+- `coop.md` — COOP scripts user manual (teardown/rebuild/backup/restore)
+
+## Context Refresh & Knowledge Transfer
+
+**Important for Claude:** The project owner may return after extended breaks and will have lost context on what was built, why decisions were made, and how the operational tooling works. When this happens:
+
+1. **Don't assume knowledge.** If the user asks about infrastructure, COOP scripts, deployment, or any operational topic, start by pointing them to the relevant docs (`docs/coop.md`, `docs/aws_architecture.md`, etc.) and offer a walkthrough rather than jumping straight into commands.
+
+2. **Offer a refresher.** If the user seems uncertain or asks broad questions like "how does this work again?" or "what do we have?", proactively suggest walking through the system together. A good sequence:
+   - Run `./scripts/coop/coop.sh status` to show current AWS state
+   - Review what's running, what's hibernated, what it costs
+   - Walk through any scripts or systems relevant to what they want to do
+
+3. **Pending knowledge transfer items.** The following topics should be turned into a structured lesson plan when the user is ready. The goal is hands-on understanding, not just documentation:
+   - **AWS/EKS/K8s fundamentals:** What the cluster is, what pods/deployments/services/ingress do, how kubectl works, what eksctl manages vs what kubectl manages
+   - **COOP system:** How teardown/rebuild works, what gets deleted vs preserved, how database backups work, how to verify a restore
+   - **Database operations:** Migrations system (`_migrations` table, `migrate.sh`), how schema changes propagate, the FK cascade design, how to safely modify the schema
+   - **CI/CD pipeline:** What the GitHub Actions workflows do, how code gets from PR to production, what's automated vs manual. **Known gaps:** no migration runner in deploy, no API tests, health check doesn't verify DB connectivity
+   - **Deployment process:** Docker build, ECR push, K8s rollout, how to debug a failed deploy, how to rollback
+   - **Local development:** How to run everything locally, devCode system, port-forwarding to RDS
+
+4. **Known technical debt / future work:**
+   - CI/CD: Add K8s Job pre-deploy migration runner to `api.yml`
+   - CI/CD: Write API tests (Jest is configured but no tests exist)
+   - CI/CD: Add DB connectivity check to `/health` endpoint
+   - CI/CD: Add post-deploy smoke tests
+   - Migrations: Create down-migration files for rollback capability
+
+## Testing Plan
+
+**Trigger phrase:** "tell me about Flutter app testing" or "let's build the test suite"
+
+### API Tests (Jest) — Priority: build after admin app login is working
+Start with the flows where a silent regression would corrupt data or lock users out:
+1. **Auth flow:** request-code → verify-code → token issued → refresh → logout
+2. **User deletion cascade:** delete user → verify all FK tables cleaned, audit_log preserved (SET NULL), verification_codes cleaned separately
+3. **Admin auth:** login → JWT with `tokenFamily: 'admin'` → admin routes accessible → social token rejected on admin routes
+4. **Role-based access:** user token can't hit admin routes, admin token can't hit social routes
+5. **Token family isolation:** social tokens rejected by admin middleware, admin tokens rejected by social middleware
+
+Jest is already configured in `packages/api` — no test files exist yet. Tests should run against a real test database (not mocks) to verify actual SQL behavior including CASCADE deletes.
+
+### Flutter Widget Tests — Priority: build alongside API tests
+Per-screen tests for form validation, state transitions, and navigation. Focus on:
+- **Admin app:** Login form validation, auth state transitions, route guards
+- **Social app:** Profile setup validation, event list rendering, connection flow state
+
+### Physical/Manual Testing — requires humans or future embodied agents
+Cannot be automated — requires real devices in physical proximity:
+- QR scan → mutual connection created (two devices)
+- Event check-in with activation code (at venue)
+- Full onboarding flow on physical device
+- Push notifications, deep links, camera permissions
+
+### What's explicitly NOT tested
+- ~~devCode system~~ — deprecated, not worth testing. Physical devices used for mobile testing.

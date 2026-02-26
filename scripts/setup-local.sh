@@ -32,8 +32,8 @@ npm --version
 echo ""
 echo "Installing Flutter package dependencies..."
 cd packages/shared && flutter pub get && cd ../..
-cd packages/mobile-app && flutter pub get && cd ../..
-cd packages/web-app && flutter pub get && cd ../..
+cd packages/social-app && flutter pub get && cd ../..
+cd packages/admin-app && flutter pub get && cd ../..
 
 # Generate JSON serialization code
 echo ""
@@ -102,7 +102,7 @@ echo "3. Run database migrations: cd packages/database && ./scripts/migrate.sh"
 echo "4. (Optional) Load seed data: cd packages/database && psql -d industrynight -f seeds/dev_seed.sql"
 echo ""
 echo "To start development:"
-echo "  API:    ./scripts/run-api.sh"
-echo "  Mobile: ./scripts/run-mobile.sh"
-echo "  Web:    ./scripts/run-web.sh"
+echo "  API:        ./scripts/run-api.sh"
+echo "  Social App: ./scripts/run-mobile.sh"
+echo "  Admin App:  ./scripts/run-web.sh"
 echo "=========================================="

@@ -1,17 +1,15 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { validate, paginationSchema } from '../middleware/validation';
-import { authenticate } from '../middleware/auth';
-import { requireAdmin, requirePlatformAdmin } from '../middleware/admin';
+import { authenticateAdmin } from '../middleware/admin-auth';
 import { query, queryOne } from '../config/database';
 import { generateActivationCode } from '../utils/jwt';
 import { NotFoundError } from '../utils/errors';
 
 const router = Router();
 
-// All admin routes require authentication and admin role
-router.use(authenticate);
-router.use(requireAdmin);
+// All admin routes require admin authentication
+router.use(authenticateAdmin);
 
 // Dashboard stats
 router.get('/dashboard', async (_req, res, next) => {
@@ -94,7 +92,7 @@ const updateUserSchema = z.object({
   }),
 });
 
-router.patch('/users/:id', requirePlatformAdmin, validate(updateUserSchema), async (req, res, next): Promise<void> => {
+router.patch('/users/:id', validate(updateUserSchema), async (req, res, next): Promise<void> => {
   try {
     const { role, banned, verificationStatus } = req.body;
 
@@ -149,7 +147,7 @@ const addUserSchema = z.object({
   }),
 });
 
-router.post('/users', requirePlatformAdmin, validate(addUserSchema), async (req, res, next) => {
+router.post('/users', validate(addUserSchema), async (req, res, next) => {
   try {
     const { phone, name, email, role } = req.body;
 

@@ -18,6 +18,7 @@ import vendorsRoutes from './routes/vendors';
 import discountsRoutes from './routes/discounts';
 import webhooksRoutes from './routes/webhooks';
 import adminRoutes from './routes/admin';
+import adminAuthRoutes from './routes/admin-auth';
 
 const app = express();
 
@@ -59,6 +60,7 @@ app.use('/sponsors', sponsorsRoutes);
 app.use('/vendors', vendorsRoutes);
 app.use('/discounts', discountsRoutes);
 app.use('/webhooks', webhooksRoutes);
+app.use('/admin/auth', adminAuthRoutes);
 app.use('/admin', adminRoutes);
 
 // Error handling

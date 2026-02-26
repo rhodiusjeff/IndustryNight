@@ -1,6 +1,6 @@
 # Industry Night
 
-Mobile app + companion website for discovering, promoting, and managing industry night events for creative workers (hair stylists, makeup artists, photographers, videographers, producers, directors).
+Platform for discovering, promoting, and managing industry night events for creative workers (hair stylists, makeup artists, photographers, videographers, producers, directors).
 
 ## Project Structure
 
@@ -10,8 +10,8 @@ industrynight/
 │   ├── api/            # Node.js/TypeScript REST API
 │   ├── database/       # Database schema & migrations
 │   ├── shared/         # Shared Dart package (models, API client)
-│   ├── mobile-app/     # Flutter mobile app (iOS + Android)
-│   └── web-app/        # Flutter web app (admin dashboard)
+│   ├── social-app/     # Social networking app (iOS, Android, Web)
+│   └── admin-app/      # Admin dashboard app (Web, iOS, Android)
 ├── infrastructure/     # AWS/K8s configuration
 ├── scripts/            # Developer utilities
 └── docs/               # Documentation
@@ -19,11 +19,13 @@ industrynight/
 
 ## Tech Stack
 
-- **Frontend:** Flutter (shared codebase for mobile and web)
+- **Social App:** Flutter/Dart (iOS, Android, Web) — mobile-first
+- **Admin App:** Flutter/Dart (Web, iOS, Android) — web-first
+- **Shared Library:** Flutter/Dart package with models, API clients, constants
 - **Backend:** Node.js/TypeScript REST API with JWT authentication
-- **Database:** PostgreSQL (AWS RDS)
+- **Database:** PostgreSQL 15 (AWS RDS)
 - **Infrastructure:** AWS EKS (Kubernetes)
-- **Authentication:** Phone number verification via SMS (passwordless)
+- **Auth:** Phone + SMS OTP for social users; email/password for admin users
 
 ## Getting Started
 
@@ -50,8 +52,8 @@ industrynight/
 3. Install dependencies:
    ```bash
    cd packages/shared && flutter pub get && cd ../..
-   cd packages/mobile-app && flutter pub get && cd ../..
-   cd packages/web-app && flutter pub get && cd ../..
+   cd packages/social-app && flutter pub get && cd ../..
+   cd packages/admin-app && flutter pub get && cd ../..
    ```
 
 ### Development
@@ -63,16 +65,16 @@ cd packages/api && npm run dev
 ./scripts/run-api.sh
 ```
 
-**Start the mobile app:**
+**Start the social app (mobile):**
 ```bash
-cd packages/mobile-app && flutter run
+cd packages/social-app && flutter run
 # or
 ./scripts/run-mobile.sh
 ```
 
-**Start the web app:**
+**Start the admin app (web):**
 ```bash
-cd packages/web-app && flutter run -d chrome
+cd packages/admin-app && flutter run -d chrome
 # or
 ./scripts/run-web.sh
 ```
@@ -80,8 +82,11 @@ cd packages/web-app && flutter run -d chrome
 ### Testing
 
 ```bash
-# Run mobile app tests
-cd packages/mobile-app && flutter test
+# Run social app tests
+cd packages/social-app && flutter test
+
+# Run admin app tests
+cd packages/admin-app && flutter test
 
 # Run API tests
 cd packages/api && npm test
@@ -110,13 +115,13 @@ database ──▶ api ◀── shared
               ┌────────┴────────┐
               │                 │
               ▼                 ▼
-         mobile-app         web-app
+         social-app         admin-app
 ```
 
 - **shared:** Contains data models and API client used by both Flutter apps
 - **api:** REST backend, consumes database schema
-- **mobile-app:** End-user app (browse events, network, check-in)
-- **web-app:** Admin dashboard (manage users, events, sponsors)
+- **social-app:** Social networking app (browse events, make connections, community feed)
+- **admin-app:** Admin dashboard (manage users, events, sponsors, moderation)
 
 ## License
 

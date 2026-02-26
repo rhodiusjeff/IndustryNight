@@ -2,9 +2,9 @@
 
 # Start web app in development mode
 
-cd "$(dirname "$0")/../packages/web-app"
+cd "$(dirname "$0")/../packages/admin-app"
 
-echo "Starting Industry Night Web Admin..."
+echo "Starting Industry Night Admin App..."
 echo "App will be available at http://localhost:8080"
 echo ""
 
