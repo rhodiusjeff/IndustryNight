@@ -23,12 +23,12 @@ router.get('/dashboard', async (_req, res, next) => {
       total_posts: number;
     }>(`
       SELECT
-        (SELECT COUNT(*) FROM users WHERE banned = false) as total_users,
-        (SELECT COUNT(*) FROM users WHERE verification_status = 'verified') as verified_users,
-        (SELECT COUNT(*) FROM events) as total_events,
-        (SELECT COUNT(*) FROM events WHERE start_time > NOW() AND status = 'published') as upcoming_events,
-        (SELECT COUNT(*) FROM connections) as total_connections,
-        (SELECT COUNT(*) FROM posts WHERE is_hidden = false) as total_posts
+        (SELECT COUNT(*) FROM users WHERE banned = false)::int as total_users,
+        (SELECT COUNT(*) FROM users WHERE verification_status = 'verified')::int as verified_users,
+        (SELECT COUNT(*) FROM events)::int as total_events,
+        (SELECT COUNT(*) FROM events WHERE start_time > NOW() AND status = 'published')::int as upcoming_events,
+        (SELECT COUNT(*) FROM connections)::int as total_connections,
+        (SELECT COUNT(*) FROM posts WHERE is_hidden = false)::int as total_posts
     `);
 
     res.json({ stats });
