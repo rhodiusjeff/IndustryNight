@@ -10,7 +10,25 @@
       "Bash(docker login:*)",
       "Bash(docker:*)",
       "Bash(/usr/local/bin/docker:*)",
-      "Bash(open:*)"
+      "Bash(open:*)",
+      "Bash(cd /Users/jmsimpson/Documents/GitHub/IndustryNight && DB_HOST=localhost DB_USER=industrynight DB_PASSWORD='IndustryNight2026db' DB_NAME=industrynight node scripts/seed-admin.js --email admin@industrynight.net --name \"Platform Admin\" --password \"AdminPass2026!\" --skip-k8s 2>&1)",
+      "Bash(git push:*)",
+      "Bash(gh pr:*)",
+      "Bash(wc -l packages/api/src/routes/*.ts)",
+      "Bash(git add .claude/settings.local.json .gitignore)",
+      "Bash(git commit:*)",
+      "Bash(git branch -d feature/admin-login)",
+      "Bash(git checkout integrate-to-db-data)",
+      "Bash(git checkout integration)",
+      "Bash(git branch -d integrate-to-db-data)",
+      "Bash(git branch -d feature/admin-login integrate-to-db-data)",
+      "Bash(git fetch --prune)",
+      "Bash(flutter doctor --verbose)",
+      "Bash(flutter build ios --simulator)",
+      "Bash(flutter run -d \"0A80545A-5196-4A43-8AD1-44B71572D1E5\" --verbose)",
+      "Bash(git checkout -b post-mitosis-sanity-check)",
+      "Bash(flutter devices)",
+      "Bash(flutter run -d R9WT809K7NM)"
     ]
   }
 }

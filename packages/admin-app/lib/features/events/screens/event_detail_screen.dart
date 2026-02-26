@@ -1,23 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'package:industrynight_shared/shared.dart';
 
 class EventDetailScreen extends StatelessWidget {
   final String eventId;
+  final Event? event;
 
-  const EventDetailScreen({super.key, required this.eventId});
+  const EventDetailScreen({super.key, required this.eventId, this.event});
 
   @override
   Widget build(BuildContext context) {
+    if (event == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Event')),
+        body: const Center(child: Text('Navigate to this page from the events list')),
+      );
+    }
+
+    final e = event!;
+    final dateFormat = DateFormat('MMMM d, yyyy');
+    final timeFormat = DateFormat('h:mm a');
+
+    Color statusColor;
+    switch (e.status) {
+      case EventStatus.published:
+        statusColor = Colors.green.shade100;
+        break;
+      case EventStatus.draft:
+        statusColor = Colors.grey.shade200;
+        break;
+      case EventStatus.cancelled:
+        statusColor = Colors.red.shade100;
+        break;
+      case EventStatus.completed:
+        statusColor = Colors.blue.shade100;
+        break;
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Event: $eventId'),
-        actions: [
-          OutlinedButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.edit),
-            label: const Text('Edit'),
-          ),
-          const SizedBox(width: 16),
-        ],
+        title: Text(e.name),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -35,136 +58,114 @@ class EventDetailScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Industry Night LA',
+                            e.name,
                             style: Theme.of(context).textTheme.headlineMedium,
                           ),
                           const SizedBox(height: 8),
                           Chip(
-                            label: const Text('Published'),
-                            backgroundColor: Colors.green.shade100,
+                            label: Text(e.status.name),
+                            backgroundColor: statusColor,
                           ),
                           const SizedBox(height: 24),
-                          _buildInfoRow(Icons.calendar_today, 'January 25, 2024'),
-                          _buildInfoRow(Icons.access_time, '7:00 PM - 11:00 PM'),
-                          _buildInfoRow(Icons.location_on, 'The Grand Venue, Los Angeles'),
-                          _buildInfoRow(Icons.people, 'Capacity: 200'),
-                          const SizedBox(height: 24),
-                          Text(
-                            'Description',
-                            style: Theme.of(context).textTheme.titleMedium,
+                          _buildInfoRow(Icons.calendar_today, dateFormat.format(e.startTime)),
+                          _buildInfoRow(
+                            Icons.access_time,
+                            '${timeFormat.format(e.startTime)} - ${timeFormat.format(e.endTime)}',
                           ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Join us for an exclusive industry night event featuring networking, '
-                            'live music, and opportunities to connect with creative professionals.',
+                          _buildInfoRow(
+                            Icons.location_on,
+                            [e.venueName, e.venueAddress]
+                                .where((s) => s != null)
+                                .join(', '),
                           ),
+                          if (e.capacity != null)
+                            _buildInfoRow(Icons.people, 'Capacity: ${e.capacity}'),
+                          if (e.description != null && e.description!.isNotEmpty) ...[
+                            const SizedBox(height: 24),
+                            Text(
+                              'Description',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(e.description!),
+                          ],
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Activation Code',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(8),
+                  if (e.activationCode != null) ...[
+                    const SizedBox(height: 16),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Activation Code',
+                              style: Theme.of(context).textTheme.titleMedium,
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'NIGHT2024',
-                                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                        fontFamily: 'monospace',
-                                        letterSpacing: 4,
-                                      ),
-                                ),
-                                const SizedBox(width: 16),
-                                IconButton(
-                                  icon: const Icon(Icons.copy),
-                                  onPressed: () {},
-                                ),
-                              ],
+                            const SizedBox(height: 16),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    e.activationCode!,
+                                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                          fontFamily: 'monospace',
+                                          letterSpacing: 4,
+                                        ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  IconButton(
+                                    icon: const Icon(Icons.copy),
+                                    tooltip: 'Copy code',
+                                    onPressed: () {
+                                      Clipboard.setData(ClipboardData(text: e.activationCode!));
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Code copied to clipboard')),
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: Column(
-                children: [
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Attendance',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 16),
-                          _buildStatRow('Registered', '156'),
-                          _buildStatRow('Checked In', '89'),
-                          _buildStatRow('Available', '44'),
-                        ],
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Attendance',
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                      _buildStatRow('Checked In', '${e.attendeeCount}'),
+                      if (e.capacity != null)
+                        _buildStatRow(
+                          'Available',
+                          '${e.capacity! - e.attendeeCount}',
+                        ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Recent Check-ins',
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                              TextButton(
-                                onPressed: () {},
-                                child: const Text('View All'),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          ...List.generate(
-                            5,
-                            (index) => ListTile(
-                              dense: true,
-                              leading: CircleAvatar(
-                                radius: 16,
-                                child: Text('${index + 1}'),
-                              ),
-                              title: Text('User ${index + 1}'),
-                              subtitle: Text('${10 + index * 5} min ago'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ],
@@ -180,7 +181,7 @@ class EventDetailScreen extends StatelessWidget {
         children: [
           Icon(icon, size: 20, color: Colors.grey),
           const SizedBox(width: 12),
-          Text(text),
+          Expanded(child: Text(text)),
         ],
       ),
     );

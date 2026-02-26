@@ -20,6 +20,9 @@ dist/
 .DS_Store
 Thumbs.db
 
+# Office temp/lock files
+~$*
+
 # Environment files
 .env
 .env.local

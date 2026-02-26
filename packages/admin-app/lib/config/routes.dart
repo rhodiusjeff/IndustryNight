@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:industrynight_shared/shared.dart';
 import '../providers/admin_state.dart';
 import '../features/auth/screens/admin_login_screen.dart';
 import '../features/dashboard/screens/dashboard_screen.dart';
@@ -83,7 +84,8 @@ class AdminRouter {
               path: '/users/:id',
               builder: (context, state) {
                 final id = state.pathParameters['id']!;
-                return UserDetailScreen(userId: id);
+                final user = state.extra as User?;
+                return UserDetailScreen(userId: id, user: user);
               },
             ),
             GoRoute(
@@ -98,7 +100,8 @@ class AdminRouter {
               path: '/events/:id',
               builder: (context, state) {
                 final id = state.pathParameters['id']!;
-                return EventDetailScreen(eventId: id);
+                final event = state.extra as Event?;
+                return EventDetailScreen(eventId: id, event: event);
               },
             ),
             GoRoute(
@@ -113,7 +116,8 @@ class AdminRouter {
               path: '/sponsors/:id/edit',
               builder: (context, state) {
                 final id = state.pathParameters['id']!;
-                return SponsorFormScreen(sponsorId: id);
+                final sponsor = state.extra as Sponsor?;
+                return SponsorFormScreen(sponsorId: id, sponsor: sponsor);
               },
             ),
             GoRoute(
@@ -135,7 +139,8 @@ class AdminRouter {
               path: '/vendors/:id/edit',
               builder: (context, state) {
                 final id = state.pathParameters['id']!;
-                return VendorFormScreen(vendorId: id);
+                final vendor = state.extra as Vendor?;
+                return VendorFormScreen(vendorId: id, vendor: vendor);
               },
             ),
             GoRoute(

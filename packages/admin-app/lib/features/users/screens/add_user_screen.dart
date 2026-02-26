@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:industrynight_shared/shared.dart';
+import '../../../providers/admin_state.dart';
 
 class AddUserScreen extends StatefulWidget {
   const AddUserScreen({super.key});
@@ -14,6 +17,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   String _role = 'user';
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -26,13 +30,32 @@ class _AddUserScreenState extends State<AddUserScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // TODO: Implement API call
+    setState(() => _isSubmitting = true);
 
-    if (mounted) {
+    final adminApi = context.read<AdminState>().adminApi;
+    try {
+      final phone = '+1${_phoneController.text.replaceAll(RegExp(r'\D'), '')}';
+      await adminApi.addUser(
+        phone: phone,
+        name: _nameController.text.isNotEmpty ? _nameController.text : null,
+        email: _emailController.text.isNotEmpty ? _emailController.text : null,
+        role: UserRole.fromString(_role),
+      );
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('User created successfully')),
       );
       context.pop();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e is ApiException ? e.message : 'Failed to create user'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -111,13 +134,19 @@ class _AddUserScreenState extends State<AddUserScreen> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed: () => context.pop(),
+                        onPressed: _isSubmitting ? null : () => context.pop(),
                         child: const Text('Cancel'),
                       ),
                       const SizedBox(width: 16),
                       ElevatedButton(
-                        onPressed: _submit,
-                        child: const Text('Create User'),
+                        onPressed: _isSubmitting ? null : _submit,
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('Create User'),
                       ),
                     ],
                   ),

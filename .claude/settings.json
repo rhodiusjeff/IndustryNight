@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(AWS_PROFILE=industrynight-admin kubectl logs deployment/industrynight-api -n industrynight --tail=50)",
+      "Bash(gh repo view --json nameWithOwner -q .nameWithOwner)",
+      "Bash(gh label list --repo rhodiusjeff/IndustryNight)",
+      "Bash(gh label create \"pkg:social-app\" --repo rhodiusjeff/IndustryNight --description \"Flutter social app \\(iOS/Android/Web\\)\" --color \"7B68EE\")",
+      "Bash(gh label create \"pkg:admin-app\" --repo rhodiusjeff/IndustryNight --description \"Flutter admin dashboard \\(Web/iOS/Android\\)\" --color \"9B59B6\")",
+      "Bash(gh label create \"pkg:api\" --repo rhodiusjeff/IndustryNight --description \"Node.js/Express backend API\" --color \"E67E22\")",
+      "Bash(gh label create \"pkg:database\" --repo rhodiusjeff/IndustryNight --description \"PostgreSQL schema, migrations, and seeds\" --color \"27AE60\")",
+      "Bash(gh label create \"pkg:shared\" --repo rhodiusjeff/IndustryNight --description \"Shared Flutter/Dart package \\(models, API clients\\)\" --color \"2E86C1\")",
+      "Bash(gh label create \"pkg:infra\" --repo rhodiusjeff/IndustryNight --description \"AWS, Kubernetes, CI/CD infrastructure\" --color \"717D7E\")",
+      "Bash(gh issue list --repo rhodiusjeff/IndustryNight --state all)",
+      "Bash(gh issue edit 6 --repo rhodiusjeff/IndustryNight --add-label \"pkg:social-app\")",
+      "Bash(gh issue edit 5 --repo rhodiusjeff/IndustryNight --add-label \"pkg:social-app\")",
+      "Bash(git add packages/social-app/ios/Runner.xcodeproj/project.pbxproj packages/social-app/ios/Runner.xcworkspace/contents.xcworkspacedata packages/social-app/ios/Podfile.lock .claude/settings.local.json .claude/settings.json)"
+    ]
+  }
+}

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:industrynight_shared/shared.dart';
+import '../../../providers/admin_state.dart';
 
 class CreateEventScreen extends StatefulWidget {
   const CreateEventScreen({super.key});
@@ -13,28 +16,73 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _capacityController = TextEditingController();
+  final _venueIdController = TextEditingController();
   DateTime? _startDate;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
     _capacityController.dispose();
+    _venueIdController.dispose();
     super.dispose();
+  }
+
+  DateTime? _combineDateAndTime(DateTime? date, TimeOfDay? time) {
+    if (date == null || time == null) return null;
+    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // TODO: Implement API call
+    final startDateTime = _combineDateAndTime(_startDate, _startTime);
+    final endDateTime = _combineDateAndTime(_startDate, _endTime);
 
-    if (mounted) {
+    if (startDateTime == null || endDateTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select date, start time, and end time'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    final adminApi = context.read<AdminState>().adminApi;
+    try {
+      await adminApi.createEvent(
+        name: _nameController.text,
+        venueId: _venueIdController.text,
+        startTime: startDateTime,
+        endTime: endDateTime,
+        description: _descriptionController.text.isNotEmpty
+            ? _descriptionController.text
+            : null,
+        capacity: _capacityController.text.isNotEmpty
+            ? int.tryParse(_capacityController.text)
+            : null,
+      );
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Event created successfully')),
       );
       context.pop();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e is ApiException ? e.message : 'Failed to create event'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -70,6 +118,21 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Event name is required';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    TextFormField(
+                      controller: _venueIdController,
+                      decoration: const InputDecoration(
+                        labelText: 'Venue ID *',
+                        hintText: 'UUID of the venue',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Venue ID is required';
                         }
                         return null;
                       },
@@ -170,18 +233,19 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         TextButton(
-                          onPressed: () => context.pop(),
+                          onPressed: _isSubmitting ? null : () => context.pop(),
                           child: const Text('Cancel'),
                         ),
                         const SizedBox(width: 16),
-                        OutlinedButton(
-                          onPressed: _submit,
-                          child: const Text('Save as Draft'),
-                        ),
-                        const SizedBox(width: 16),
                         ElevatedButton(
-                          onPressed: _submit,
-                          child: const Text('Publish Event'),
+                          onPressed: _isSubmitting ? null : _submit,
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Text('Create Event'),
                         ),
                       ],
                     ),
