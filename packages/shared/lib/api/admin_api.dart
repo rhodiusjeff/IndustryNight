@@ -304,4 +304,27 @@ class AdminApi {
     );
     return Vendor.fromJson(response['vendor'] as Map<String, dynamic>);
   }
+
+  Future<Vendor> updateVendor(String id, {
+    String? name,
+    String? description,
+    String? website,
+    String? contactEmail,
+    VendorCategory? category,
+    bool? isActive,
+  }) async {
+    final body = <String, dynamic>{};
+    if (name != null) body['name'] = name;
+    if (description != null) body['description'] = description;
+    if (website != null) body['website'] = website;
+    if (contactEmail != null) body['contactEmail'] = contactEmail;
+    if (category != null) body['category'] = category.name;
+    if (isActive != null) body['isActive'] = isActive;
+
+    final response = await _client.patch<Map<String, dynamic>>(
+      '/admin/vendors/$id',
+      body: body,
+    );
+    return Vendor.fromJson(response['vendor'] as Map<String, dynamic>);
+  }
 }

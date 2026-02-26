@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:industrynight_shared/shared.dart';
+import '../../../providers/admin_state.dart';
 
 class VendorFormScreen extends StatefulWidget {
   final String? vendorId;
+  final Vendor? vendor;
 
-  const VendorFormScreen({super.key, this.vendorId});
+  const VendorFormScreen({super.key, this.vendorId, this.vendor});
 
   @override
   State<VendorFormScreen> createState() => _VendorFormScreenState();
@@ -19,8 +23,23 @@ class _VendorFormScreenState extends State<VendorFormScreen> {
   final _phoneController = TextEditingController();
   String _category = 'other';
   bool _isActive = true;
+  bool _isSubmitting = false;
 
   bool get isEditing => widget.vendorId != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.vendor != null) {
+      _nameController.text = widget.vendor!.name;
+      _descriptionController.text = widget.vendor!.description ?? '';
+      _websiteController.text = widget.vendor!.website ?? '';
+      _emailController.text = widget.vendor!.contactEmail ?? '';
+      _phoneController.text = widget.vendor!.contactPhone ?? '';
+      _category = widget.vendor!.category.name;
+      _isActive = widget.vendor!.isActive;
+    }
+  }
 
   @override
   void dispose() {
@@ -35,9 +54,48 @@ class _VendorFormScreenState extends State<VendorFormScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // TODO: Implement API call
+    setState(() => _isSubmitting = true);
 
-    if (mounted) {
+    final adminApi = context.read<AdminState>().adminApi;
+    final category = VendorCategory.values.firstWhere(
+      (c) => c.name == _category,
+      orElse: () => VendorCategory.other,
+    );
+
+    try {
+      if (isEditing) {
+        await adminApi.updateVendor(
+          widget.vendorId!,
+          name: _nameController.text,
+          description: _descriptionController.text.isNotEmpty
+              ? _descriptionController.text
+              : null,
+          website: _websiteController.text.isNotEmpty
+              ? _websiteController.text
+              : null,
+          contactEmail: _emailController.text.isNotEmpty
+              ? _emailController.text
+              : null,
+          category: category,
+          isActive: _isActive,
+        );
+      } else {
+        await adminApi.createVendor(
+          name: _nameController.text,
+          description: _descriptionController.text.isNotEmpty
+              ? _descriptionController.text
+              : null,
+          website: _websiteController.text.isNotEmpty
+              ? _websiteController.text
+              : null,
+          contactEmail: _emailController.text.isNotEmpty
+              ? _emailController.text
+              : null,
+          category: category,
+        );
+      }
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -46,6 +104,15 @@ class _VendorFormScreenState extends State<VendorFormScreen> {
         ),
       );
       context.pop();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e is ApiException ? e.message : 'Failed to save vendor'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -133,13 +200,19 @@ class _VendorFormScreenState extends State<VendorFormScreen> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed: () => context.pop(),
+                        onPressed: _isSubmitting ? null : () => context.pop(),
                         child: const Text('Cancel'),
                       ),
                       const SizedBox(width: 16),
                       ElevatedButton(
-                        onPressed: _submit,
-                        child: Text(isEditing ? 'Update' : 'Create'),
+                        onPressed: _isSubmitting ? null : _submit,
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Text(isEditing ? 'Update' : 'Create'),
                       ),
                     ],
                   ),

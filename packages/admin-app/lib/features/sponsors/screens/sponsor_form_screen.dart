@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:industrynight_shared/shared.dart';
+import '../../../providers/admin_state.dart';
 
 class SponsorFormScreen extends StatefulWidget {
   final String? sponsorId;
+  final Sponsor? sponsor;
 
-  const SponsorFormScreen({super.key, this.sponsorId});
+  const SponsorFormScreen({super.key, this.sponsorId, this.sponsor});
 
   @override
   State<SponsorFormScreen> createState() => _SponsorFormScreenState();
@@ -17,8 +21,21 @@ class _SponsorFormScreenState extends State<SponsorFormScreen> {
   final _websiteController = TextEditingController();
   String _tier = 'bronze';
   bool _isActive = true;
+  bool _isSubmitting = false;
 
   bool get isEditing => widget.sponsorId != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.sponsor != null) {
+      _nameController.text = widget.sponsor!.name;
+      _descriptionController.text = widget.sponsor!.description ?? '';
+      _websiteController.text = widget.sponsor!.website ?? '';
+      _tier = widget.sponsor!.tier.name;
+      _isActive = widget.sponsor!.isActive;
+    }
+  }
 
   @override
   void dispose() {
@@ -31,9 +48,39 @@ class _SponsorFormScreenState extends State<SponsorFormScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // TODO: Implement API call
+    setState(() => _isSubmitting = true);
 
-    if (mounted) {
+    final adminApi = context.read<AdminState>().adminApi;
+    final tier = SponsorTier.values.firstWhere((t) => t.name == _tier);
+
+    try {
+      if (isEditing) {
+        await adminApi.updateSponsor(
+          widget.sponsorId!,
+          name: _nameController.text,
+          description: _descriptionController.text.isNotEmpty
+              ? _descriptionController.text
+              : null,
+          website: _websiteController.text.isNotEmpty
+              ? _websiteController.text
+              : null,
+          tier: tier,
+          isActive: _isActive,
+        );
+      } else {
+        await adminApi.createSponsor(
+          name: _nameController.text,
+          description: _descriptionController.text.isNotEmpty
+              ? _descriptionController.text
+              : null,
+          website: _websiteController.text.isNotEmpty
+              ? _websiteController.text
+              : null,
+          tier: tier,
+        );
+      }
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -42,6 +89,15 @@ class _SponsorFormScreenState extends State<SponsorFormScreen> {
         ),
       );
       context.pop();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e is ApiException ? e.message : 'Failed to save sponsor'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -121,13 +177,19 @@ class _SponsorFormScreenState extends State<SponsorFormScreen> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed: () => context.pop(),
+                        onPressed: _isSubmitting ? null : () => context.pop(),
                         child: const Text('Cancel'),
                       ),
                       const SizedBox(width: 16),
                       ElevatedButton(
-                        onPressed: _submit,
-                        child: Text(isEditing ? 'Update' : 'Create'),
+                        onPressed: _isSubmitting ? null : _submit,
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Text(isEditing ? 'Update' : 'Create'),
                       ),
                     ],
                   ),
