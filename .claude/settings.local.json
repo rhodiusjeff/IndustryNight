@@ -16,7 +16,19 @@
       "Bash(gh pr:*)",
       "Bash(wc -l packages/api/src/routes/*.ts)",
       "Bash(git add .claude/settings.local.json .gitignore)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git branch -d feature/admin-login)",
+      "Bash(git checkout integrate-to-db-data)",
+      "Bash(git checkout integration)",
+      "Bash(git branch -d integrate-to-db-data)",
+      "Bash(git branch -d feature/admin-login integrate-to-db-data)",
+      "Bash(git fetch --prune)",
+      "Bash(flutter doctor --verbose)",
+      "Bash(flutter build ios --simulator)",
+      "Bash(flutter run -d \"0A80545A-5196-4A43-8AD1-44B71572D1E5\" --verbose)",
+      "Bash(git checkout -b post-mitosis-sanity-check)",
+      "Bash(flutter devices)",
+      "Bash(flutter run -d R9WT809K7NM)"
     ]
   }
 }
