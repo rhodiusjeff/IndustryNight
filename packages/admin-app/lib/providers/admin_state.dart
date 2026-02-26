@@ -84,6 +84,11 @@ class AdminState extends ChangeNotifier {
       return true;
     } on ApiException catch (e) {
       _error = e.message;
+      debugPrint('[AdminState] ApiException: ${e.message}');
+      return false;
+    } catch (e) {
+      _error = e.toString();
+      debugPrint('[AdminState] Unexpected error: $e');
       return false;
     } finally {
       _isLoading = false;
