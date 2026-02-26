@@ -49,7 +49,7 @@ async function main() {
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT || '5432'),
     database: process.env.DB_NAME || 'industrynight',
-    user: process.env.DB_USER || 'postgres',
+    user: process.env.DB_USER || 'industrynight',
     password: process.env.DB_PASSWORD || undefined,
     ssl: skipK8s ? false : { rejectUnauthorized: false },
   });

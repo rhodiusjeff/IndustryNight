@@ -7,14 +7,18 @@ Operational scripts for developing, debugging, and managing the Industry Night p
 | Script | Purpose | Key flags |
 |--------|---------|-----------|
 | `deploy-api.sh` | Build & deploy API to EKS | `--skip-build`, `--status` |
+| `pf-db.sh` | DB tunnel: localhost:5432 → db-proxy → RDS | `start`, `stop`, `status` |
 | `db-reset.js` | Full DB reset + migrations | `--skip-k8s`, `--seed-only`, `--yes` |
 | `db-scrub-user.js` | Delete users by phone | `--skip-k8s`, `--yes` |
+| `seed-admin.js` | Create or reset an admin user | `--skip-k8s` |
 | `maintenance.sh` | ALB maintenance mode toggle | `on`, `off`, `status` |
 | `setup-local.sh` | Init local dev environment | (none) |
 | `run-api.sh` | Start API dev server | (none) |
-| `run-mobile.sh` | Start mobile app | (none) |
-| `run-web.sh` | Start web admin | (none) |
+| `run-mobile.sh` | Start **social app** on simulator/device | (none) |
+| `run-web.sh` | Start **admin app** in Chrome | (none) |
 | `debug-api.sh` | Remote Node.js debugging on EKS | `enable`, `disable` |
+| `generate-exec-brief.py` | Regenerate PowerPoint executive brief | (none) |
+| `generate-exec-summary.py` | Regenerate markdown executive summary | (none) |
 
 ---
 
@@ -41,7 +45,7 @@ Starts the Express API server in development mode (`npm run dev`).
 
 ### run-mobile.sh
 
-Starts the Flutter mobile app. Requires a connected device or running simulator/emulator.
+Starts the Flutter **social app** (iOS/Android) on a connected simulator or device.
 
 ```bash
 open -a Simulator          # Start iOS Simulator first
@@ -50,7 +54,7 @@ open -a Simulator          # Start iOS Simulator first
 
 ### run-web.sh
 
-Starts the Flutter web admin dashboard on Chrome at port 8080.
+Starts the Flutter **admin app** in Chrome at port 8080. Connects to `https://api.industrynight.net` (production API) — no local API or DB tunnel required.
 
 ```bash
 ./scripts/run-web.sh
@@ -63,10 +67,10 @@ Starts the Flutter web admin dashboard on Chrome at port 8080.
 # Terminal 1
 ./scripts/run-api.sh
 
-# Terminal 2
+# Terminal 2 — social app
 ./scripts/run-mobile.sh
 
-# Terminal 3 (if working on web admin)
+# Terminal 3 — admin app (web)
 ./scripts/run-web.sh
 ```
 
@@ -105,6 +109,39 @@ Toggles maintenance mode at the ALB level. When enabled, the ALB returns a 503 J
 ---
 
 ## Database
+
+### pf-db.sh
+
+Opens and closes the kubectl port-forward tunnel to the RDS database via the `db-proxy` pod. Use this when you need a persistent DB connection for ad-hoc work — running `psql`, resetting admin credentials with `seed-admin.js`, etc.
+
+```bash
+./scripts/pf-db.sh start    # Open tunnel: localhost:5432 → db-proxy → RDS
+./scripts/pf-db.sh stop     # Close tunnel and free port 5432
+./scripts/pf-db.sh status   # Is the tunnel open?
+```
+
+**Note:** `db-reset.js`, `db-scrub-user.js`, and `seed-admin.js` all manage their own port-forward internally — you do not need to run `pf-db.sh` before those scripts.
+
+### seed-admin.js
+
+Creates or resets an admin user in the `admin_users` table. Uses upsert — running it again with the same email updates the password and name without creating a duplicate.
+
+```bash
+# With EKS running (auto-manages port-forward)
+DB_PASSWORD=xxx node scripts/seed-admin.js \
+  --email admin@industrynight.net \
+  --name "Admin" \
+  --password <yourpassword>
+
+# Local PostgreSQL only (no k8s tunnel)
+DB_PASSWORD=xxx node scripts/seed-admin.js \
+  --email admin@industrynight.net \
+  --name "Admin" \
+  --password <yourpassword> \
+  --skip-k8s
+```
+
+**Requires:** `DB_PASSWORD` env var. Auto-starts `kubectl port-forward` to `db-proxy` unless `--skip-k8s`.
 
 ### db-reset.js
 
@@ -185,7 +222,56 @@ Enables remote Node.js debugging on the EKS API pod. Scales to 1 replica, inject
 
 ---
 
+## Reporting
+
+### generate-exec-brief.py
+
+Regenerates the 13-slide PowerPoint executive brief at `docs/Industry Night - Executive Brief.pptx`. Dark theme, purple accents, widescreen (16:9).
+
+```bash
+python3 -m venv /tmp/pptx-env && source /tmp/pptx-env/bin/activate && pip install python-pptx
+python3 scripts/generate-exec-brief.py
+```
+
+Edit data values directly in the script before regenerating — see CLAUDE.md for which fields to update for a weekly brief.
+
+### generate-exec-summary.py
+
+Regenerates the companion markdown executive summary at `docs/executive-brief.md`.
+
+```bash
+python3 scripts/generate-exec-summary.py
+```
+
+---
+
 ## Common Workflows
+
+### Launch the admin app locally
+
+The admin app talks to the production API (`https://api.industrynight.net`) — no local API or DB tunnel needed.
+
+```bash
+./scripts/run-web.sh
+# Opens at http://localhost:8080
+```
+
+### Set up admin credentials, then launch the admin app
+
+```bash
+# 1. Set your DB password (from AWS Secrets Manager or your notes)
+export DB_PASSWORD=xxx
+
+# 2. Create or reset the admin user (script manages port-forward automatically)
+node scripts/seed-admin.js \
+  --email admin@industrynight.net \
+  --name "Admin" \
+  --password <yourpassword>
+
+# 3. Launch the admin app
+./scripts/run-web.sh
+# Login at http://localhost:8080 with the credentials above
+```
 
 ### Deploy a backend fix
 
@@ -214,4 +300,13 @@ DB_PASSWORD=xxx node scripts/db-reset.js
 # Attach VS Code debugger, reproduce the issue, inspect state
 # Ctrl+C when done
 ./scripts/debug-api.sh disable
+```
+
+### Ad-hoc database access (psql or other tools)
+
+```bash
+./scripts/pf-db.sh start
+psql -h localhost -U industrynight -d industrynight
+# ... do your work ...
+./scripts/pf-db.sh stop
 ```
