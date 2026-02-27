@@ -20,6 +20,7 @@ Industry Night is a platform for discovering, promoting, and managing industry n
 - **SMS:** Twilio (optional — dev mode returns code in API response)
 - **Cloud:** AWS (EKS, ECR, RDS, S3, SES, ALB)
 - **Validation:** Zod (backend), Equatable + json_annotation (Flutter)
+- **File uploads:** multer (backend, memory storage) + file_picker (Flutter web)
 
 ## Project Structure
 
@@ -35,8 +36,11 @@ docs/                               # Project memory and documentation
   app_rationale_treatise.md         # Product rationale
   open_questions.md                 # Open design questions
 scripts/                            # Operational scripts (Node.js + bash)
+  migrate.js                        # Apply pending DB migrations (safe to re-run)
   db-reset.js                       # Full database reset (drops all, re-runs migrations + seeds)
   db-scrub-user.js                  # Delete specific users by phone number
+  deploy-api.sh                     # Build, push Docker image to ECR, roll out to EKS
+  pf-db.sh                          # Manage kubectl port-forward tunnel to RDS
   maintenance.sh                    # Toggle k8s maintenance mode
   setup-local.sh                    # Local dev environment setup
   run-api.sh / run-mobile.sh / run-web.sh / debug-api.sh
@@ -62,7 +66,15 @@ packages/
 
 ## Database
 
-PostgreSQL 15 on RDS. Schema in `packages/database/migrations/001_initial_schema.sql`.
+PostgreSQL 15 on RDS. Schema built from sequential migrations in `packages/database/migrations/`.
+
+### Migrations
+| File | Description |
+|------|-------------|
+| `001_initial_schema.sql` | Core tables: users, events, tickets, connections, posts, venues, audit_log, analytics |
+| `002_add_sponsors.sql` | Sponsors and discounts tables |
+| `003_admin_users.sql` | Admin user accounts table |
+| `004_event_enhancements.sql` | Multi-image support, event_sponsors junction, posh_orders, venue text fields |
 
 ### Enum types
 - `admin_role`: `platformAdmin`
@@ -81,9 +93,12 @@ PostgreSQL 15 on RDS. Schema in `packages/database/migrations/001_initial_schema
 | `users` | Social user profiles | — |
 | `verification_codes` | SMS login codes (phone is PK) | Manual cleanup |
 | `specialties` | Reference data (admin-managed) | — |
-| `venues` | Event locations | — |
-| `events` | Industry night events | — |
-| `tickets` | Event tickets (Posh integration) | CASCADE |
+| `venues` | Legacy venue records (new events use venue_name/venue_address text fields directly) | — |
+| `events` | Industry night events (venue_name + venue_address as text; no image_url — use event_images) | — |
+| `event_images` | Up to 5 images per event; sort_order 0 = hero image | CASCADE |
+| `event_sponsors` | Many-to-many junction: events ↔ sponsors | CASCADE |
+| `posh_orders` | Posh webhook purchases — the canonical ticket for Posh buyers | event: SET NULL, user: SET NULL |
+| `tickets` | Walk-in / manual check-in tickets (non-Posh) | CASCADE |
 | `connections` | QR-scan mutual connections | CASCADE |
 | `posts` | Community feed | CASCADE |
 | `post_comments` | Comments on posts | CASCADE |
@@ -94,8 +109,15 @@ PostgreSQL 15 on RDS. Schema in `packages/database/migrations/001_initial_schema
 | `analytics_events` | Event performance | CASCADE |
 | `analytics_influence` | Network influence scores | CASCADE |
 | `data_export_requests` | GDPR/CCPA export tracking | CASCADE |
+| `_migrations` | Migration tracking (filename → applied_at) | — |
 
 **Key:** Deleting a user via `DELETE FROM users WHERE id = $1` cascades to all user data except `audit_log` (SET NULL) and `verification_codes` (must delete manually by phone first).
+
+### Event publishing gate (enforced in PATCH /admin/events/:id)
+An event cannot be published unless:
+1. `posh_event_id` is set (required to match incoming Posh webhooks)
+2. `venue_name` is set
+3. At least 1 image exists in `event_images`
 
 ## API (packages/api)
 
@@ -106,8 +128,8 @@ Required: `JWT_SECRET` (min 32 chars)
 Optional (with defaults):
 - `NODE_ENV` (development), `PORT` (3000)
 - `DB_HOST` (localhost), `DB_PORT` (5432), `DB_NAME` (industrynight), `DB_USER` (postgres), `DB_PASSWORD`
-- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER` — if missing, SMS is skipped and devCode returned in response
-- `TWILIO_VERIFY_SERVICE_SID` — if set (with account SID + auth token), uses Twilio Verify API for OTP instead of Messages API
+- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER` — if missing, SMS is skipped (dev-safe)
+- `TWILIO_VERIFY_SERVICE_SID` — if set (with account SID + auth token), uses Twilio Verify API for OTP
 - `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET`, `SES_FROM_EMAIL`
 - `POSH_WEBHOOK_SECRET`
 - `CORS_ORIGINS` (comma-separated)
@@ -126,9 +148,35 @@ Optional (with defaults):
 | `/sponsors` | routes/sponsors.ts | Sponsor management |
 | `/vendors` | routes/vendors.ts | Vendor management |
 | `/discounts` | routes/discounts.ts | Discount/perk management |
-| `/webhooks` | routes/webhooks.ts | Posh webhook receiver |
+| `/webhooks` | routes/webhooks.ts | Posh webhook receiver (`POST /posh`) |
 | `/admin/auth` | routes/admin-auth.ts | `POST /login`, `POST /refresh`, `GET /me`, `POST /logout` |
-| `/admin` | routes/admin.ts | Admin dashboard endpoints (users, stats) |
+| `/admin` | routes/admin.ts | All admin dashboard endpoints (see below) |
+
+### Admin API endpoints (routes/admin.ts)
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/admin/dashboard` | Stats: users, events, connections, posts |
+| `GET` | `/admin/users` | List users (filter by role, verificationStatus, query) |
+| `PATCH` | `/admin/users/:id` | Update role, banned, verificationStatus |
+| `POST` | `/admin/users` | Add user (phone, name, email, role) |
+| `GET` | `/admin/events` | List events with hero_image_url, image_count, sponsor_count |
+| `GET` | `/admin/events/:id` | Event detail with full images[] and sponsors[] arrays |
+| `POST` | `/admin/events` | Create event (name, startTime, endTime, venueName, venueAddress, description, capacity, poshEventId) |
+| `PATCH` | `/admin/events/:id` | Update event; enforces publish gate when status → published |
+| `POST` | `/admin/events/:id/images` | Upload image (multipart/form-data, field: image, max 5 per event) |
+| `DELETE` | `/admin/events/:id/images/:imageId` | Delete image (removes from S3 + DB) |
+| `GET` | `/admin/images` | Image catalog — all images across all events (with event_name) |
+| `DELETE` | `/admin/images/:imageId` | Delete image globally |
+| `POST` | `/admin/events/:id/sponsors` | Link sponsor to event |
+| `DELETE` | `/admin/events/:id/sponsors/:sponsorId` | Unlink sponsor from event |
+| `GET` | `/admin/sponsors` | List sponsors |
+| `POST` | `/admin/sponsors` | Create sponsor |
+| `PATCH` | `/admin/sponsors/:id` | Update sponsor |
+| `GET` | `/admin/sponsors/:id/discounts` | List discounts for sponsor |
+| `POST` | `/admin/sponsors/:id/discounts` | Create discount |
+| `GET` | `/admin/vendors` | List vendors |
+| `POST` | `/admin/vendors` | Create vendor |
+| `PATCH` | `/admin/vendors/:id` | Update vendor |
 
 ### Middleware
 - `authenticateAdmin` (`middleware/admin-auth.ts`) — verifies JWT with `tokenFamily: 'admin'`, used on all `/admin` routes
@@ -138,9 +186,10 @@ Optional (with defaults):
 - `validate` (`middleware/validation.ts`) — Zod schema validation for req body/query/params
 
 ### Services
-- `sms.ts` — Twilio SMS; exports `twilioAvailable` boolean. If Twilio not configured, `sendVerificationCode` is a no-op
-- `email.ts` — AWS SES email
-- `posh.ts` — Posh ticketing integration
+- `sms.ts` — Twilio SMS; exports `twilioAvailable`, `sendSms(phone, message)`. Gracefully degrades in dev (console.log only).
+- `email.ts` — AWS SES email; exports `sendEmail({to, subject, html, text})`, `sendWelcomeEmail`.
+- `storage.ts` — S3 image upload/delete; exports `uploadImage(buffer, filename, folder)`, `deleteImage(url)`, `s3Available`. Gracefully degrades in dev (returns placeholder URL when S3 not configured).
+- `posh.ts` — Posh webhook handler; processes `new_order` events, writes to `posh_orders`, sends invite SMS + email. Does NOT auto-create users.
 
 ## Social App (packages/social-app)
 
@@ -172,17 +221,48 @@ Optional (with defaults):
 
 Admin dashboard for platform operators. Authentication: email/password (separate `admin_users` table).
 
-Features:
-- `auth` — admin login screen
-- `dashboard` — stats overview
-- `users` — user list, detail, add user (with role dropdown)
-- `events` — event list, create, detail
-- `sponsors` — sponsor management, discount management
-- `vendors` — vendor management
-- `moderation` — post moderation, announcements
-- `settings` — admin settings
+### Features
+| Feature | Screens | Description |
+|---------|---------|-------------|
+| `auth` | `admin_login_screen` | Email/password login |
+| `dashboard` | `dashboard_screen` | Stats overview |
+| `users` | `users_list_screen`, `user_detail_screen`, `add_user_screen` | Full user management |
+| `events` | `events_list_screen`, `event_form_screen`, `event_detail_screen`, `image_catalog_screen` | Full event lifecycle |
+| `sponsors` | `sponsors_list_screen`, `sponsor_form_screen`, `discounts_screen` | Sponsor + discount management |
+| `vendors` | `vendors_list_screen`, `vendor_form_screen` | Vendor management |
+| `moderation` | `posts_list_screen`, `announcements_screen` | Post moderation (stub) |
+| `settings` | `admin_settings_screen` | Admin settings |
 
-State: `AdminState` provider in `lib/providers/admin_state.dart`
+### Event management screens
+- **`event_form_screen.dart`** — Unified create + edit form. Pass `Event? event` (null = create mode). After create: navigates to `/events/:id`. After edit: pops back.
+- **`event_detail_screen.dart`** — Full detail loaded from API on init (no `extra` needed). Inline image upload (file_picker), inline sponsor management (add via popup, remove via chip), status transition buttons, activation code display. Two-column layout.
+- **`image_catalog_screen.dart`** — Grid of all uploaded images across all events. Multi-select + bulk delete.
+
+### Admin app routes (lib/config/routes.dart)
+| Route | Screen |
+|-------|--------|
+| `/` | DashboardScreen |
+| `/users` | UsersListScreen |
+| `/users/add` | AddUserScreen |
+| `/users/:id` | UserDetailScreen (User? via extra) |
+| `/events` | EventsListScreen |
+| `/events/create` | EventFormScreen() |
+| `/events/:id` | EventDetailScreen(eventId) — loads from API |
+| `/events/:id/edit` | EventFormScreen(event: Event? via extra) |
+| `/images` | ImageCatalogScreen |
+| `/sponsors` | SponsorsListScreen |
+| `/sponsors/add` | SponsorFormScreen() |
+| `/sponsors/:id/edit` | SponsorFormScreen(sponsorId, sponsor: Sponsor? via extra) |
+| `/sponsors/:id/discounts` | DiscountsScreen(sponsorId) |
+| `/vendors` | VendorsListScreen |
+| `/vendors/add` | VendorFormScreen() |
+| `/vendors/:id/edit` | VendorFormScreen(vendorId, vendor: Vendor? via extra) |
+| `/moderation/posts` | PostsListScreen |
+| `/moderation/announcements` | AnnouncementsScreen |
+| `/settings` | AdminSettingsScreen |
+
+### State
+`AdminState` provider in `lib/providers/admin_state.dart`
 - Properties: `currentAdmin` (AdminUser?), `isLoggedIn`, `isLoading`, `error`
 - API clients: `adminAuthApi` (AdminAuthApi), `adminApi` (AdminApi)
 - Auth: `login(email, password)`, `logout()`, `initialize()` (token restore + refresh)
@@ -192,7 +272,9 @@ State: `AdminState` provider in `lib/providers/admin_state.dart`
 ### Models (lib/models/) — use `@JsonSerializable(fieldRename: FieldRename.snake)` except where noted
 - `AdminUser` (admin_user.dart) — admin dashboard user (email/password auth). Uses `@JsonSerializable()` (camelCase) because the admin-auth API returns camelCase keys.
 - `User`, `SocialLinks` (user.dart) — social app user (phone OTP auth)
-- `Event` (event.dart)
+- `Event` (event.dart) — includes `venueName`, `venueAddress`, `poshEventId`, `heroImageUrl`, `imageCount`, `sponsorCount`, `images List<EventImage>?` (detail only), `sponsors List<EventSponsor>?` (detail only), `copyWith`. No `imageUrl` or `venueId` dependency.
+- `EventImage` (event_image.dart) — `id`, `eventId`, `url`, `sortOrder`, `uploadedAt`, `eventName?` (catalog only)
+- `EventSponsor` — lightweight sponsor summary embedded in Event; manual fromJson, not build_runner
 - `Connection` (connection.dart)
 - `Ticket` (ticket.dart)
 - `Post`, `PostComment` (post.dart)
@@ -206,14 +288,14 @@ cd packages/shared && dart run build_runner build --delete-conflicting-outputs
 ```
 
 ### API Clients (lib/api/)
-- `ApiClient` — base HTTP client with token management and debug logging
+- `ApiClient` — base HTTP client with token management, debug logging, and `uploadFile` (multipart)
 - `AdminAuthApi` — admin auth endpoints (login, refreshToken, getCurrentAdmin, logout)
 - `AuthApi` — social auth endpoints (requestCode, verifyCode, refreshToken, logout, getCurrentUser, deleteAccount)
 - `UsersApi` — user search, profile updates, photo upload
-- `EventsApi` — event listing and details
+- `EventsApi` — event listing and details (social app)
 - `ConnectionsApi` — connection management
 - `PostsApi` — community feed
-- `AdminApi` — admin dashboard endpoints
+- `AdminApi` — all admin dashboard endpoints including event CRUD, image upload/delete, sponsor link/unlink, image catalog
 
 ### Constants (lib/constants/)
 - `verification_status.dart` — `VerificationStatus` enum, `UserRole` enum, `UserSource` enum
@@ -240,24 +322,21 @@ cd packages/shared && dart run build_runner build --delete-conflicting-outputs
 - **Resources:** 256Mi-512Mi memory, 250m-500m CPU per pod
 - **Health:** liveness + readiness probes on `/health`
 - **Secrets:** `industrynight-secrets` (DB_PASSWORD, JWT_SECRET, Twilio creds, etc.)
-- **DB Proxy:** `db-proxy` pod for port-forwarding: `kubectl port-forward pod/db-proxy 5432:5432 -n industrynight`
+- **DB Proxy:** `db-proxy` pod for port-forwarding: `./scripts/pf-db.sh start`
 
 ### Deployment workflow
 ```bash
-# 1. Authenticate
-AWS_PROFILE=industrynight-admin aws ecr get-login-password --region us-east-1 | \
-  docker login --username AWS --password-stdin 047593684855.dkr.ecr.us-east-1.amazonaws.com
+# Apply pending DB migrations first (always before deploying new API code)
+DB_PASSWORD=xxx node scripts/migrate.js
 
-# 2. Build
-cd packages/api
-docker build --platform linux/amd64 -t 047593684855.dkr.ecr.us-east-1.amazonaws.com/industrynight-api:latest .
+# Build, push, and roll out the API
+./scripts/deploy-api.sh
 
-# 3. Push
-docker push 047593684855.dkr.ecr.us-east-1.amazonaws.com/industrynight-api:latest
+# Check status only
+./scripts/deploy-api.sh --status
 
-# 4. Rollout
-AWS_PROFILE=industrynight-admin kubectl rollout restart deployment/industrynight-api -n industrynight
-AWS_PROFILE=industrynight-admin kubectl rollout status deployment/industrynight-api -n industrynight
+# Push existing image without rebuild
+./scripts/deploy-api.sh --skip-build
 ```
 
 ## Scripts
@@ -265,8 +344,11 @@ AWS_PROFILE=industrynight-admin kubectl rollout status deployment/industrynight-
 | Script | Purpose | Usage |
 |--------|---------|-------|
 | `scripts/seed-admin.js` | Create initial admin user | `node scripts/seed-admin.js --email x --name y --password z` |
+| `scripts/migrate.js` | Apply pending migrations (safe to re-run) | `DB_PASSWORD=xxx node scripts/migrate.js [--skip-k8s] [--dry-run] [--status]` |
 | `scripts/db-reset.js` | Full DB reset (drop all, re-run migrations + seeds) | `DB_PASSWORD=xxx node scripts/db-reset.js [--skip-k8s] [--yes]` |
 | `scripts/db-scrub-user.js` | Delete specific users by phone | `DB_PASSWORD=xxx node scripts/db-scrub-user.js [--skip-k8s] [--yes] +15551234567` |
+| `scripts/deploy-api.sh` | Build Docker image, push to ECR, roll out to EKS | `./scripts/deploy-api.sh [--skip-build] [--status]` |
+| `scripts/pf-db.sh` | Manage kubectl port-forward tunnel to RDS | `./scripts/pf-db.sh start\|stop\|status` |
 | `scripts/maintenance.sh` | Toggle k8s maintenance mode | `./scripts/maintenance.sh on/off` |
 | `scripts/setup-local.sh` | Local dev environment setup | `./scripts/setup-local.sh` |
 
@@ -276,24 +358,11 @@ DB scripts use `pg` from `packages/api/node_modules` (no separate install needed
 
 `scripts/generate-exec-brief.py` generates a 13-slide PowerPoint presentation at `docs/Industry Night - Executive Brief.pptx`. Dark theme, purple accents, widescreen (16:9).
 
-**Slides:** Title, What Is IN, How It Works, Timeline, Codebase Metrics, Built (Backend/DB), Built (Apps), Infrastructure, Architecture Decisions, Implementation Status, Current WIP + Next, Tech Debt, Summary.
-
 **To regenerate:**
 ```bash
 python3 -m venv /tmp/pptx-env && source /tmp/pptx-env/bin/activate && pip install python-pptx
 python3 scripts/generate-exec-brief.py
 ```
-
-**To update for a weekly brief:** Edit the data values directly in `scripts/generate-exec-brief.py`:
-- `REPORT_DATE` / `PERIOD` — auto-set from `date.today()`, update `PERIOD` string
-- Slide 4 (Timeline) — add new milestones to the `milestones` list
-- Slide 5 (Metrics) — update `stats` and `stats2` number values, update `add_table_data` LOC counts
-- Slide 6-7 (What's Built) — add new bullet items to card text frames
-- Slide 10 (Status) — update `phases` list statuses and colors (`GREEN`=done, `AMBER`=partial, `ACCENT_LIGHT`=in progress, `MID_GRAY`=not started)
-- Slide 11 (WIP/Next) — update current branch work and next items
-- Slide 12 (Tech Debt) — add/remove rows from the table data
-
-The companion markdown brief is at `docs/executive-brief.md`.
 
 ### COOP Scripts (scripts/coop/)
 
@@ -356,7 +425,7 @@ gh pr create --base master --head integration
 
 ### Releasing to production
 
-Open a PR from `integration` → `master`. This is the only path to production. The PR title should summarize what's being shipped (e.g. "Release: profile image upload + remember phone number").
+Open a PR from `integration` → `master`. This is the only path to production. The PR title should summarize what's being shipped (e.g. "Release: event image management + Posh webhook").
 
 ### GitHub issue labels
 
@@ -413,6 +482,14 @@ When `TWILIO_VERIFY_SERVICE_SID` is set (production):
 
 6. **build_runner:** After changing any model in `packages/shared/lib/models/`, run: `cd packages/shared && dart run build_runner build --delete-conflicting-outputs`
 
+7. **Event detail screen:** `EventDetailScreen` takes only `eventId` — it loads the full event (with images + sponsors) from the API on init. Do NOT pass `event` as a `GoRouter` extra; the detail route was intentionally redesigned to always fetch fresh data.
+
+8. **S3 image uploads:** `storage.ts` gracefully degrades when `S3_BUCKET` is not set — it returns a placeholder URL. In production, ensure `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `S3_BUCKET` are all set in the K8s secrets.
+
+9. **Posh webhook payload:** The real Posh `new_order` payload has flat buyer fields (`account_first_name`, `account_phone`, etc.) and an `items[]` array — NOT nested `buyer` object. See `posh.ts` for the correct interface.
+
+10. **Event image_url column removed:** Migration 004 drops `events.image_url` and replaces it with the `event_images` table. The migration backfills existing data automatically. Do not reference `image_url` on events anywhere.
+
 ## Roles
 
 | Role | Value | Admin middleware | Permissions |
@@ -434,6 +511,10 @@ When `TWILIO_VERIFY_SERVICE_SID` is set (production):
 - **CASCADE deletes:** All user FKs use CASCADE except audit_log (SET NULL to preserve history)
 - **Open registration:** First SMS verify auto-creates user if phone not found
 - **QR networking:** Connections are instant and mutual on QR scan (no request/accept flow)
+- **Venue as text fields:** `venue_name` and `venue_address` are plain text on `events` — no first-class Venue FK for new events. The `venues` table remains for legacy data only.
+- **posh_orders as tickets:** Posh webhook purchases write to `posh_orders`, which IS the canonical ticket record. The `tickets` table is for walk-in/manual check-ins. Posh buyers are NOT auto-created as users — they receive an invite to download the app.
+- **Publish gate:** Events require Posh event ID + venue name + at least 1 image before they can be published. Enforced at the API layer in `PATCH /admin/events/:id`.
+- **Image catalog:** All event images are queryable globally (`GET /admin/images`) for reuse and cleanup, in addition to per-event access.
 
 ## Documentation
 
@@ -462,35 +543,39 @@ The `docs/` directory is the project memory:
 3. **Pending knowledge transfer items.** The following topics should be turned into a structured lesson plan when the user is ready. The goal is hands-on understanding, not just documentation:
    - **AWS/EKS/K8s fundamentals:** What the cluster is, what pods/deployments/services/ingress do, how kubectl works, what eksctl manages vs what kubectl manages
    - **COOP system:** How teardown/rebuild works, what gets deleted vs preserved, how database backups work, how to verify a restore
-   - **Database operations:** Migrations system (`_migrations` table, `migrate.sh`), how schema changes propagate, the FK cascade design, how to safely modify the schema
+   - **Database operations:** Migrations system (`_migrations` table, `scripts/migrate.js`), how schema changes propagate, the FK cascade design, how to safely modify the schema
    - **CI/CD pipeline:** What the GitHub Actions workflows do, how code gets from PR to production, what's automated vs manual. **Known gaps:** no migration runner in deploy, no API tests, health check doesn't verify DB connectivity
-   - **Deployment process:** Docker build, ECR push, K8s rollout, how to debug a failed deploy, how to rollback
+   - **Deployment process:** `./scripts/deploy-api.sh` handles Docker build + ECR push + K8s rollout. Always run `scripts/migrate.js` before deploying API code that depends on new schema.
    - **Local development:** How to run everything locally, devCode system, port-forwarding to RDS
 
 4. **Known technical debt / future work:**
-   - CI/CD: Add K8s Job pre-deploy migration runner to `api.yml`
+   - CI/CD: Wire `scripts/migrate.js` into `api.yml` as a pre-deploy K8s Job (runner script exists, just not wired into CI yet)
    - CI/CD: Write API tests (Jest is configured but no tests exist)
    - CI/CD: Add DB connectivity check to `/health` endpoint
    - CI/CD: Add post-deploy smoke tests
    - Migrations: Create down-migration files for rollback capability
+   - Admin app: Posh orders view (see who bought tickets, reconcile with IN accounts)
+   - Admin app: Event check-in management (scan activation codes, view checked-in attendees)
+   - Social app: Event detail needs to consume new multi-image + sponsors data from the updated API
 
 ## Testing Plan
 
 **Trigger phrase:** "tell me about Flutter app testing" or "let's build the test suite"
 
-### API Tests (Jest) — Priority: build after admin app login is working
+### API Tests (Jest) — Priority: build after admin app event flow is verified working
 Start with the flows where a silent regression would corrupt data or lock users out:
 1. **Auth flow:** request-code → verify-code → token issued → refresh → logout
 2. **User deletion cascade:** delete user → verify all FK tables cleaned, audit_log preserved (SET NULL), verification_codes cleaned separately
 3. **Admin auth:** login → JWT with `tokenFamily: 'admin'` → admin routes accessible → social token rejected on admin routes
 4. **Role-based access:** user token can't hit admin routes, admin token can't hit social routes
-5. **Token family isolation:** social tokens rejected by admin middleware, admin tokens rejected by social middleware
+5. **Event publish gate:** PATCH status=published fails without poshEventId, venueName, and at least 1 image
+6. **Posh webhook:** POST /webhooks/posh with real payload structure → posh_orders row created → invite sent
 
 Jest is already configured in `packages/api` — no test files exist yet. Tests should run against a real test database (not mocks) to verify actual SQL behavior including CASCADE deletes.
 
 ### Flutter Widget Tests — Priority: build alongside API tests
 Per-screen tests for form validation, state transitions, and navigation. Focus on:
-- **Admin app:** Login form validation, auth state transitions, route guards
+- **Admin app:** Login form validation, auth state transitions, route guards, event form validation
 - **Social app:** Profile setup validation, event list rendering, connection flow state
 
 ### Physical/Manual Testing — requires humans or future embodied agents

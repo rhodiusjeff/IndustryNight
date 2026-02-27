@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 /// Exception thrown when an API request fails
 class ApiException implements Exception {
@@ -23,11 +24,21 @@ class ApiException implements Exception {
   bool get isServerError => statusCode >= 500;
 }
 
+/// Callback that attempts to refresh the auth token.
+/// Returns true if a new token was set (retry the request), false to give up.
+typedef TokenRefresher = Future<bool> Function();
+
 /// HTTP client for Industry Night API
 class ApiClient {
   final String baseUrl;
   final http.Client _httpClient;
   String? _token;
+  bool _isRefreshing = false;
+
+  /// Set this to enable automatic token refresh on 401 responses.
+  /// The callback should refresh the token, call [setToken] with the new value,
+  /// and return true. Return false (or throw) to propagate the 401.
+  TokenRefresher? onTokenExpired;
 
   ApiClient({
     required this.baseUrl,
@@ -81,20 +92,40 @@ class ApiClient {
     );
   }
 
+  /// Execute [request], and on 401 try [onTokenExpired] then retry once.
+  Future<T> _withRetry<T>(Future<T> Function() request) async {
+    try {
+      return await request();
+    } on ApiException catch (e) {
+      if (e.isUnauthorized && onTokenExpired != null && !_isRefreshing) {
+        _isRefreshing = true;
+        try {
+          final refreshed = await onTokenExpired!();
+          if (refreshed) {
+            return await request();
+          }
+        } finally {
+          _isRefreshing = false;
+        }
+      }
+      rethrow;
+    }
+  }
+
   /// Make a GET request
   Future<T> get<T>(
     String path, {
     Map<String, String>? queryParams,
     bool requiresAuth = true,
-  }) async {
-    final uri = Uri.parse('$baseUrl$path').replace(queryParameters: queryParams);
-
-    final response = await _httpClient.get(
-      uri,
-      headers: _buildHeaders(includeAuth: requiresAuth),
-    );
-
-    return _handleResponse(response) as T;
+  }) {
+    return _withRetry(() async {
+      final uri = Uri.parse('$baseUrl$path').replace(queryParameters: queryParams);
+      final response = await _httpClient.get(
+        uri,
+        headers: _buildHeaders(includeAuth: requiresAuth),
+      );
+      return _handleResponse(response) as T;
+    });
   }
 
   /// Make a POST request
@@ -102,16 +133,16 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? body,
     bool requiresAuth = true,
-  }) async {
-    final uri = Uri.parse('$baseUrl$path');
-
-    final response = await _httpClient.post(
-      uri,
-      headers: _buildHeaders(includeAuth: requiresAuth),
-      body: body != null ? jsonEncode(body) : null,
-    );
-
-    return _handleResponse(response) as T;
+  }) {
+    return _withRetry(() async {
+      final uri = Uri.parse('$baseUrl$path');
+      final response = await _httpClient.post(
+        uri,
+        headers: _buildHeaders(includeAuth: requiresAuth),
+        body: body != null ? jsonEncode(body) : null,
+      );
+      return _handleResponse(response) as T;
+    });
   }
 
   /// Make a PUT request
@@ -119,16 +150,16 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? body,
     bool requiresAuth = true,
-  }) async {
-    final uri = Uri.parse('$baseUrl$path');
-
-    final response = await _httpClient.put(
-      uri,
-      headers: _buildHeaders(includeAuth: requiresAuth),
-      body: body != null ? jsonEncode(body) : null,
-    );
-
-    return _handleResponse(response) as T;
+  }) {
+    return _withRetry(() async {
+      final uri = Uri.parse('$baseUrl$path');
+      final response = await _httpClient.put(
+        uri,
+        headers: _buildHeaders(includeAuth: requiresAuth),
+        body: body != null ? jsonEncode(body) : null,
+      );
+      return _handleResponse(response) as T;
+    });
   }
 
   /// Make a PATCH request
@@ -136,31 +167,31 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? body,
     bool requiresAuth = true,
-  }) async {
-    final uri = Uri.parse('$baseUrl$path');
-
-    final response = await _httpClient.patch(
-      uri,
-      headers: _buildHeaders(includeAuth: requiresAuth),
-      body: body != null ? jsonEncode(body) : null,
-    );
-
-    return _handleResponse(response) as T;
+  }) {
+    return _withRetry(() async {
+      final uri = Uri.parse('$baseUrl$path');
+      final response = await _httpClient.patch(
+        uri,
+        headers: _buildHeaders(includeAuth: requiresAuth),
+        body: body != null ? jsonEncode(body) : null,
+      );
+      return _handleResponse(response) as T;
+    });
   }
 
   /// Make a DELETE request
   Future<void> delete(
     String path, {
     bool requiresAuth = true,
-  }) async {
-    final uri = Uri.parse('$baseUrl$path');
-
-    final response = await _httpClient.delete(
-      uri,
-      headers: _buildHeaders(includeAuth: requiresAuth),
-    );
-
-    _handleResponse(response);
+  }) {
+    return _withRetry(() async {
+      final uri = Uri.parse('$baseUrl$path');
+      final response = await _httpClient.delete(
+        uri,
+        headers: _buildHeaders(includeAuth: requiresAuth),
+      );
+      _handleResponse(response);
+    });
   }
 
   /// Upload a file via multipart request
@@ -171,29 +202,45 @@ class ApiClient {
     required String filename,
     String? mimeType,
     Map<String, String>? additionalFields,
-  }) async {
-    final uri = Uri.parse('$baseUrl$path');
+  }) {
+    return _withRetry(() async {
+      final uri = Uri.parse('$baseUrl$path');
+      final request = http.MultipartRequest('POST', uri);
 
-    final request = http.MultipartRequest('POST', uri);
+      if (_token != null) {
+        request.headers['Authorization'] = 'Bearer $_token';
+      }
 
-    if (_token != null) {
-      request.headers['Authorization'] = 'Bearer $_token';
-    }
+      request.files.add(http.MultipartFile.fromBytes(
+        fieldName,
+        fileBytes,
+        filename: filename,
+        contentType: _contentTypeFromArgs(mimeType, filename),
+      ));
 
-    request.files.add(http.MultipartFile.fromBytes(
-      fieldName,
-      fileBytes,
-      filename: filename,
-    ));
+      if (additionalFields != null) {
+        request.fields.addAll(additionalFields);
+      }
 
-    if (additionalFields != null) {
-      request.fields.addAll(additionalFields);
-    }
+      final streamedResponse = await _httpClient.send(request);
+      final response = await http.Response.fromStream(streamedResponse);
+      return _handleResponse(response) as T;
+    });
+  }
 
-    final streamedResponse = await _httpClient.send(request);
-    final response = await http.Response.fromStream(streamedResponse);
-
-    return _handleResponse(response) as T;
+  /// Detect content type from explicit mimeType or file extension fallback
+  MediaType? _contentTypeFromArgs(String? mimeType, String filename) {
+    if (mimeType != null) return MediaType.parse(mimeType);
+    final ext = filename.split('.').last.toLowerCase();
+    const types = {
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'webp': 'image/webp',
+      'gif': 'image/gif',
+    };
+    final detected = types[ext];
+    return detected != null ? MediaType.parse(detected) : null;
   }
 
   /// Close the HTTP client

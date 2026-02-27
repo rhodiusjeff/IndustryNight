@@ -16,7 +16,9 @@ class AdminState extends ChangeNotifier {
     SecureStorage? storage,
   })  : _apiClient = apiClient ??
             ApiClient(baseUrl: apiBaseUrl ?? 'https://api.industrynight.net'),
-        _storage = storage ?? SecureStorage();
+        _storage = storage ?? SecureStorage() {
+    _apiClient.onTokenExpired = _refreshAccessToken;
+  }
 
   AdminUser? get currentAdmin => _currentAdmin;
   bool get isInitialized => _isInitialized;
@@ -26,6 +28,39 @@ class AdminState extends ChangeNotifier {
 
   late final AdminAuthApi adminAuthApi = AdminAuthApi(_apiClient);
   late final AdminApi adminApi = AdminApi(_apiClient);
+
+  /// Attempt to refresh the access token using the stored refresh token.
+  /// Returns true if a new token was set, false if refresh failed (forces logout).
+  Future<bool> _refreshAccessToken() async {
+    final refreshToken = await _storage.getRefreshToken();
+    if (refreshToken == null) {
+      await _forceLogout();
+      return false;
+    }
+
+    try {
+      final response = await adminAuthApi.refreshToken(refreshToken);
+      await _storage.saveTokens(
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken,
+      );
+      _apiClient.setToken(response.accessToken);
+      _currentAdmin = response.admin;
+      debugPrint('[AdminState] Token refreshed successfully');
+      return true;
+    } catch (_) {
+      debugPrint('[AdminState] Token refresh failed — forcing logout');
+      await _forceLogout();
+      return false;
+    }
+  }
+
+  Future<void> _forceLogout() async {
+    await _storage.clearTokens();
+    _apiClient.clearToken();
+    _currentAdmin = null;
+    notifyListeners();
+  }
 
   Future<void> initialize() async {
     if (_isInitialized) return;

@@ -69,6 +69,12 @@ class AdminSidebar extends StatelessWidget {
                   isSelected: location.startsWith('/events'),
                 ),
                 _NavItem(
+                  icon: Icons.photo_library,
+                  label: 'Images',
+                  route: AdminRoutes.images,
+                  isSelected: location.startsWith('/images'),
+                ),
+                _NavItem(
                   icon: Icons.business,
                   label: 'Sponsors',
                   route: AdminRoutes.sponsors,
@@ -163,7 +169,7 @@ class _NavItem extends StatelessWidget {
           ),
         ),
         selected: isSelected,
-        selectedTileColor: colorScheme.primary.withOpacity(0.1),
+        selectedTileColor: colorScheme.primary.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),
