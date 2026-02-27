@@ -450,10 +450,37 @@ router.post('/events/:id/images', upload.single('image'), async (req, res, next)
   }
 });
 
+router.patch('/events/:id/images/:imageId/hero', async (req, res, next): Promise<void> => {
+  try {
+    const image = await queryOne<{ id: string; event_id: string; sort_order: number }>(
+      'SELECT id, event_id, sort_order FROM event_images WHERE id = $1',
+      [req.params.imageId]
+    );
+    if (!image) throw new NotFoundError('Image not found');
+    if (image.event_id !== req.params.id) throw new NotFoundError('Image not found');
+
+    if (image.sort_order !== 0) {
+      // Swap: current hero gets this image's sort_order, this image gets 0
+      await query(
+        `UPDATE event_images SET sort_order = $1 WHERE event_id = $2 AND sort_order = 0`,
+        [image.sort_order, req.params.id]
+      );
+      await query(
+        `UPDATE event_images SET sort_order = 0 WHERE id = $1`,
+        [req.params.imageId]
+      );
+    }
+
+    res.json({ message: 'Hero image updated' });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.delete('/events/:id/images/:imageId', async (req, res, next): Promise<void> => {
   try {
-    const image = await queryOne<{ id: string; url: string; event_id: string }>(
-      'SELECT id, url, event_id FROM event_images WHERE id = $1',
+    const image = await queryOne<{ id: string; url: string; event_id: string; sort_order: number }>(
+      'SELECT id, url, event_id, sort_order FROM event_images WHERE id = $1',
       [req.params.imageId]
     );
 
@@ -462,6 +489,17 @@ router.delete('/events/:id/images/:imageId', async (req, res, next): Promise<voi
 
     await deleteImage(image.url);
     await query('DELETE FROM event_images WHERE id = $1', [req.params.imageId]);
+
+    // If we deleted the hero, promote the next image
+    if (image.sort_order === 0) {
+      const next = await queryOne<{ id: string }>(
+        'SELECT id FROM event_images WHERE event_id = $1 ORDER BY sort_order ASC LIMIT 1',
+        [req.params.id]
+      );
+      if (next) {
+        await query('UPDATE event_images SET sort_order = 0 WHERE id = $1', [next.id]);
+      }
+    }
 
     res.json({ message: 'Image deleted' });
   } catch (error) {

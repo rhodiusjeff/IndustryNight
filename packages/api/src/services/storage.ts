@@ -46,6 +46,7 @@ export async function uploadImage(
     Key: key,
     Body: buffer,
     ContentType: CONTENT_TYPES[ext] || 'image/jpeg',
+    ACL: 'public-read',
   }));
 
   return `https://${config.aws.s3Bucket}.s3.${config.aws.region}.amazonaws.com/${key}`;

@@ -234,6 +234,12 @@ class AdminApi {
     return EventImage.fromJson(response['image'] as Map<String, dynamic>);
   }
 
+  Future<void> setHeroImage(String eventId, String imageId) async {
+    await _client.patch<Map<String, dynamic>>(
+      '/admin/events/$eventId/images/$imageId/hero',
+    );
+  }
+
   Future<void> deleteEventImage(String eventId, String imageId) async {
     await _client.delete('/admin/events/$eventId/images/$imageId');
   }

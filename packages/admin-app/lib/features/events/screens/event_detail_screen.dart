@@ -133,7 +133,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       final reader = html.FileReader()..readAsArrayBuffer(files[0]);
       reader.onLoad.listen((_) {
         if (!completer.isCompleted) {
-          completer.complete((reader.result as ByteBuffer).asUint8List());
+          completer.complete(reader.result as Uint8List);
         }
       });
       reader.onError.listen((_) {
@@ -154,6 +154,18 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     final bytes = await completer.future;
     input.remove();
     return bytes;
+  }
+
+  Future<void> _setHeroImage(String imageId) async {
+    final adminApi = context.read<AdminState>().adminApi;
+    try {
+      await adminApi.setHeroImage(widget.eventId, imageId);
+      if (!mounted) return;
+      await _reloadEvent();
+    } catch (e) {
+      if (!mounted) return;
+      _showError(e is ApiException ? e.message : 'Failed to set hero image');
+    }
   }
 
   Future<void> _deleteImage(String imageId) async {
@@ -306,6 +318,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                     canUpload: (e.images?.length ?? 0) < 5,
                     onUpload: _uploadImage,
                     onDelete: _deleteImage,
+                    onSetHero: _setHeroImage,
                   ),
                   const SizedBox(height: 16),
                   _SponsorsCard(
@@ -428,6 +441,7 @@ class _ImagesCard extends StatelessWidget {
   final bool canUpload;
   final VoidCallback onUpload;
   final void Function(String imageId) onDelete;
+  final void Function(String imageId) onSetHero;
 
   const _ImagesCard({
     required this.images,
@@ -435,6 +449,7 @@ class _ImagesCard extends StatelessWidget {
     required this.canUpload,
     required this.onUpload,
     required this.onDelete,
+    required this.onSetHero,
   });
 
   @override
@@ -477,7 +492,7 @@ class _ImagesCard extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: images
-                    .map((img) => _ImageTile(image: img, onDelete: onDelete))
+                    .map((img) => _ImageTile(image: img, onDelete: onDelete, onSetHero: onSetHero))
                     .toList(),
               ),
           ],
@@ -490,8 +505,9 @@ class _ImagesCard extends StatelessWidget {
 class _ImageTile extends StatefulWidget {
   final EventImage image;
   final void Function(String imageId) onDelete;
+  final void Function(String imageId) onSetHero;
 
-  const _ImageTile({required this.image, required this.onDelete});
+  const _ImageTile({required this.image, required this.onDelete, required this.onSetHero});
 
   @override
   State<_ImageTile> createState() => _ImageTileState();
@@ -499,6 +515,41 @@ class _ImageTile extends StatefulWidget {
 
 class _ImageTileState extends State<_ImageTile> {
   bool _hovering = false;
+
+  void _showImageDialog(BuildContext context, String url) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                url,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Container(
+                  width: 400,
+                  height: 300,
+                  color: Colors.grey.shade200,
+                  child: const Icon(Icons.broken_image, size: 48, color: Colors.grey),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                style: IconButton.styleFrom(backgroundColor: Colors.black54),
+                onPressed: () => Navigator.pop(dialogContext),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -540,21 +591,54 @@ class _ImageTileState extends State<_ImageTile> {
                   ),
                 ),
               ),
-            if (_hovering)
+            if (_hovering) ...[
               Positioned(
                 top: 4,
                 right: 4,
-                child: IconButton(
-                  icon: const Icon(Icons.delete, size: 18),
-                  color: Colors.white,
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.red.shade700,
-                    padding: const EdgeInsets.all(4),
-                    minimumSize: const Size(28, 28),
-                  ),
-                  onPressed: () => widget.onDelete(widget.image.id),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.visibility, size: 18),
+                      color: Colors.white,
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.black54,
+                        padding: const EdgeInsets.all(4),
+                        minimumSize: const Size(28, 28),
+                      ),
+                      onPressed: () => _showImageDialog(context, widget.image.url),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.delete, size: 18),
+                      color: Colors.white,
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.red.shade700,
+                        padding: const EdgeInsets.all(4),
+                        minimumSize: const Size(28, 28),
+                      ),
+                      onPressed: () => widget.onDelete(widget.image.id),
+                    ),
+                  ],
                 ),
               ),
+              if (!isHero)
+                Positioned(
+                  bottom: 4,
+                  left: 4,
+                  child: IconButton(
+                    icon: const Icon(Icons.star_outline, size: 18),
+                    tooltip: 'Set as hero image',
+                    color: Colors.white,
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.amber.shade700,
+                      padding: const EdgeInsets.all(4),
+                      minimumSize: const Size(28, 28),
+                    ),
+                    onPressed: () => widget.onSetHero(widget.image.id),
+                  ),
+                ),
+            ],
           ],
         ),
       ),
