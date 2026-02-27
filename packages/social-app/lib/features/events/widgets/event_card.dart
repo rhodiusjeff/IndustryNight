@@ -3,25 +3,19 @@ import 'package:industrynight_shared/shared.dart';
 import '../../../shared/theme/app_theme.dart';
 
 class EventCard extends StatelessWidget {
-  final String eventId;
-  final String name;
-  final String venueName;
-  final DateTime date;
-  final String? imageUrl;
+  final Event event;
   final VoidCallback? onTap;
 
   const EventCard({
     super.key,
-    required this.eventId,
-    required this.name,
-    required this.venueName,
-    required this.date,
-    this.imageUrl,
+    required this.event,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final imageUrl = event.primaryImageUrl;
+
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -29,19 +23,16 @@ class EventCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Image
+            // Hero image
             AspectRatio(
               aspectRatio: 16 / 9,
               child: imageUrl != null
-                  ? Image.network(imageUrl!, fit: BoxFit.cover)
-                  : Container(
-                      color: AppColors.surfaceLight,
-                      child: const Icon(
-                        Icons.event,
-                        size: 48,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
+                  ? Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _placeholder(),
+                    )
+                  : _placeholder(),
             ),
 
             // Content
@@ -50,24 +41,28 @@ class EventCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name, style: AppTypography.titleLarge),
+                  Text(event.name, style: AppTypography.titleLarge),
                   const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on,
-                        size: 16,
-                        color: AppColors.textSecondary,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        venueName,
-                        style: AppTypography.bodyMedium.copyWith(
+                  if (event.venueName != null)
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on,
+                          size: 16,
                           color: AppColors.textSecondary,
                         ),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            event.venueName!,
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
@@ -78,7 +73,7 @@ class EventCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        formatDate(date),
+                        formatEventDateTime(event.startTime, event.endTime),
                         style: AppTypography.bodyMedium.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -90,6 +85,17 @@ class EventCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _placeholder() {
+    return Container(
+      color: AppColors.surfaceLight,
+      child: const Icon(
+        Icons.event,
+        size: 48,
+        color: AppColors.textSecondary,
       ),
     );
   }

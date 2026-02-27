@@ -11,6 +11,8 @@ import '../features/events/screens/events_list_screen.dart';
 import '../features/events/screens/event_form_screen.dart';
 import '../features/events/screens/event_detail_screen.dart';
 import '../features/events/screens/image_catalog_screen.dart';
+import '../features/events/screens/event_tickets_screen.dart';
+import '../features/tickets/screens/tickets_list_screen.dart';
 import '../features/sponsors/screens/sponsors_list_screen.dart';
 import '../features/sponsors/screens/sponsor_form_screen.dart';
 import '../features/sponsors/screens/discounts_screen.dart';
@@ -31,6 +33,8 @@ class AdminRoutes {
   static const String createEvent = '/events/create';
   static const String eventDetail = '/events/:id';
   static const String editEvent = '/events/:id/edit';
+  static const String eventTickets = '/events/:id/tickets';
+  static const String tickets = '/tickets';
   static const String images = '/images';
   static const String sponsors = '/sponsors';
   static const String addSponsor = '/sponsors/add';
@@ -107,11 +111,22 @@ class AdminRouter {
               },
             ),
             GoRoute(
+              path: '/events/:id/tickets',
+              builder: (context, state) {
+                final id = state.pathParameters['id']!;
+                return EventTicketsScreen(eventId: id);
+              },
+            ),
+            GoRoute(
               path: '/events/:id',
               builder: (context, state) {
                 final id = state.pathParameters['id']!;
                 return EventDetailScreen(eventId: id);
               },
+            ),
+            GoRoute(
+              path: AdminRoutes.tickets,
+              builder: (context, state) => const TicketsListScreen(),
             ),
             GoRoute(
               path: AdminRoutes.images,

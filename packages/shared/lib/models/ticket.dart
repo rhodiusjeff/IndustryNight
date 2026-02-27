@@ -29,6 +29,13 @@ class Ticket extends Equatable {
   final DateTime purchasedAt;
   final DateTime createdAt;
 
+  /// Denormalized user info — only present in admin ticket list responses
+  final String? userName;
+  final String? userPhone;
+
+  /// Event name — only present in global admin ticket list responses
+  final String? eventName;
+
   const Ticket({
     required this.id,
     required this.userId,
@@ -41,6 +48,9 @@ class Ticket extends Equatable {
     this.checkedInAt,
     required this.purchasedAt,
     required this.createdAt,
+    this.userName,
+    this.userPhone,
+    this.eventName,
   });
 
   factory Ticket.fromJson(Map<String, dynamic> json) => _$TicketFromJson(json);
@@ -59,6 +69,9 @@ class Ticket extends Equatable {
     DateTime? checkedInAt,
     DateTime? purchasedAt,
     DateTime? createdAt,
+    String? userName,
+    String? userPhone,
+    String? eventName,
   }) {
     return Ticket(
       id: id ?? this.id,
@@ -72,6 +85,9 @@ class Ticket extends Equatable {
       checkedInAt: checkedInAt ?? this.checkedInAt,
       purchasedAt: purchasedAt ?? this.purchasedAt,
       createdAt: createdAt ?? this.createdAt,
+      userName: userName ?? this.userName,
+      userPhone: userPhone ?? this.userPhone,
+      eventName: eventName ?? this.eventName,
     );
   }
 
@@ -94,6 +110,9 @@ class Ticket extends Equatable {
         checkedInAt,
         purchasedAt,
         createdAt,
+        userName,
+        userPhone,
+        eventName,
       ];
 }
 

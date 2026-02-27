@@ -2,6 +2,7 @@ import 'api_client.dart';
 import '../models/user.dart';
 import '../models/event.dart';
 import '../models/event_image.dart';
+import '../models/ticket.dart';
 import '../models/sponsor.dart';
 import '../models/vendor.dart';
 import '../models/discount.dart';
@@ -435,5 +436,81 @@ class AdminApi {
       body: body,
     );
     return Vendor.fromJson(response['vendor'] as Map<String, dynamic>);
+  }
+
+  // ----------------------------------------------------------------
+  // Ticket Management
+  // ----------------------------------------------------------------
+
+  /// Get all tickets across all events with optional filters.
+  Future<List<Ticket>> getAllTickets({
+    TicketStatus? status,
+    String? eventId,
+    String? query,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final queryParams = <String, String>{
+      'limit': limit.toString(),
+      'offset': offset.toString(),
+    };
+    if (status != null) queryParams['status'] = status.name;
+    if (eventId != null) queryParams['eventId'] = eventId;
+    if (query != null) queryParams['q'] = query;
+
+    final response = await _client.get<Map<String, dynamic>>(
+      '/admin/tickets',
+      queryParams: queryParams,
+    );
+    return (response['tickets'] as List)
+        .map((t) => Ticket.fromJson(t as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<Ticket>> getEventTickets(String eventId, {
+    TicketStatus? status,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final queryParams = <String, String>{
+      'limit': limit.toString(),
+      'offset': offset.toString(),
+    };
+    if (status != null) queryParams['status'] = status.name;
+
+    final response = await _client.get<Map<String, dynamic>>(
+      '/admin/events/$eventId/tickets',
+      queryParams: queryParams,
+    );
+    return (response['tickets'] as List)
+        .map((t) => Ticket.fromJson(t as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<Ticket> issueTicket(String eventId, {
+    required String userId,
+    String ticketType = 'admin',
+    double price = 0,
+  }) async {
+    final response = await _client.post<Map<String, dynamic>>(
+      '/admin/events/$eventId/tickets',
+      body: {
+        'userId': userId,
+        'ticketType': ticketType,
+        'price': price,
+      },
+    );
+    return Ticket.fromJson(response['ticket'] as Map<String, dynamic>);
+  }
+
+  Future<void> deleteTicket(String eventId, String ticketId) async {
+    await _client.delete('/admin/events/$eventId/tickets/$ticketId');
+  }
+
+  Future<Ticket> refundTicket(String eventId, String ticketId) async {
+    final response = await _client.patch<Map<String, dynamic>>(
+      '/admin/events/$eventId/tickets/$ticketId/refund',
+    );
+    return Ticket.fromJson(response['ticket'] as Map<String, dynamic>);
   }
 }

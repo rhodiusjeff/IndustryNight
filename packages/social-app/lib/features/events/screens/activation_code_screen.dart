@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:industrynight_shared/shared.dart';
+import '../../../providers/app_state.dart';
 import '../../../shared/theme/app_theme.dart';
 
 class ActivationCodeScreen extends StatefulWidget {
@@ -22,31 +25,46 @@ class _ActivationCodeScreenState extends State<ActivationCodeScreen> {
   }
 
   Future<void> _checkIn() async {
-    if (_codeController.text.isEmpty) return;
+    final code = _codeController.text.trim();
+    if (code.isEmpty) return;
 
     setState(() => _isSubmitting = true);
 
-    // TODO: Implement check-in API call
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final eventsApi = context.read<AppState>().eventsApi;
+      await eventsApi.checkIn(widget.eventId, code);
 
-    if (mounted) {
+      if (!mounted) return;
       setState(() => _isSubmitting = false);
-      // Show success
+
       showDialog(
         context: context,
-        builder: (context) => AlertDialog(
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
           title: const Text('Checked In!'),
           content: const Text('Enjoy the event!'),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(dialogContext).pop();
                 context.pop();
               },
               child: const Text('OK'),
             ),
           ],
         ),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Check-in failed. Please try again.')),
       );
     }
   }

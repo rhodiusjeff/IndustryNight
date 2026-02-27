@@ -77,6 +77,11 @@ class Event extends Equatable {
   @JsonKey(fromJson: _sponsorsFromJson, toJson: _sponsorsToJson)
   final List<EventSponsor>? sponsors;
 
+  /// Ticket counts — only populated on admin detail endpoint
+  final int? ticketCount;
+  final int? ticketsPurchased;
+  final int? ticketsCheckedIn;
+
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -99,6 +104,9 @@ class Event extends Equatable {
     this.sponsorCount = 0,
     this.images,
     this.sponsors,
+    this.ticketCount,
+    this.ticketsPurchased,
+    this.ticketsCheckedIn,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -126,6 +134,9 @@ class Event extends Equatable {
     int? sponsorCount,
     List<EventImage>? images,
     List<EventSponsor>? sponsors,
+    int? ticketCount,
+    int? ticketsPurchased,
+    int? ticketsCheckedIn,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -148,6 +159,9 @@ class Event extends Equatable {
       sponsorCount: sponsorCount ?? this.sponsorCount,
       images: images ?? this.images,
       sponsors: sponsors ?? this.sponsors,
+      ticketCount: ticketCount ?? this.ticketCount,
+      ticketsPurchased: ticketsPurchased ?? this.ticketsPurchased,
+      ticketsCheckedIn: ticketsCheckedIn ?? this.ticketsCheckedIn,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -175,6 +189,7 @@ class Event extends Equatable {
         status, capacity, attendeeCount,
         heroImageUrl, imageCount, sponsorCount,
         images, sponsors,
+        ticketCount, ticketsPurchased, ticketsCheckedIn,
         createdAt, updatedAt,
       ];
 }

@@ -69,6 +69,12 @@ class AdminSidebar extends StatelessWidget {
                   isSelected: location.startsWith('/events'),
                 ),
                 _NavItem(
+                  icon: Icons.confirmation_number,
+                  label: 'Tickets',
+                  route: AdminRoutes.tickets,
+                  isSelected: location == AdminRoutes.tickets,
+                ),
+                _NavItem(
                   icon: Icons.photo_library,
                   label: 'Images',
                   route: AdminRoutes.images,

@@ -40,8 +40,14 @@ router.get('/', authenticate, validate(listEventsSchema), async (req, res, next)
     params.push(limit, offset);
 
     const events = await query(
-      `SELECT * FROM events ${whereClause}
-       ORDER BY start_time ASC
+      `SELECT
+         e.*,
+         (SELECT url FROM event_images WHERE event_id = e.id ORDER BY sort_order ASC LIMIT 1) AS hero_image_url,
+         (SELECT COUNT(*)::int FROM event_images WHERE event_id = e.id) AS image_count,
+         (SELECT COUNT(*)::int FROM event_sponsors WHERE event_id = e.id) AS sponsor_count
+       FROM events e
+       ${whereClause}
+       ORDER BY e.start_time ASC
        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
       params
     );
@@ -55,7 +61,27 @@ router.get('/', authenticate, validate(listEventsSchema), async (req, res, next)
 // Get event by ID
 router.get('/:id', authenticate, async (req, res, next) => {
   try {
-    const event = await queryOne('SELECT * FROM events WHERE id = $1', [req.params.id]);
+    const event = await queryOne(
+      `SELECT
+         e.*,
+         COALESCE(
+           (SELECT json_agg(ei ORDER BY ei.sort_order)
+            FROM event_images ei WHERE ei.event_id = e.id),
+           '[]'::json
+         ) AS images,
+         COALESCE(
+           (SELECT json_agg(json_build_object(
+             'id', s.id, 'name', s.name, 'tier', s.tier, 'logo_url', s.logo_url
+           ))
+            FROM event_sponsors es
+            JOIN sponsors s ON s.id = es.sponsor_id
+            WHERE es.event_id = e.id),
+           '[]'::json
+         ) AS sponsors
+       FROM events e
+       WHERE e.id = $1`,
+      [req.params.id]
+    );
 
     if (!event) {
       throw new NotFoundError('Event not found');
@@ -71,11 +97,30 @@ router.get('/:id', authenticate, async (req, res, next) => {
 router.get('/:id/tickets', authenticate, async (req, res, next) => {
   try {
     const tickets = await query(
-      'SELECT * FROM tickets WHERE event_id = $1 AND user_id = $2',
+      'SELECT *, price::float AS price FROM tickets WHERE event_id = $1 AND user_id = $2',
       [req.params.id, req.user!.userId]
     );
 
     res.json({ tickets });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get current user's valid ticket for an event
+router.get('/:id/my-ticket', authenticate, async (req, res, next) => {
+  try {
+    const ticket = await queryOne(
+      `SELECT *, price::float AS price FROM tickets
+       WHERE event_id = $1 AND user_id = $2 AND status NOT IN ('cancelled', 'refunded')`,
+      [req.params.id, req.user!.userId]
+    );
+
+    if (!ticket) {
+      throw new NotFoundError('No ticket found');
+    }
+
+    res.json({ ticket });
   } catch (error) {
     next(error);
   }
@@ -126,17 +171,11 @@ router.post('/:id/checkin', authenticate, validate(checkinSchema), async (req, r
       // Update existing ticket
       ticket = await queryOne(
         `UPDATE tickets SET status = 'checkedIn', checked_in_at = NOW()
-         WHERE id = $1 RETURNING *`,
+         WHERE id = $1 RETURNING *, price::float AS price`,
         [ticket.id]
       );
     } else {
-      // Create walk-in ticket
-      ticket = await queryOne(
-        `INSERT INTO tickets (user_id, event_id, ticket_type, price, status, checked_in_at, purchased_at)
-         VALUES ($1, $2, 'walk-in', 0, 'checkedIn', NOW(), NOW())
-         RETURNING *`,
-        [userId, eventId]
-      );
+      throw new BadRequestError('No ticket found. You need a ticket to check in to this event.');
     }
 
     // Update event attendee count

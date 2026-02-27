@@ -346,6 +346,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   ),
                   const SizedBox(height: 16),
                   _AttendanceCard(event: e),
+                  const SizedBox(height: 16),
+                  _TicketsCard(
+                    event: e,
+                    onManage: () => context.push('/events/${widget.eventId}/tickets'),
+                  ),
                 ],
               ),
             ),
@@ -833,14 +838,58 @@ class _AttendanceCard extends StatelessWidget {
           children: [
             Text('Attendance', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 16),
-            _StatRow('Checked In', '${event.attendeeCount}'),
+            _StatRow('Tickets Issued', '${event.ticketCount ?? 0}'),
+            _StatRow('Purchased', '${event.ticketsPurchased ?? 0}'),
+            _StatRow('Checked In', '${event.ticketsCheckedIn ?? event.attendeeCount}'),
             if (event.capacity != null) ...[
+              const Divider(height: 16),
               _StatRow('Capacity', '${event.capacity}'),
               _StatRow(
                 'Available',
-                '${event.capacity! - event.attendeeCount}',
+                '${event.capacity! - (event.ticketsCheckedIn ?? event.attendeeCount)}',
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ────────────────────────────────────────────────────────────
+// Tickets summary card (counts + manage button)
+// ────────────────────────────────────────────────────────────
+
+class _TicketsCard extends StatelessWidget {
+  final Event event;
+  final VoidCallback onManage;
+
+  const _TicketsCard({required this.event, required this.onManage});
+
+  @override
+  Widget build(BuildContext context) {
+    final total = event.ticketCount ?? 0;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Tickets', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            if (total == 0)
+              Text(
+                'No tickets issued yet',
+                style: TextStyle(color: Colors.grey.shade600),
+              )
+            else
+              Text('$total ticket${total == 1 ? '' : 's'} issued'),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: onManage,
+              icon: const Icon(Icons.confirmation_number, size: 18),
+              label: const Text('Manage Tickets'),
+            ),
           ],
         ),
       ),
