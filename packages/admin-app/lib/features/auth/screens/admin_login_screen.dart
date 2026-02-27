@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:industrynight_shared/shared.dart';
 import 'package:provider/provider.dart';
 import '../../../config/routes.dart';
 import '../../../providers/admin_state.dart';
+
+const _kRememberedEmailKey = 'admin_remembered_email';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -15,8 +18,26 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  final _storage = SecureStorage();
   bool _isSubmitting = false;
   bool _obscurePassword = true;
+  bool _rememberMe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRememberedEmail();
+  }
+
+  Future<void> _loadRememberedEmail() async {
+    final saved = await _storage.read(_kRememberedEmailKey);
+    if (saved != null && saved.isNotEmpty && mounted) {
+      setState(() {
+        _emailController.text = saved;
+        _rememberMe = true;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -31,13 +52,20 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     setState(() => _isSubmitting = true);
 
     try {
+      final email = _emailController.text.trim();
       final success = await context.read<AdminState>().login(
-            _emailController.text.trim(),
+            email,
             _passwordController.text,
           );
 
       if (mounted) {
         if (success) {
+          if (_rememberMe) {
+            await _storage.write(_kRememberedEmailKey, email);
+          } else {
+            await _storage.delete(_kRememberedEmailKey);
+          }
+          if (!mounted) return;
           context.go(AdminRoutes.dashboard);
         } else {
           _showError(context.read<AdminState>().error ?? 'Login failed');
@@ -142,7 +170,16 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                     },
                     onFieldSubmitted: (_) => _login(),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 8),
+                  CheckboxListTile(
+                    value: _rememberMe,
+                    onChanged: (v) => setState(() => _rememberMe = v ?? false),
+                    title: const Text('Remember me'),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                  ),
+                  const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import multer from 'multer';
+import sharp from 'sharp';
 import { validate, paginationSchema } from '../middleware/validation';
 import { authenticateAdmin } from '../middleware/admin-auth';
 import { query, queryOne } from '../config/database';
@@ -13,16 +14,15 @@ const router = Router();
 // All admin routes require admin authentication
 router.use(authenticateAdmin);
 
-// Multer: memory storage, images only, 10MB max
+// Multer: memory storage, any image type, 20MB max (sharp normalises on the way out)
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (allowed.includes(file.mimetype)) {
+    if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
-      cb(new BadRequestError('Only JPEG, PNG, WebP, and GIF images are allowed'));
+      cb(new BadRequestError('Only image files are allowed'));
     }
   },
 });
@@ -377,6 +377,24 @@ router.patch('/events/:id', validate(updateEventSchema), async (req, res, next):
 });
 
 // ================================================================
+// EVENTS — Delete (draft only)
+// ================================================================
+
+router.delete('/events/:id', async (req, res, next): Promise<void> => {
+  try {
+    const rows = await query('SELECT status FROM events WHERE id = $1', [req.params.id]);
+    if (rows.length === 0) throw new NotFoundError('Event not found');
+    if ((rows[0] as any).status !== 'draft') {
+      throw new BadRequestError('Only draft events can be deleted');
+    }
+    await query('DELETE FROM events WHERE id = $1', [req.params.id]);
+    res.json({ message: 'Event deleted' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ================================================================
 // EVENTS — Images
 // ================================================================
 
@@ -411,7 +429,13 @@ router.post('/events/:id/images', upload.single('image'), async (req, res, next)
     );
     const sortOrder = (sortResult?.max_order ?? -1) + 1;
 
-    const url = await uploadImage(req.file.buffer, req.file.originalname, `events/${req.params.id}`);
+    // Normalise: resize to max 800px wide, convert to JPEG 80%
+    const processed = await sharp(req.file.buffer)
+      .resize({ width: 800, withoutEnlargement: true })
+      .jpeg({ quality: 80 })
+      .toBuffer();
+
+    const url = await uploadImage(processed, 'image.jpg', `events/${req.params.id}`);
 
     const image = await queryOne(
       `INSERT INTO event_images (event_id, url, sort_order)

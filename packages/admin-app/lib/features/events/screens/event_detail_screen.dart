@@ -1,4 +1,7 @@
-import 'package:file_picker/file_picker.dart';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
+import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -89,22 +92,16 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   }
 
   Future<void> _uploadImage() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      withData: true,
-    );
-    if (result == null || result.files.isEmpty) return;
-    final file = result.files.first;
-    if (file.bytes == null) return;
-    if (!mounted) return;
+    final bytes = await _pickImageBytes();
+    if (bytes == null || !mounted) return;
 
     setState(() => _isUploadingImage = true);
     final adminApi = context.read<AdminState>().adminApi;
     try {
       await adminApi.uploadEventImage(
         widget.eventId,
-        fileBytes: file.bytes!,
-        filename: file.name,
+        fileBytes: bytes,
+        filename: 'upload.jpg', // backend normalizes to 800px JPEG
       );
       if (!mounted) return;
       await _reloadEvent();
@@ -115,6 +112,48 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       setState(() => _isUploadingImage = false);
       _showError(e is ApiException ? e.message : 'Upload failed');
     }
+  }
+
+  /// Opens the browser file picker and returns the selected image bytes,
+  /// or null if the user cancelled. Uses dart:html directly because the
+  /// file_picker package silently fails to open on Flutter Web.
+  Future<Uint8List?> _pickImageBytes() async {
+    final completer = Completer<Uint8List?>();
+
+    final input = html.FileUploadInputElement()..accept = 'image/*';
+    html.document.body!.children.add(input);
+
+    // onChange fires when the user selects a file — this is the happy path.
+    input.onChange.listen((_) {
+      final files = input.files;
+      if (files == null || files.isEmpty) {
+        if (!completer.isCompleted) completer.complete(null);
+        return;
+      }
+      final reader = html.FileReader()..readAsArrayBuffer(files[0]);
+      reader.onLoad.listen((_) {
+        if (!completer.isCompleted) {
+          completer.complete((reader.result as ByteBuffer).asUint8List());
+        }
+      });
+      reader.onError.listen((_) {
+        if (!completer.isCompleted) completer.complete(null);
+      });
+    });
+
+    // onFocus fires when the file dialog closes (cancel or selection). Use
+    // a 1000ms delay so onChange always wins when a file was chosen — Chrome
+    // fires focus before change in some versions.
+    html.window.onFocus.first.then((_) {
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (!completer.isCompleted) completer.complete(null);
+      });
+    });
+
+    input.click();
+    final bytes = await completer.future;
+    input.remove();
+    return bytes;
   }
 
   Future<void> _deleteImage(String imageId) async {
@@ -150,6 +189,35 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     } catch (e) {
       if (!mounted) return;
       _showError(e is ApiException ? e.message : 'Failed to remove sponsor');
+    }
+  }
+
+  Future<void> _deleteEvent() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Event'),
+        content: const Text('Permanently delete this draft event? This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final adminApi = context.read<AdminState>().adminApi;
+    try {
+      await adminApi.deleteEvent(widget.eventId);
+      if (!mounted) return;
+      context.go('/events');
+    } catch (e) {
+      if (!mounted) return;
+      _showError(e is ApiException ? e.message : 'Failed to delete event');
     }
   }
 
@@ -198,6 +266,13 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       appBar: AppBar(
         title: Text(e.name),
         actions: [
+          if (e.status == EventStatus.draft)
+            TextButton.icon(
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Delete'),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              onPressed: _deleteEvent,
+            ),
           TextButton.icon(
             icon: const Icon(Icons.edit),
             label: const Text('Edit'),

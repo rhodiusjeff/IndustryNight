@@ -165,8 +165,8 @@ class AdminApi {
       '/admin/events',
       body: {
         'name': name,
-        'startTime': startTime.toIso8601String(),
-        'endTime': endTime.toIso8601String(),
+        'startTime': startTime.toUtc().toIso8601String(),
+        'endTime': endTime.toUtc().toIso8601String(),
         if (venueName != null) 'venueName': venueName,
         if (venueAddress != null) 'venueAddress': venueAddress,
         if (description != null) 'description': description,
@@ -193,8 +193,8 @@ class AdminApi {
     if (description != null)  body['description'] = description;
     if (venueName != null)    body['venueName'] = venueName;
     if (venueAddress != null) body['venueAddress'] = venueAddress;
-    if (startTime != null)    body['startTime'] = startTime.toIso8601String();
-    if (endTime != null)      body['endTime'] = endTime.toIso8601String();
+    if (startTime != null)    body['startTime'] = startTime.toUtc().toIso8601String();
+    if (endTime != null)      body['endTime'] = endTime.toUtc().toIso8601String();
     if (poshEventId != null)  body['poshEventId'] = poshEventId;
     if (status != null)       body['status'] = status.name;
     if (capacity != null)     body['capacity'] = capacity;
@@ -204,6 +204,12 @@ class AdminApi {
       body: body,
     );
     return Event.fromJson(response['event'] as Map<String, dynamic>);
+  }
+
+  /// Permanently deletes a draft event. Throws [ApiException] if the event
+  /// is not in draft status.
+  Future<void> deleteEvent(String id) async {
+    await _client.delete('/admin/events/$id');
   }
 
   // ----------------------------------------------------------------
