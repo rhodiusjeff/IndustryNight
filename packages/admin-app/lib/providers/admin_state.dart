@@ -136,7 +136,7 @@ class AdminState extends ChangeNotifier {
       await adminAuthApi.logout();
     } catch (_) {}
 
-    await _storage.clearAll();
+    await _storage.clearTokens();
     _apiClient.clearToken();
     _currentAdmin = null;
     notifyListeners();
