@@ -20,7 +20,7 @@ Industry Night is a platform for discovering, promoting, and managing industry n
 - **SMS:** Twilio (optional — dev mode returns code in API response)
 - **Cloud:** AWS (EKS, ECR, RDS, S3, SES, ALB)
 - **Validation:** Zod (backend), Equatable + json_annotation (Flutter)
-- **File uploads:** multer (backend, memory storage) + file_picker (Flutter web)
+- **File uploads:** multer (backend, memory storage) + dart:html FileReader (Flutter web — file_picker silently fails on web)
 
 ## Project Structure
 
@@ -43,7 +43,7 @@ scripts/                            # Operational scripts (Node.js + bash)
   pf-db.sh                          # Manage kubectl port-forward tunnel to RDS
   maintenance.sh                    # Toggle k8s maintenance mode
   setup-local.sh                    # Local dev environment setup
-  run-api.sh / run-mobile.sh / run-web.sh / debug-api.sh
+  run-api.sh / run-mobile.sh / run-admin-app.sh / debug-api.sh
 infrastructure/
   eks/cluster.yaml                  # EKS cluster definition
   k8s/                              # Kubernetes manifests
@@ -79,7 +79,7 @@ PostgreSQL 15 on RDS. Schema built from sequential migrations in `packages/datab
 ### Enum types
 - `admin_role`: `platformAdmin`
 - `user_role`: `user`, `venueStaff`, `platformAdmin`
-- `user_source`: `app`, `posh`, `admin`
+- `user_source`: `app`, `posh`, `admin` — note: `posh` is currently unused since Posh webhook does NOT auto-create users
 - `verification_status`: `unverified`, `pending`, `verified`, `rejected`
 - `event_status`: `draft`, `published`, `cancelled`, `completed`
 - `ticket_status`: `purchased`, `checkedIn`, `cancelled`, `refunded`
@@ -163,8 +163,10 @@ Optional (with defaults):
 | `GET` | `/admin/events/:id` | Event detail with full images[] and sponsors[] arrays |
 | `POST` | `/admin/events` | Create event (name, startTime, endTime, venueName, venueAddress, description, capacity, poshEventId) |
 | `PATCH` | `/admin/events/:id` | Update event; enforces publish gate when status → published |
+| `DELETE` | `/admin/events/:id` | Delete event (draft status only) |
 | `POST` | `/admin/events/:id/images` | Upload image (multipart/form-data, field: image, max 5 per event) |
-| `DELETE` | `/admin/events/:id/images/:imageId` | Delete image (removes from S3 + DB) |
+| `PATCH` | `/admin/events/:id/images/:imageId/hero` | Set image as hero (sort_order swap to 0) |
+| `DELETE` | `/admin/events/:id/images/:imageId` | Delete image (removes from S3 + DB; auto-promotes next hero) |
 | `GET` | `/admin/images` | Image catalog — all images across all events (with event_name) |
 | `DELETE` | `/admin/images/:imageId` | Delete image globally |
 | `POST` | `/admin/events/:id/sponsors` | Link sponsor to event |
@@ -188,7 +190,7 @@ Optional (with defaults):
 ### Services
 - `sms.ts` — Twilio SMS; exports `twilioAvailable`, `sendSms(phone, message)`. Gracefully degrades in dev (console.log only).
 - `email.ts` — AWS SES email; exports `sendEmail({to, subject, html, text})`, `sendWelcomeEmail`.
-- `storage.ts` — S3 image upload/delete; exports `uploadImage(buffer, filename, folder)`, `deleteImage(url)`, `s3Available`. Gracefully degrades in dev (returns placeholder URL when S3 not configured).
+- `storage.ts` — S3 image upload/delete; exports `uploadImage(buffer, filename, folder)`, `deleteImage(url)`, `s3Available`. Uses `ACL: 'public-read'` for browser-accessible images. Gracefully degrades in dev (returns placeholder URL when S3 not configured).
 - `posh.ts` — Posh webhook handler; processes `new_order` events, writes to `posh_orders`, sends invite SMS + email. Does NOT auto-create users.
 
 ## Social App (packages/social-app)
@@ -199,10 +201,10 @@ Optional (with defaults):
 | `auth` | `phone_entry_screen`, `sms_verify_screen` | Phone-based login with devCode auto-fill |
 | `onboarding` | `profile_setup_screen` | Name, specialties, bio setup |
 | `events` | `events_list_screen`, `event_detail_screen`, `activation_code_screen` | Browse and check into events |
-| `networking` | `connections_list_screen`, `my_qr_screen`, `qr_scanner_screen` | QR-scan connections |
+| `networking` | `connect_tab_screen`, `connections_list_screen`, `qr_scanner_screen` | QR-scan connections (connect tab is center nav icon) |
 | `community` | `community_feed_screen`, `create_post_screen`, `post_detail_screen` | Community feed |
 | `search` | `search_screen`, `user_profile_screen` | User discovery |
-| `profile` | `my_profile_screen`, `settings_screen` | Profile management |
+| `profile` | `my_profile_screen`, `edit_profile_screen`, `settings_screen` | Profile management |
 | `perks` | `perks_screen`, `sponsor_detail_screen` | Sponsor perks/discounts |
 
 ### Key files
@@ -235,12 +237,13 @@ Admin dashboard for platform operators. Authentication: email/password (separate
 
 ### Event management screens
 - **`event_form_screen.dart`** — Unified create + edit form. Pass `Event? event` (null = create mode). After create: navigates to `/events/:id`. After edit: pops back.
-- **`event_detail_screen.dart`** — Full detail loaded from API on init (no `extra` needed). Inline image upload (file_picker), inline sponsor management (add via popup, remove via chip), status transition buttons, activation code display. Two-column layout.
+- **`event_detail_screen.dart`** — Full detail loaded from API on init (no `extra` needed). Inline image upload (dart:html FileReader), image preview modal, hero image selection (star icon), inline sponsor management (add via popup, remove via chip), status transition buttons, activation code display. Two-column layout.
 - **`image_catalog_screen.dart`** — Grid of all uploaded images across all events. Multi-select + bulk delete.
 
 ### Admin app routes (lib/config/routes.dart)
 | Route | Screen |
 |-------|--------|
+| `/login` | AdminLoginScreen |
 | `/` | DashboardScreen |
 | `/users` | UsersListScreen |
 | `/users/add` | AddUserScreen |
@@ -295,7 +298,7 @@ cd packages/shared && dart run build_runner build --delete-conflicting-outputs
 - `EventsApi` — event listing and details (social app)
 - `ConnectionsApi` — connection management
 - `PostsApi` — community feed
-- `AdminApi` — all admin dashboard endpoints including event CRUD, image upload/delete, sponsor link/unlink, image catalog
+- `AdminApi` — all admin dashboard endpoints including event CRUD, image upload/delete/hero, sponsor link/unlink, image catalog
 
 ### Constants (lib/constants/)
 - `verification_status.dart` — `VerificationStatus` enum, `UserRole` enum, `UserSource` enum
@@ -313,6 +316,7 @@ cd packages/shared && dart run build_runner build --delete-conflicting-outputs
 - **EKS cluster:** industrynight (defined in `infrastructure/eks/cluster.yaml`)
 - **ECR repo:** `047593684855.dkr.ecr.us-east-1.amazonaws.com/industrynight-api`
 - **RDS:** PostgreSQL 15
+- **S3 bucket:** `industrynight-assets-prod` (Object Ownership: BucketOwnerPreferred, public ACLs enabled)
 - **Domain:** `api.industrynight.net` (ALB ingress with ACM SSL)
 - **AWS Profile:** `industrynight-admin`
 
@@ -484,11 +488,15 @@ When `TWILIO_VERIFY_SERVICE_SID` is set (production):
 
 7. **Event detail screen:** `EventDetailScreen` takes only `eventId` — it loads the full event (with images + sponsors) from the API on init. Do NOT pass `event` as a `GoRouter` extra; the detail route was intentionally redesigned to always fetch fresh data.
 
-8. **S3 image uploads:** `storage.ts` gracefully degrades when `S3_BUCKET` is not set — it returns a placeholder URL. In production, ensure `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `S3_BUCKET` are all set in the K8s secrets.
+8. **S3 image uploads:** `storage.ts` gracefully degrades when `S3_BUCKET` is not set — it returns a placeholder URL. In production, ensure `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `S3_BUCKET` are all set in the K8s secrets. The S3 bucket must have Object Ownership = `BucketOwnerPreferred` and public ACLs unblocked for `ACL: 'public-read'` to work.
 
 9. **Posh webhook payload:** The real Posh `new_order` payload has flat buyer fields (`account_first_name`, `account_phone`, etc.) and an `items[]` array — NOT nested `buyer` object. See `posh.ts` for the correct interface.
 
 10. **Event image_url column removed:** Migration 004 drops `events.image_url` and replaces it with the `event_images` table. The migration backfills existing data automatically. Do not reference `image_url` on events anywhere.
+
+11. **Flutter Web FileReader:** `FileReader.readAsArrayBuffer()` returns `NativeUint8List` on the DDC runtime (debug mode), NOT `ByteBuffer`. Always cast `reader.result as Uint8List` directly — never `as ByteBuffer`.
+
+12. **Dialog context:** When using `showDialog`, always use `dialogContext` from the builder callback for `Navigator.pop()`, not the parent widget's `context`. Using the wrong context pops the underlying screen instead of the dialog.
 
 ## Roles
 
@@ -515,6 +523,7 @@ When `TWILIO_VERIFY_SERVICE_SID` is set (production):
 - **posh_orders as tickets:** Posh webhook purchases write to `posh_orders`, which IS the canonical ticket record. The `tickets` table is for walk-in/manual check-ins. Posh buyers are NOT auto-created as users — they receive an invite to download the app.
 - **Publish gate:** Events require Posh event ID + venue name + at least 1 image before they can be published. Enforced at the API layer in `PATCH /admin/events/:id`.
 - **Image catalog:** All event images are queryable globally (`GET /admin/images`) for reuse and cleanup, in addition to per-event access.
+- **Hero image:** `sort_order = 0` in `event_images` designates the hero (first image shown in social app). Admins can swap hero via star icon. Deleting the hero auto-promotes the next image.
 
 ## Documentation
 

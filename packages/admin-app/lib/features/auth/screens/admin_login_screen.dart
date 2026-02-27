@@ -51,47 +51,50 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
     setState(() => _isSubmitting = true);
 
-    try {
-      final email = _emailController.text.trim();
-      final success = await context.read<AdminState>().login(
-            email,
-            _passwordController.text,
-          );
+    final adminState = context.read<AdminState>();
+    final email = _emailController.text.trim();
 
-      if (mounted) {
-        if (success) {
-          if (_rememberMe) {
-            await _storage.write(_kRememberedEmailKey, email);
-          } else {
-            await _storage.delete(_kRememberedEmailKey);
-          }
-          if (!mounted) return;
-          context.go(AdminRoutes.dashboard);
-        } else {
-          _showError(context.read<AdminState>().error ?? 'Login failed');
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        _showError('Network error: $e');
-      }
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
+    // Save remember-me BEFORE login — login success triggers notifyListeners
+    // which causes GoRouter to redirect, potentially unmounting this widget.
+    if (_rememberMe) {
+      await _storage.write(_kRememberedEmailKey, email);
+    } else {
+      await _storage.delete(_kRememberedEmailKey);
+    }
+
+    final success = await adminState.login(email, _passwordController.text);
+
+    if (!mounted) return;
+
+    if (success) {
+      context.go(AdminRoutes.dashboard);
+    }
+    // On failure, AdminState.error is already set — the build method reads it.
+
+    if (mounted) setState(() => _isSubmitting = false);
+  }
+
+  void _clearError() {
+    final adminState = context.read<AdminState>();
+    if (adminState.error != null) {
+      adminState.clearError();
     }
   }
 
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red.shade700,
-        duration: const Duration(seconds: 5),
-      ),
-    );
+  String _friendlyError(String raw) {
+    if (raw.contains('Invalid credentials')) {
+      return 'Invalid email or password.';
+    }
+    if (raw.contains('Failed to fetch') || raw.contains('SocketException')) {
+      return 'Unable to connect to the server.';
+    }
+    return 'Unable to sign in. Please try again.';
   }
 
   @override
   Widget build(BuildContext context) {
+    final errorMessage = context.watch<AdminState>().error;
+
     return Scaffold(
       body: Center(
         child: Card(
@@ -125,6 +128,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     autofillHints: const [AutofillHints.email],
+                    onChanged: (_) => _clearError(),
                     decoration: const InputDecoration(
                       labelText: 'Email',
                       prefixIcon: Icon(Icons.email_outlined),
@@ -145,6 +149,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     autofillHints: const [AutofillHints.password],
+                    onChanged: (_) => _clearError(),
                     decoration: InputDecoration(
                       labelText: 'Password',
                       prefixIcon: const Icon(Icons.lock_outlined),
@@ -179,6 +184,50 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                     contentPadding: EdgeInsets.zero,
                     dense: true,
                   ),
+                  if (errorMessage != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .error
+                            .withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .error
+                              .withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 18,
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _friendlyError(errorMessage),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(context).colorScheme.error,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,

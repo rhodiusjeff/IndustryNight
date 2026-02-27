@@ -40,8 +40,8 @@ industrynight/
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/industrynight.git
-   cd industrynight
+   git clone https://github.com/rhodiusjeff/IndustryNight.git
+   cd IndustryNight
    ```
 
 2. Run the setup script:
@@ -76,19 +76,21 @@ cd packages/social-app && flutter run
 ```bash
 cd packages/admin-app && flutter run -d chrome
 # or
-./scripts/run-web.sh
+./scripts/run-admin-app.sh
 ```
 
 ### Testing
 
+> **Note:** Test suites are planned but not yet implemented. Jest is configured for the API; Flutter test infrastructure exists for both apps.
+
 ```bash
-# Run social app tests
+# Run social app tests (when available)
 cd packages/social-app && flutter test
 
-# Run admin app tests
+# Run admin app tests (when available)
 cd packages/admin-app && flutter test
 
-# Run API tests
+# Run API tests (when available)
 cd packages/api && npm test
 ```
 
@@ -102,8 +104,10 @@ cd packages/shared && dart run build_runner build --delete-conflicting-outputs
 ## Documentation
 
 - [Requirements](docs/requirements.md) - Product requirements and MVP scope
-- [Implementation Plan](docs/implementation_plan.md) - Development roadmap
+- [Implementation Plan](docs/implementation_plan.md) - Development roadmap and current progress
 - [AWS Architecture](docs/aws_architecture.md) - Infrastructure details
+- [Scripts User Guide](docs/scripts_user_guide.md) - All operational scripts with usage examples
+- [COOP Manual](docs/coop.md) - Infrastructure teardown/rebuild/backup/restore
 
 ## Architecture
 

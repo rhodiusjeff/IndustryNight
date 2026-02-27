@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Start web app in development mode
+# Start admin app in development mode (Chrome)
 
 cd "$(dirname "$0")/../packages/admin-app"
 
