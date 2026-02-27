@@ -260,7 +260,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Log out
+  /// Log out — preserves remembered phone for "Remember Me"
   Future<void> logout() async {
     try {
       await authApi.logout();
@@ -271,7 +271,7 @@ class AppState extends ChangeNotifier {
     _activeEventId = null;
     _activeEventName = null;
     _activeEventEndTime = null;
-    await _storage.clearAll();
+    await _storage.clearAuthData();
     _apiClient.clearToken();
     _currentUser = null;
     notifyListeners();

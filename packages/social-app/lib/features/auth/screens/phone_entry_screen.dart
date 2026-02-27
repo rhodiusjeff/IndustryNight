@@ -17,6 +17,24 @@ class _PhoneEntryScreenState extends State<PhoneEntryScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   bool _isSubmitting = false;
+  bool _rememberMe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRememberedPhone();
+  }
+
+  Future<void> _loadRememberedPhone() async {
+    final storage = SecureStorage();
+    final phone = await storage.getRememberedPhone();
+    if (mounted && phone != null) {
+      setState(() {
+        _phoneController.text = phone;
+        _rememberMe = true;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -30,7 +48,16 @@ class _PhoneEntryScreenState extends State<PhoneEntryScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      final devCode = await context.read<AppState>().requestVerificationCode(
+      // Save or clear remembered phone
+      final storage = SecureStorage();
+      if (_rememberMe) {
+        await storage.saveRememberedPhone(_phoneController.text);
+      } else {
+        await storage.clearRememberedPhone();
+      }
+
+      final appState = context.read<AppState>();
+      final devCode = await appState.requestVerificationCode(
             _phoneController.text,
           );
 
@@ -66,11 +93,11 @@ class _PhoneEntryScreenState extends State<PhoneEntryScreen> {
               children: [
                 const Spacer(),
 
-                // Logo/Title
-                Text(
-                  'Industry Night',
-                  style: AppTypography.displayLarge,
-                  textAlign: TextAlign.center,
+                // Logo
+                Image.asset(
+                  'assets/images/logo_white.png',
+                  width: double.infinity,
+                  fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -109,7 +136,36 @@ class _PhoneEntryScreenState extends State<PhoneEntryScreen> {
                   },
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 8),
+
+                // Remember me checkbox
+                Row(
+                  children: [
+                    SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: Checkbox(
+                        value: _rememberMe,
+                        onChanged: (value) {
+                          setState(() => _rememberMe = value ?? false);
+                        },
+                        activeColor: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => setState(() => _rememberMe = !_rememberMe),
+                      child: Text(
+                        'Remember me',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
 
                 // Submit button
                 ElevatedButton(

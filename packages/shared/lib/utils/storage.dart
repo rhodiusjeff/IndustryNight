@@ -10,6 +10,7 @@ class StorageKeys {
   static const String activeEventId = 'active_event_id';
   static const String activeEventName = 'active_event_name';
   static const String activeEventEndTime = 'active_event_end_time';
+  static const String rememberedPhone = 'remembered_phone';
 }
 
 /// Secure storage wrapper for auth tokens and sensitive data
@@ -117,6 +118,33 @@ class SecureStorage {
 
   Future<void> clearActiveEvent() async {
     await Future.wait([
+      _storage.delete(key: StorageKeys.activeEventId),
+      _storage.delete(key: StorageKeys.activeEventName),
+      _storage.delete(key: StorageKeys.activeEventEndTime),
+    ]);
+  }
+
+  // Remember me
+  Future<void> saveRememberedPhone(String phone) async {
+    await _storage.write(key: StorageKeys.rememberedPhone, value: phone);
+  }
+
+  Future<String?> getRememberedPhone() async {
+    return _storage.read(key: StorageKeys.rememberedPhone);
+  }
+
+  Future<void> clearRememberedPhone() async {
+    await _storage.delete(key: StorageKeys.rememberedPhone);
+  }
+
+  /// Clear auth data but preserve remembered phone
+  Future<void> clearAuthData() async {
+    await Future.wait([
+      _storage.delete(key: StorageKeys.accessToken),
+      _storage.delete(key: StorageKeys.refreshToken),
+      _storage.delete(key: StorageKeys.userId),
+      _storage.delete(key: StorageKeys.userPhone),
+      _storage.delete(key: StorageKeys.onboardingComplete),
       _storage.delete(key: StorageKeys.activeEventId),
       _storage.delete(key: StorageKeys.activeEventName),
       _storage.delete(key: StorageKeys.activeEventEndTime),
