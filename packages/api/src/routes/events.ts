@@ -58,6 +58,26 @@ router.get('/', authenticate, validate(listEventsSchema), async (req, res, next)
   }
 });
 
+// Get current user's active tickets across all events (powers events list sorting + Connect tab)
+router.get('/my-tickets', authenticate, async (req, res, next) => {
+  try {
+    const tickets = await query(
+      `SELECT t.*, t.price::float AS price,
+              e.name AS event_name, e.start_time AS event_start_time,
+              e.end_time AS event_end_time, e.venue_name AS event_venue_name
+       FROM tickets t
+       JOIN events e ON e.id = t.event_id
+       WHERE t.user_id = $1 AND t.status IN ('purchased', 'checkedIn')
+       ORDER BY e.start_time ASC`,
+      [req.user!.userId]
+    );
+
+    res.json({ tickets });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Get event by ID
 router.get('/:id', authenticate, async (req, res, next) => {
   try {

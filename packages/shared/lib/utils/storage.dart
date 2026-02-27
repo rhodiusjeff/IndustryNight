@@ -7,6 +7,9 @@ class StorageKeys {
   static const String userId = 'user_id';
   static const String userPhone = 'user_phone';
   static const String onboardingComplete = 'onboarding_complete';
+  static const String activeEventId = 'active_event_id';
+  static const String activeEventName = 'active_event_name';
+  static const String activeEventEndTime = 'active_event_end_time';
 }
 
 /// Secure storage wrapper for auth tokens and sensitive data
@@ -74,6 +77,50 @@ class SecureStorage {
   Future<bool> isOnboardingComplete() async {
     final value = await _storage.read(key: StorageKeys.onboardingComplete);
     return value == 'true';
+  }
+
+  // Active event session (persists check-in state across app restarts)
+  Future<void> saveActiveEvent({
+    required String eventId,
+    required String eventName,
+    required DateTime endTime,
+  }) async {
+    await Future.wait([
+      _storage.write(key: StorageKeys.activeEventId, value: eventId),
+      _storage.write(key: StorageKeys.activeEventName, value: eventName),
+      _storage.write(
+        key: StorageKeys.activeEventEndTime,
+        value: endTime.toIso8601String(),
+      ),
+    ]);
+  }
+
+  Future<({String id, String name, DateTime endTime})?> getActiveEvent() async {
+    final results = await Future.wait([
+      _storage.read(key: StorageKeys.activeEventId),
+      _storage.read(key: StorageKeys.activeEventName),
+      _storage.read(key: StorageKeys.activeEventEndTime),
+    ]);
+
+    final id = results[0];
+    final name = results[1];
+    final endTimeStr = results[2];
+
+    if (id == null || name == null || endTimeStr == null) return null;
+
+    return (
+      id: id,
+      name: name,
+      endTime: DateTime.parse(endTimeStr),
+    );
+  }
+
+  Future<void> clearActiveEvent() async {
+    await Future.wait([
+      _storage.delete(key: StorageKeys.activeEventId),
+      _storage.delete(key: StorageKeys.activeEventName),
+      _storage.delete(key: StorageKeys.activeEventEndTime),
+    ]);
   }
 
   // Generic methods

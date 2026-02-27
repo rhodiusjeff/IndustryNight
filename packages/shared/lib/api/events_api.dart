@@ -68,6 +68,19 @@ class EventsApi {
     return Ticket.fromJson(response['ticket'] as Map<String, dynamic>);
   }
 
+  /// Get current user's active tickets across all events.
+  /// Returns tickets with joined event info (name, start/end time, venue).
+  /// Powers both the events list sorting and Connect tab states.
+  Future<List<Ticket>> getMyTickets() async {
+    final response = await _client.get<Map<String, dynamic>>(
+      '/events/my-tickets',
+    );
+
+    return (response['tickets'] as List)
+        .map((t) => Ticket.fromJson(t as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Get user's event history
   Future<List<Event>> getEventHistory({
     int limit = 20,

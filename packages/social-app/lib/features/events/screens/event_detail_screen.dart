@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:industrynight_shared/shared.dart';
 import '../../../providers/app_state.dart';
 import '../../../shared/theme/app_theme.dart';
@@ -177,67 +178,125 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   const SizedBox(height: 24),
                 ],
 
-                // Check-in section (only for published, non-past events)
+                // Ticket section (only for published, non-past events)
                 if (event.isPublished && !event.isPast) ...[
                   if (_isLoadingTicket)
                     const Center(child: CircularProgressIndicator())
-                  else if (_myTicket != null && _myTicket!.isCheckedIn)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.check_circle, color: Colors.green),
-                          SizedBox(width: 8),
-                          Text(
-                            'Checked In',
-                            style: TextStyle(
-                              color: Colors.green,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  else if (_myTicket != null && _myTicket!.status == TicketStatus.purchased)
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          await context.push('/events/${widget.eventId}/checkin');
-                          // Reload to update ticket status after check-in
-                          _loadEvent();
-                        },
-                        icon: const Icon(Icons.qr_code),
-                        label: const Text('Check In'),
-                      ),
-                    )
+                  else if (_myTicket != null)
+                    _buildTicketCard(event)
                   else
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceLight,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'You need a ticket to check in to this event.',
-                        textAlign: TextAlign.center,
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
+                    _buildGetTicketsCard(event),
                 ],
               ]),
             ),
           ),
         ],
+      ),
+    );
+  }
+  Widget _buildTicketCard(Event event) {
+    final ticket = _myTicket!;
+    final isCheckedIn = ticket.isCheckedIn;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  isCheckedIn ? Icons.check_circle : Icons.confirmation_number,
+                  color: isCheckedIn ? Colors.green : AppColors.primary,
+                ),
+                const SizedBox(width: 8),
+                Text('Your Ticket', style: AppTypography.titleMedium),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: (isCheckedIn ? Colors.green : AppColors.primary)
+                        .withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    isCheckedIn ? 'Checked In' : 'Purchased',
+                    style: TextStyle(
+                      color: isCheckedIn ? Colors.green : AppColors.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Purchased ${formatDate(ticket.purchasedAt)}',
+              style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+            ),
+            if (!isCheckedIn && event.isPublished && !event.isPast) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    await context.push(
+                      '/events/${widget.eventId}/checkin',
+                      extra: {
+                        'eventName': event.name,
+                        'eventEndTime': event.endTime.toIso8601String(),
+                      },
+                    );
+                    _loadEvent();
+                  },
+                  icon: const Icon(Icons.qr_code),
+                  label: const Text('Check In'),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGetTicketsCard(Event event) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.confirmation_number_outlined,
+              size: 32,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'You need a ticket for this event',
+              style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+            if (event.poshEventId != null) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final url = Uri.parse('https://posh.vip/e/${event.poshEventId}');
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text('Get Tickets on Posh'),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

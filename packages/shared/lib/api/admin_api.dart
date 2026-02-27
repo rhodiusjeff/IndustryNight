@@ -446,6 +446,7 @@ class AdminApi {
   Future<List<Ticket>> getAllTickets({
     TicketStatus? status,
     String? eventId,
+    String? userId,
     String? query,
     int limit = 50,
     int offset = 0,
@@ -456,6 +457,7 @@ class AdminApi {
     };
     if (status != null) queryParams['status'] = status.name;
     if (eventId != null) queryParams['eventId'] = eventId;
+    if (userId != null) queryParams['userId'] = userId;
     if (query != null) queryParams['q'] = query;
 
     final response = await _client.get<Map<String, dynamic>>(

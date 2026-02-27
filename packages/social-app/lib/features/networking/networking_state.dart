@@ -7,6 +7,7 @@ class NetworkingState extends ChangeNotifier {
   final ConnectionsApi _connectionsApi;
   final UsersApi _usersApi;
   final String Function() _getCurrentUserId;
+  final String? Function() _getActiveEventId;
 
   List<Connection> _connections = [];
   User? _scannedUser;
@@ -19,9 +20,11 @@ class NetworkingState extends ChangeNotifier {
     required ConnectionsApi connectionsApi,
     required UsersApi usersApi,
     required String Function() getCurrentUserId,
+    String? Function()? getActiveEventId,
   })  : _connectionsApi = connectionsApi,
         _usersApi = usersApi,
-        _getCurrentUserId = getCurrentUserId;
+        _getCurrentUserId = getCurrentUserId,
+        _getActiveEventId = getActiveEventId ?? (() => null);
 
   // Getters
   List<Connection> get connections => _connections;
@@ -82,7 +85,10 @@ class NetworkingState extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final connection = await _connectionsApi.createConnection(qrData);
+      final connection = await _connectionsApi.createConnection(
+        qrData,
+        eventId: _getActiveEventId(),
+      );
       _connections.insert(0, connection);
       notifyListeners();
       return connection;

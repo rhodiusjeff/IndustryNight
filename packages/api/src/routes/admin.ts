@@ -566,15 +566,17 @@ const listAllTicketsSchema = paginationSchema.extend({
   query: paginationSchema.shape.query.extend({
     status: z.enum(['purchased', 'checkedIn', 'cancelled', 'refunded']).optional(),
     eventId: z.string().uuid().optional(),
+    userId: z.string().uuid().optional(),
     q: z.string().optional(),
   }),
 });
 
 router.get('/tickets', validate(listAllTicketsSchema), async (req, res, next) => {
   try {
-    const { status, eventId, q, limit = 50, offset = 0 } = req.query as unknown as {
+    const { status, eventId, userId, q, limit = 50, offset = 0 } = req.query as unknown as {
       status?: string;
       eventId?: string;
+      userId?: string;
       q?: string;
       limit: number;
       offset: number;
@@ -592,6 +594,11 @@ router.get('/tickets', validate(listAllTicketsSchema), async (req, res, next) =>
     if (eventId) {
       whereClause += ` AND t.event_id = $${paramIndex++}`;
       params.push(eventId);
+    }
+
+    if (userId) {
+      whereClause += ` AND t.user_id = $${paramIndex++}`;
+      params.push(userId);
     }
 
     if (q) {

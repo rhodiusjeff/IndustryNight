@@ -11,6 +11,11 @@ class AppState extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
+  // Active event session (set on check-in, persisted across restarts)
+  String? _activeEventId;
+  String? _activeEventName;
+  DateTime? _activeEventEndTime;
+
   AppState({
     String? apiBaseUrl,
     ApiClient? apiClient,
@@ -30,6 +35,14 @@ class AppState extends ChangeNotifier {
   bool get isVerified =>
       _currentUser?.verificationStatus == VerificationStatus.verified;
 
+  // Active event session getters
+  String? get activeEventId => hasActiveEvent ? _activeEventId : null;
+  String? get activeEventName => hasActiveEvent ? _activeEventName : null;
+  bool get hasActiveEvent =>
+      _activeEventId != null &&
+      _activeEventEndTime != null &&
+      _activeEventEndTime!.isAfter(DateTime.now());
+
   // API instances
   late final AuthApi authApi = AuthApi(_apiClient);
   late final UsersApi usersApi = UsersApi(_apiClient);
@@ -45,6 +58,19 @@ class AppState extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Restore active event session
+      final activeEvent = await _storage.getActiveEvent();
+      if (activeEvent != null) {
+        if (activeEvent.endTime.isAfter(DateTime.now())) {
+          _activeEventId = activeEvent.id;
+          _activeEventName = activeEvent.name;
+          _activeEventEndTime = activeEvent.endTime;
+        } else {
+          // Expired — clean up
+          await _storage.clearActiveEvent();
+        }
+      }
+
       // Check for existing token
       final token = await _storage.getAccessToken();
       if (token != null) {
@@ -208,6 +234,32 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  /// Set active event session (called after successful check-in)
+  Future<void> setActiveEvent({
+    required String eventId,
+    required String name,
+    required DateTime endTime,
+  }) async {
+    _activeEventId = eventId;
+    _activeEventName = name;
+    _activeEventEndTime = endTime;
+    await _storage.saveActiveEvent(
+      eventId: eventId,
+      eventName: name,
+      endTime: endTime,
+    );
+    notifyListeners();
+  }
+
+  /// Clear active event session
+  Future<void> clearActiveEvent() async {
+    _activeEventId = null;
+    _activeEventName = null;
+    _activeEventEndTime = null;
+    await _storage.clearActiveEvent();
+    notifyListeners();
+  }
+
   /// Log out
   Future<void> logout() async {
     try {
@@ -216,6 +268,9 @@ class AppState extends ChangeNotifier {
       // Ignore logout errors
     }
 
+    _activeEventId = null;
+    _activeEventName = null;
+    _activeEventEndTime = null;
     await _storage.clearAll();
     _apiClient.clearToken();
     _currentUser = null;

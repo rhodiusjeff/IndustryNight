@@ -15,6 +15,7 @@ class EventsListScreen extends StatefulWidget {
 
 class _EventsListScreenState extends State<EventsListScreen> {
   List<Event> _events = [];
+  Map<String, TicketStatus> _ticketsByEvent = {};
   bool _isLoading = true;
   String? _error;
 
@@ -31,11 +32,34 @@ class _EventsListScreenState extends State<EventsListScreen> {
     });
 
     try {
-      final eventsApi = context.read<AppState>().eventsApi;
-      final events = await eventsApi.getUpcomingEvents();
+      final appState = context.read<AppState>();
+      final results = await Future.wait([
+        appState.eventsApi.getUpcomingEvents(),
+        appState.eventsApi.getMyTickets(),
+      ]);
       if (!mounted) return;
+
+      final events = results[0] as List<Event>;
+      final tickets = results[1] as List<Ticket>;
+
+      // Build map of eventId → ticket status
+      final ticketMap = <String, TicketStatus>{};
+      for (final ticket in tickets) {
+        ticketMap[ticket.eventId] = ticket.status;
+      }
+
+      // Sort: ticketed events first (by startTime), then non-ticketed (by startTime)
+      events.sort((a, b) {
+        final aHasTicket = ticketMap.containsKey(a.id);
+        final bHasTicket = ticketMap.containsKey(b.id);
+        if (aHasTicket && !bHasTicket) return -1;
+        if (!aHasTicket && bHasTicket) return 1;
+        return a.startTime.compareTo(b.startTime);
+      });
+
       setState(() {
         _events = events;
+        _ticketsByEvent = ticketMap;
         _isLoading = false;
       });
     } catch (e) {
@@ -122,6 +146,7 @@ class _EventsListScreenState extends State<EventsListScreen> {
             padding: const EdgeInsets.only(bottom: 16),
             child: EventCard(
               event: event,
+              ticketStatus: _ticketsByEvent[event.id],
               onTap: () => context.push('/events/${event.id}'),
             ),
           );

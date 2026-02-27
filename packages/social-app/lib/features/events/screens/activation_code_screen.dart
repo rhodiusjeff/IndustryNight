@@ -7,8 +7,15 @@ import '../../../shared/theme/app_theme.dart';
 
 class ActivationCodeScreen extends StatefulWidget {
   final String eventId;
+  final String? eventName;
+  final DateTime? eventEndTime;
 
-  const ActivationCodeScreen({super.key, required this.eventId});
+  const ActivationCodeScreen({
+    super.key,
+    required this.eventId,
+    this.eventName,
+    this.eventEndTime,
+  });
 
   @override
   State<ActivationCodeScreen> createState() => _ActivationCodeScreenState();
@@ -31,8 +38,17 @@ class _ActivationCodeScreenState extends State<ActivationCodeScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      final eventsApi = context.read<AppState>().eventsApi;
-      await eventsApi.checkIn(widget.eventId, code);
+      final appState = context.read<AppState>();
+      await appState.eventsApi.checkIn(widget.eventId, code);
+
+      // Set active event session for connection gating
+      if (widget.eventName != null && widget.eventEndTime != null) {
+        await appState.setActiveEvent(
+          eventId: widget.eventId,
+          name: widget.eventName!,
+          endTime: widget.eventEndTime!,
+        );
+      }
 
       if (!mounted) return;
       setState(() => _isSubmitting = false);

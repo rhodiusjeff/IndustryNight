@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:industrynight_shared/shared.dart';
@@ -292,11 +291,7 @@ class _EventTicketsScreenState extends State<EventTicketsScreen> {
                   children: [
                     Text(
                       ticket.userName ?? 'Unknown',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(context).colorScheme.primary,
-                        decoration: TextDecoration.underline,
-                      ),
+                      style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
                     if (ticket.userPhone != null)
                       Text(
@@ -305,7 +300,6 @@ class _EventTicketsScreenState extends State<EventTicketsScreen> {
                       ),
                   ],
                 ),
-                onTap: () => context.push('/users/${ticket.userId}'),
               ),
               // Type
               DataCell(Chip(
