@@ -154,7 +154,16 @@ class _EventsListScreenState extends State<EventsListScreen> {
         ],
         rows: _events.map((event) => DataRow(
           cells: [
-            DataCell(Text(event.name)),
+            DataCell(
+              Text(
+                event.name,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+              onTap: () => context.push('/events/${event.id}'),
+            ),
             DataCell(Text(_dateFormat.format(event.startTime))),
             DataCell(Text(event.venueName ?? '—')),
             DataCell(

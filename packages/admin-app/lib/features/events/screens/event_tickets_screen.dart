@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:industrynight_shared/shared.dart';
@@ -271,6 +272,8 @@ class _EventTicketsScreenState extends State<EventTicketsScreen> {
       child: SizedBox(
         width: double.infinity,
         child: DataTable(
+          dataRowMinHeight: 56,
+          dataRowMaxHeight: 64,
           columns: const [
             DataColumn(label: Text('User')),
             DataColumn(label: Text('Type')),
@@ -282,21 +285,28 @@ class _EventTicketsScreenState extends State<EventTicketsScreen> {
           rows: _tickets.map((ticket) {
             return DataRow(cells: [
               // User
-              DataCell(Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    ticket.userName ?? 'Unknown',
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  if (ticket.userPhone != null)
+              DataCell(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
                     Text(
-                      formatPhoneNumber(ticket.userPhone!),
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      ticket.userName ?? 'Unknown',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).colorScheme.primary,
+                        decoration: TextDecoration.underline,
+                      ),
                     ),
-                ],
-              )),
+                    if (ticket.userPhone != null)
+                      Text(
+                        formatPhoneNumber(ticket.userPhone!),
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      ),
+                  ],
+                ),
+                onTap: () => context.push('/users/${ticket.userId}'),
+              ),
               // Type
               DataCell(Chip(
                 label: Text(ticket.ticketType, style: const TextStyle(fontSize: 12)),

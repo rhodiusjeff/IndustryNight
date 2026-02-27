@@ -113,9 +113,19 @@ class _SponsorsListScreenState extends State<SponsorsListScreen> {
                     child: Text(sponsor.name.substring(0, 1).toUpperCase()),
                   ),
                   const SizedBox(width: 8),
-                  Text(sponsor.name),
+                  Flexible(
+                    child: Text(
+                      sponsor.name,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
                 ],
               ),
+              onTap: () => context.push('/sponsors/${sponsor.id}/edit', extra: sponsor),
             ),
             DataCell(Chip(label: Text(sponsor.tier.name))),
             DataCell(

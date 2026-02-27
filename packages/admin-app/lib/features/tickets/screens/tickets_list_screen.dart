@@ -287,6 +287,8 @@ class _TicketsListScreenState extends State<TicketsListScreen> {
       child: SizedBox(
         width: double.infinity,
         child: DataTable(
+          dataRowMinHeight: 56,
+          dataRowMaxHeight: 64,
           columns: const [
             DataColumn(label: Text('User')),
             DataColumn(label: Text('Event')),
@@ -299,33 +301,38 @@ class _TicketsListScreenState extends State<TicketsListScreen> {
           rows: _tickets.map((ticket) {
             return DataRow(cells: [
               // User
-              DataCell(Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    ticket.userName ?? 'Unknown',
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  if (ticket.userPhone != null)
+              DataCell(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
                     Text(
-                      formatPhoneNumber(ticket.userPhone!),
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      ticket.userName ?? 'Unknown',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).colorScheme.primary,
+                        decoration: TextDecoration.underline,
+                      ),
                     ),
-                ],
-              )),
+                    if (ticket.userPhone != null)
+                      Text(
+                        formatPhoneNumber(ticket.userPhone!),
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      ),
+                  ],
+                ),
+                onTap: () => context.push('/users/${ticket.userId}'),
+              ),
               // Event
               DataCell(
-                InkWell(
-                  onTap: () => context.push('/events/${ticket.eventId}'),
-                  child: Text(
-                    ticket.eventName ?? ticket.eventId,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      decoration: TextDecoration.underline,
-                    ),
+                Text(
+                  ticket.eventName ?? ticket.eventId,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    decoration: TextDecoration.underline,
                   ),
                 ),
+                onTap: () => context.push('/events/${ticket.eventId}'),
               ),
               // Type
               DataCell(Chip(

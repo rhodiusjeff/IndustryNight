@@ -179,9 +179,19 @@ class _UsersListScreenState extends State<UsersListScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(user.name ?? 'Unnamed'),
+                  Flexible(
+                    child: Text(
+                      user.name ?? 'Unnamed',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
                 ],
               ),
+              onTap: () => context.push('/users/${user.id}', extra: user),
             ),
             DataCell(Text(user.phone)),
             DataCell(Text(

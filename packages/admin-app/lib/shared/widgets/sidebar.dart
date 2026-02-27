@@ -22,24 +22,12 @@ class AdminSidebar extends StatelessWidget {
       child: Column(
         children: [
           // Logo
-          Container(
-            height: 64,
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.nightlife,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Industry Night',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            child: Image.asset(
+              'assets/logo.png',
+              width: 218,
+              fit: BoxFit.fitWidth,
             ),
           ),
 

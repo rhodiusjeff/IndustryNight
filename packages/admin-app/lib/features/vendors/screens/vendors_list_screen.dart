@@ -112,9 +112,19 @@ class _VendorsListScreenState extends State<VendorsListScreen> {
                     child: Text(vendor.name.substring(0, 1).toUpperCase()),
                   ),
                   const SizedBox(width: 8),
-                  Text(vendor.name),
+                  Flexible(
+                    child: Text(
+                      vendor.name,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
                 ],
               ),
+              onTap: () => context.push('/vendors/${vendor.id}/edit', extra: vendor),
             ),
             DataCell(Text(vendor.category.name)),
             DataCell(Text(vendor.contactEmail ?? '—')),
