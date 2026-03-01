@@ -1,8 +1,29 @@
 # Industry Night - Implementation Plan
 
-**Version:** 1.0
-**Date:** February 4, 2026
-**Status:** Draft
+**Version:** 1.1
+**Date:** February 4, 2026 (updated February 27, 2026)
+**Status:** In Progress
+
+---
+
+## Current Progress (as of February 27, 2026)
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| **1A: Foundation** | **Complete** | EKS, RDS, API, auth, Posh webhook, user CRUD all working |
+| **1B: Core Mobile App** | **Complete** | Login, profile setup, events list/detail, activation code |
+| **1C: Verification & QR** | **Complete** | QR scan, instant connections, connect tab |
+| **1D: Event Social** | Partial | Basic attendance shown; Who's Going/Who's Here not yet built |
+| **1E: Community Board** | **Complete** | Feed, create post, post detail |
+| **1F: Creative Search** | **Complete** | Search screen, user profiles |
+| **2A: Admin Foundation** | **Complete** | Login, dashboard, user management |
+| **2B: Admin Events** | **Complete** | Full event CRUD, multi-image upload (S3), hero image, activation codes, publish gate |
+| **2C: Admin Sponsors** | **Complete** | Sponsor CRUD, event-sponsor linking, discounts |
+| **2D: Admin Vendors** | **Complete** | Vendor CRUD |
+| **2E: Admin Moderation** | Stub | Post list screen exists, moderation actions not yet implemented |
+| **Phase 3** | Not started | In-app tickets, push notifications, analytics dashboard |
+
+**Technical decisions (all resolved):** PostgreSQL (RDS), Twilio Verify (SMS), S3 (images), Express (API), Flutter Web (admin), GitHub Actions (CI/CD).
 
 ---
 
@@ -531,14 +552,14 @@ Phase 1A: Backend Foundation
 
 ---
 
-## Technical Decisions Needed
+## Technical Decisions (Resolved)
 
-- [ ] Database: PostgreSQL (RDS) vs DynamoDB vs Aurora
-- [ ] SMS Provider: Twilio vs AWS SNS
-- [ ] Image Storage: S3 + CloudFront
-- [ ] API Framework: Express vs Fastify vs NestJS
-- [ ] Web Admin Framework: Flutter Web vs React vs Vue
-- [ ] CI/CD: GitHub Actions vs AWS CodePipeline
+- [x] Database: **PostgreSQL 15 (RDS)** — direct SQL via `pg` library, no ORM
+- [x] SMS Provider: **Twilio Verify API** — handles OTP generation, delivery, and verification
+- [x] Image Storage: **S3** (`industrynight-assets-prod`) with public-read ACL, sharp for server-side resize
+- [x] API Framework: **Express + TypeScript**
+- [x] Web Admin Framework: **Flutter Web** (shared Dart package with social app)
+- [x] CI/CD: **GitHub Actions** (api.yml, mobile.yml, web.yml)
 
 ---
 
@@ -547,3 +568,4 @@ Phase 1A: Backend Foundation
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2026-02-04 | Initial implementation plan |
+| 1.1 | 2026-02-27 | Added current progress table, resolved technical decisions |

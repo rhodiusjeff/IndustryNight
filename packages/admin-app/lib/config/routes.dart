@@ -8,8 +8,11 @@ import '../features/users/screens/users_list_screen.dart';
 import '../features/users/screens/user_detail_screen.dart';
 import '../features/users/screens/add_user_screen.dart';
 import '../features/events/screens/events_list_screen.dart';
-import '../features/events/screens/create_event_screen.dart';
+import '../features/events/screens/event_form_screen.dart';
 import '../features/events/screens/event_detail_screen.dart';
+import '../features/events/screens/image_catalog_screen.dart';
+import '../features/events/screens/event_tickets_screen.dart';
+import '../features/tickets/screens/tickets_list_screen.dart';
 import '../features/sponsors/screens/sponsors_list_screen.dart';
 import '../features/sponsors/screens/sponsor_form_screen.dart';
 import '../features/sponsors/screens/discounts_screen.dart';
@@ -29,6 +32,10 @@ class AdminRoutes {
   static const String events = '/events';
   static const String createEvent = '/events/create';
   static const String eventDetail = '/events/:id';
+  static const String editEvent = '/events/:id/edit';
+  static const String eventTickets = '/events/:id/tickets';
+  static const String tickets = '/tickets';
+  static const String images = '/images';
   static const String sponsors = '/sponsors';
   static const String addSponsor = '/sponsors/add';
   static const String editSponsor = '/sponsors/:id/edit';
@@ -94,15 +101,36 @@ class AdminRouter {
             ),
             GoRoute(
               path: AdminRoutes.createEvent,
-              builder: (context, state) => const CreateEventScreen(),
+              builder: (context, state) => const EventFormScreen(),
+            ),
+            GoRoute(
+              path: '/events/:id/edit',
+              builder: (context, state) {
+                final event = state.extra as Event?;
+                return EventFormScreen(event: event);
+              },
+            ),
+            GoRoute(
+              path: '/events/:id/tickets',
+              builder: (context, state) {
+                final id = state.pathParameters['id']!;
+                return EventTicketsScreen(eventId: id);
+              },
             ),
             GoRoute(
               path: '/events/:id',
               builder: (context, state) {
                 final id = state.pathParameters['id']!;
-                final event = state.extra as Event?;
-                return EventDetailScreen(eventId: id, event: event);
+                return EventDetailScreen(eventId: id);
               },
+            ),
+            GoRoute(
+              path: AdminRoutes.tickets,
+              builder: (context, state) => const TicketsListScreen(),
+            ),
+            GoRoute(
+              path: AdminRoutes.images,
+              builder: (context, state) => const ImageCatalogScreen(),
             ),
             GoRoute(
               path: AdminRoutes.sponsors,

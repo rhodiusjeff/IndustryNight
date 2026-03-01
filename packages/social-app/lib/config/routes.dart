@@ -142,8 +142,8 @@ class AppRouter {
             return ChangeNotifierProvider(
               create: (_) => NetworkingState(
                 connectionsApi: appState.connectionsApi,
-                usersApi: appState.usersApi,
                 getCurrentUserId: () => appState.currentUser?.id ?? '',
+                getActiveEventId: () => appState.activeEventId,
               ),
               child: MainScaffold(child: child),
             );
@@ -164,7 +164,14 @@ class AppRouter {
                       path: 'checkin',
                       builder: (context, state) {
                         final id = state.pathParameters['id']!;
-                        return ActivationCodeScreen(eventId: id);
+                        final extras = state.extra as Map<String, dynamic>?;
+                        return ActivationCodeScreen(
+                          eventId: id,
+                          eventName: extras?['eventName'] as String?,
+                          eventEndTime: extras?['eventEndTime'] != null
+                              ? DateTime.parse(extras!['eventEndTime'] as String)
+                              : null,
+                        );
                       },
                     ),
                   ],
@@ -330,9 +337,16 @@ class _SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: Center(
-        child: CircularProgressIndicator(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 48),
+          child: Image.asset(
+            'assets/images/logo_white.png',
+            width: double.infinity,
+            fit: BoxFit.contain,
+          ),
+        ),
       ),
     );
   }

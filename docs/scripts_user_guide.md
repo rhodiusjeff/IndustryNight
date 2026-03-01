@@ -10,12 +10,13 @@ Operational scripts for developing, debugging, and managing the Industry Night p
 | `pf-db.sh` | DB tunnel: localhost:5432 → db-proxy → RDS | `start`, `stop`, `status` |
 | `db-reset.js` | Full DB reset + migrations | `--skip-k8s`, `--seed-only`, `--yes` |
 | `db-scrub-user.js` | Delete users by phone | `--skip-k8s`, `--yes` |
+| `migrate.js` | Apply pending DB migrations | `--skip-k8s`, `--dry-run`, `--status` |
 | `seed-admin.js` | Create or reset an admin user | `--skip-k8s` |
 | `maintenance.sh` | ALB maintenance mode toggle | `on`, `off`, `status` |
 | `setup-local.sh` | Init local dev environment | (none) |
 | `run-api.sh` | Start API dev server | (none) |
 | `run-mobile.sh` | Start **social app** on simulator/device | (none) |
-| `run-web.sh` | Start **admin app** in Chrome | (none) |
+| `run-admin-app.sh` | Start **admin app** in Chrome | (none) |
 | `debug-api.sh` | Remote Node.js debugging on EKS | `enable`, `disable` |
 | `generate-exec-brief.py` | Regenerate PowerPoint executive brief | (none) |
 | `generate-exec-summary.py` | Regenerate markdown executive summary | (none) |
@@ -52,12 +53,12 @@ open -a Simulator          # Start iOS Simulator first
 ./scripts/run-mobile.sh
 ```
 
-### run-web.sh
+### run-admin-app.sh
 
 Starts the Flutter **admin app** in Chrome at port 8080. Connects to `https://api.industrynight.net` (production API) — no local API or DB tunnel required.
 
 ```bash
-./scripts/run-web.sh
+./scripts/run-admin-app.sh
 # Admin available at http://localhost:8080
 ```
 
@@ -71,7 +72,7 @@ Starts the Flutter **admin app** in Chrome at port 8080. Connects to `https://ap
 ./scripts/run-mobile.sh
 
 # Terminal 3 — admin app (web)
-./scripts/run-web.sh
+./scripts/run-admin-app.sh
 ```
 
 ---
@@ -120,7 +121,26 @@ Opens and closes the kubectl port-forward tunnel to the RDS database via the `db
 ./scripts/pf-db.sh status   # Is the tunnel open?
 ```
 
-**Note:** `db-reset.js`, `db-scrub-user.js`, and `seed-admin.js` all manage their own port-forward internally — you do not need to run `pf-db.sh` before those scripts.
+**Note:** `db-reset.js`, `db-scrub-user.js`, `migrate.js`, and `seed-admin.js` all manage their own port-forward internally — you do not need to run `pf-db.sh` before those scripts.
+
+### migrate.js
+
+Applies pending database migrations from `packages/database/migrations/`. Tracks applied migrations in the `_migrations` table — safe to re-run (skips already-applied files).
+
+```bash
+DB_PASSWORD=xxx node scripts/migrate.js              # Apply pending migrations (with k8s tunnel)
+DB_PASSWORD=xxx node scripts/migrate.js --skip-k8s   # Local DB
+DB_PASSWORD=xxx node scripts/migrate.js --status      # Show applied/pending migrations
+DB_PASSWORD=xxx node scripts/migrate.js --dry-run     # Show what would be applied
+```
+
+**Requires:** `DB_PASSWORD` env var. Auto-starts `kubectl port-forward` to `db-proxy` unless `--skip-k8s`.
+
+**Important:** Always run migrations before deploying API code that depends on new schema:
+```bash
+DB_PASSWORD=xxx node scripts/migrate.js
+./scripts/deploy-api.sh
+```
 
 ### seed-admin.js
 
@@ -252,7 +272,7 @@ python3 scripts/generate-exec-summary.py
 The admin app talks to the production API (`https://api.industrynight.net`) — no local API or DB tunnel needed.
 
 ```bash
-./scripts/run-web.sh
+./scripts/run-admin-app.sh
 # Opens at http://localhost:8080
 ```
 
@@ -269,7 +289,7 @@ node scripts/seed-admin.js \
   --password <yourpassword>
 
 # 3. Launch the admin app
-./scripts/run-web.sh
+./scripts/run-admin-app.sh
 # Login at http://localhost:8080 with the credentials above
 ```
 
@@ -277,6 +297,8 @@ node scripts/seed-admin.js \
 
 ```bash
 # Edit code in packages/api/
+# If schema changed, run migrations first:
+DB_PASSWORD=xxx node scripts/migrate.js
 ./scripts/deploy-api.sh
 ```
 

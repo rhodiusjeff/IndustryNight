@@ -1,98 +1,177 @@
-import { query, queryOne, transaction } from '../config/database';
+import { query, queryOne } from '../config/database';
+import { sendSms } from './sms';
+import { sendEmail } from './email';
 
-interface PoshTicketPurchase {
-  event_id: string;
-  order_id: string;
-  ticket_id: string;
-  ticket_type: string;
+// ────────────────────────────────────────────────────────────
+// Posh webhook payload types (based on actual Posh webhook format)
+// ────────────────────────────────────────────────────────────
+
+interface PoshItem {
+  item_id: string;
+  name: string;
   price: number;
-  buyer: {
-    phone: string;
-    email?: string;
-    name?: string;
-  };
 }
 
-interface PoshWebhookPayload {
-  type: 'ticket.purchased' | 'ticket.refunded' | 'ticket.transferred';
-  data: PoshTicketPurchase;
+interface PoshNewOrderPayload {
+  type: 'new_order';
+  account_first_name: string;
+  account_last_name: string;
+  account_email?: string;
+  account_phone?: string;
+  items: PoshItem[];
+  date_purchased: string;
+  order_number: number;
+  promo_code?: string;
+  subtotal: number;
+  total: number;
+  event_name: string;
+  event_start: string;
+  event_end: string;
+  event_id: string;
+  tracking_link?: string;
 }
+
+type PoshWebhookPayload =
+  | PoshNewOrderPayload
+  | { type: string; [key: string]: unknown };
+
+// ────────────────────────────────────────────────────────────
+// Entry point called from the webhook route
+// ────────────────────────────────────────────────────────────
 
 export async function processPoshWebhook(payload: PoshWebhookPayload): Promise<void> {
   console.log('Processing Posh webhook:', payload.type);
 
   switch (payload.type) {
-    case 'ticket.purchased':
-      await handleTicketPurchase(payload.data);
-      break;
-    case 'ticket.refunded':
-      await handleTicketRefund(payload.data);
-      break;
-    case 'ticket.transferred':
-      // Handle ticket transfer if needed
+    case 'new_order':
+      await handleNewOrder(payload as PoshNewOrderPayload);
       break;
     default:
-      console.log('Unknown webhook type:', payload.type);
+      console.log('Unhandled Posh webhook type:', payload.type);
   }
 }
 
-async function handleTicketPurchase(data: PoshTicketPurchase): Promise<void> {
-  await transaction(async ({ query: txQuery }) => {
-    // Normalize phone number
-    const phone = normalizePhone(data.buyer.phone);
+// ────────────────────────────────────────────────────────────
+// new_order handler
+// ────────────────────────────────────────────────────────────
 
-    // Find or create user
-    let user = await queryOne<{ id: string }>(
-      'SELECT id FROM users WHERE phone = $1',
-      [phone]
-    );
+async function handleNewOrder(data: PoshNewOrderPayload): Promise<void> {
+  const orderNumberStr = String(data.order_number);
 
-    if (!user) {
-      // Create new user from Posh
-      const result = await txQuery<{ id: string }>(
-        `INSERT INTO users (phone, email, name, source)
-         VALUES ($1, $2, $3, 'posh')
-         RETURNING id`,
-        [phone, data.buyer.email, data.buyer.name]
-      );
-      user = result[0];
-    }
-
-    // Find event by Posh ID
-    const event = await queryOne<{ id: string }>(
-      'SELECT id FROM events WHERE posh_event_id = $1',
-      [data.event_id]
-    );
-
-    if (!event) {
-      console.log('Event not found for Posh event ID:', data.event_id);
-      return;
-    }
-
-    // Create ticket
-    await txQuery(
-      `INSERT INTO tickets (user_id, event_id, posh_ticket_id, posh_order_id, ticket_type, price, status, purchased_at)
-       VALUES ($1, $2, $3, $4, $5, $6, 'purchased', NOW())
-       ON CONFLICT (posh_ticket_id) DO NOTHING`,
-      [user.id, event.id, data.ticket_id, data.order_id, data.ticket_type, data.price]
-    );
-  });
-}
-
-async function handleTicketRefund(data: PoshTicketPurchase): Promise<void> {
-  await query(
-    `UPDATE tickets SET status = 'refunded' WHERE posh_ticket_id = $1`,
-    [data.ticket_id]
+  // Find the matching IN event by Posh event ID (may not exist yet if admin
+  // hasn't linked it — we still store the order and can reconcile later)
+  const event = await queryOne<{ id: string; name: string }>(
+    'SELECT id, name FROM events WHERE posh_event_id = $1',
+    [data.event_id]
   );
+
+  if (!event) {
+    console.log('No IN event found for Posh event ID:', data.event_id, '— storing order for later reconciliation');
+  }
+
+  // Upsert posh_order — idempotent on order_number so retries are safe
+  const inserted = await queryOne<{ id: string; invite_sent_at: string | null }>(
+    `INSERT INTO posh_orders (
+       posh_event_id, order_number, event_id,
+       account_first_name, account_last_name, account_email, account_phone,
+       items, subtotal, total, promo_code, date_purchased, raw_payload
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+     ON CONFLICT (order_number) DO NOTHING
+     RETURNING id, invite_sent_at`,
+    [
+      data.event_id,
+      orderNumberStr,
+      event?.id ?? null,
+      data.account_first_name,
+      data.account_last_name,
+      data.account_email ?? null,
+      data.account_phone ?? null,
+      JSON.stringify(data.items),
+      data.subtotal,
+      data.total,
+      data.promo_code ?? null,
+      data.date_purchased ? new Date(data.date_purchased) : null,
+      JSON.stringify(data),
+    ]
+  );
+
+  if (!inserted) {
+    // ON CONFLICT DO NOTHING — duplicate order, already processed
+    console.log('Duplicate Posh order, skipping:', orderNumberStr);
+    return;
+  }
+
+  // Send invite to buyer so they can download the app and set up their profile
+  const firstName = data.account_first_name || 'there';
+  const eventName = event?.name ?? data.event_name;
+
+  const smsSent = await trySendInviteSms(data.account_phone, firstName, eventName);
+  const emailSent = await trySendInviteEmail(data.account_email, firstName, eventName);
+
+  if (smsSent || emailSent) {
+    await query(
+      'UPDATE posh_orders SET invite_sent_at = NOW() WHERE id = $1',
+      [inserted.id]
+    );
+  }
 }
 
-function normalizePhone(phone: string): string {
-  const digitsOnly = phone.replace(/\D/g, '');
-  if (digitsOnly.length === 10) {
-    return `+1${digitsOnly}`;
+// ────────────────────────────────────────────────────────────
+// Invite helpers — both gracefully no-op if contact info missing
+// ────────────────────────────────────────────────────────────
+
+async function trySendInviteSms(
+  phone: string | undefined,
+  firstName: string,
+  eventName: string
+): Promise<boolean> {
+  if (!phone) return false;
+  try {
+    const message =
+      `Hey ${firstName}! You've got tickets to ${eventName}. ` +
+      `Download the Industry Night app to connect with other creatives and check in at the door: ` +
+      `https://industrynight.net/download`;
+    await sendSms(phone, message);
+    return true;
+  } catch (err) {
+    console.error('Failed to send invite SMS:', err);
+    return false;
   }
-  if (digitsOnly.length === 11 && digitsOnly.startsWith('1')) {
-    return `+${digitsOnly}`;
+}
+
+async function trySendInviteEmail(
+  email: string | undefined,
+  firstName: string,
+  eventName: string
+): Promise<boolean> {
+  if (!email) return false;
+  try {
+    await sendEmail({
+      to: email,
+      subject: `You're going to ${eventName} — get the Industry Night app`,
+      html: `
+        <h2>Hey ${firstName}!</h2>
+        <p>Your ticket to <strong>${eventName}</strong> is confirmed.</p>
+        <p>Download the <strong>Industry Night</strong> app to connect with other creatives,
+           unlock exclusive perks, and check in at the door.</p>
+        <p>
+          <a href="https://industrynight.net/download"
+             style="background:#7c3aed;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block;">
+            Get the App
+          </a>
+        </p>
+        <p style="color:#888;font-size:12px;">
+          You received this because you purchased a ticket on Posh.
+        </p>
+      `,
+      text:
+        `Hey ${firstName}! Your ticket to ${eventName} is confirmed. ` +
+        `Download the Industry Night app at https://industrynight.net/download ` +
+        `to connect with other creatives and check in at the door.`,
+    });
+    return true;
+  } catch (err) {
+    console.error('Failed to send invite email:', err);
+    return false;
   }
-  return `+${digitsOnly}`;
 }

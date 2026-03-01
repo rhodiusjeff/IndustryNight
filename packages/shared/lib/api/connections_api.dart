@@ -1,6 +1,14 @@
 import 'api_client.dart';
 import '../models/connection.dart';
 
+/// Result of creating a connection, including whether the user was just verified.
+class ConnectionResult {
+  final Connection connection;
+  final bool justVerified;
+
+  const ConnectionResult({required this.connection, this.justVerified = false});
+}
+
 /// API client for connection/networking endpoints
 class ConnectionsApi {
   final ApiClient _client;
@@ -27,8 +35,10 @@ class ConnectionsApi {
         .toList();
   }
 
-  /// Create a connection from QR code scan (instant connection)
-  Future<Connection> createConnection(String qrData, {String? eventId}) async {
+  /// Create a connection from QR code scan (instant connection).
+  /// Returns a [ConnectionResult] which includes whether the current user
+  /// was just auto-verified (first connection).
+  Future<ConnectionResult> createConnection(String qrData, {String? eventId}) async {
     final body = <String, dynamic>{'qrData': qrData};
     if (eventId != null) body['eventId'] = eventId;
 
@@ -36,7 +46,10 @@ class ConnectionsApi {
       '/connections',
       body: body,
     );
-    return Connection.fromJson(response['connection'] as Map<String, dynamic>);
+    return ConnectionResult(
+      connection: Connection.fromJson(response['connection'] as Map<String, dynamic>),
+      justVerified: response['justVerified'] == true,
+    );
   }
 
   /// Remove a connection

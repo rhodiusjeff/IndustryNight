@@ -45,6 +45,20 @@ class EventsApi {
         .toList();
   }
 
+  /// Check if current user has a valid ticket for this event.
+  /// Returns the ticket, or null if no valid ticket exists.
+  Future<Ticket?> getMyTicket(String eventId) async {
+    try {
+      final response = await _client.get<Map<String, dynamic>>(
+        '/events/$eventId/my-ticket',
+      );
+      return Ticket.fromJson(response['ticket'] as Map<String, dynamic>);
+    } on ApiException catch (e) {
+      if (e.isNotFound) return null;
+      rethrow;
+    }
+  }
+
   /// Check in to an event with activation code
   Future<Ticket> checkIn(String eventId, String activationCode) async {
     final response = await _client.post<Map<String, dynamic>>(
@@ -52,6 +66,19 @@ class EventsApi {
       body: {'activationCode': activationCode},
     );
     return Ticket.fromJson(response['ticket'] as Map<String, dynamic>);
+  }
+
+  /// Get current user's active tickets across all events.
+  /// Returns tickets with joined event info (name, start/end time, venue).
+  /// Powers both the events list sorting and Connect tab states.
+  Future<List<Ticket>> getMyTickets() async {
+    final response = await _client.get<Map<String, dynamic>>(
+      '/events/my-tickets',
+    );
+
+    return (response['tickets'] as List)
+        .map((t) => Ticket.fromJson(t as Map<String, dynamic>))
+        .toList();
   }
 
   /// Get user's event history

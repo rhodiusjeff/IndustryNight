@@ -28,7 +28,8 @@
       "Bash(flutter run -d \"0A80545A-5196-4A43-8AD1-44B71572D1E5\" --verbose)",
       "Bash(git checkout -b post-mitosis-sanity-check)",
       "Bash(flutter devices)",
-      "Bash(flutter run -d R9WT809K7NM)"
+      "Bash(flutter run -d R9WT809K7NM)",
+      "Bash(tail:*)"
     ]
   }
 }

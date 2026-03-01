@@ -8,6 +8,7 @@ library industrynight_shared;
 export 'models/user.dart';
 export 'models/admin_user.dart';
 export 'models/event.dart';
+export 'models/event_image.dart';
 export 'models/connection.dart';
 export 'models/post.dart';
 export 'models/sponsor.dart';

@@ -16,19 +16,36 @@ class UserDetailScreen extends StatefulWidget {
 
 class _UserDetailScreenState extends State<UserDetailScreen> {
   User? _user;
-  bool _isLoading = false;
+  bool _isLoading = true;
   String? _error;
+  List<Ticket> _tickets = [];
+  bool _ticketsLoading = true;
 
   final _dateFormat = DateFormat('MMMM d, yyyy');
+  final _ticketDateFormat = DateFormat('MMM d, yyyy');
 
   @override
   void initState() {
     super.initState();
     if (widget.user != null) {
       _user = widget.user;
-    } else {
-      _isLoading = true;
-      _error = 'Navigate to this page from the users list';
+      _isLoading = false;
+    }
+    _loadTickets();
+  }
+
+  Future<void> _loadTickets() async {
+    final adminApi = context.read<AdminState>().adminApi;
+    try {
+      final tickets = await adminApi.getAllTickets(userId: widget.userId);
+      if (!mounted) return;
+      setState(() {
+        _tickets = tickets;
+        _ticketsLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _ticketsLoading = false);
     }
   }
 
@@ -42,20 +59,26 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
 
   Future<void> _toggleBan() async {
     final user = _user!;
-    final action = user.banned ? 'unban' : 'ban';
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('${user.banned ? 'Unban' : 'Ban'} User?'),
-        content: Text('Are you sure you want to $action ${user.name ?? 'this user'}?'),
+      builder: (dialogContext) => AlertDialog(
+        title: Text(user.banned ? 'Reinstate User?' : 'Ban User?'),
+        content: Text(
+          user.banned
+              ? 'Reinstate ${user.name ?? 'this user'}? They will regain access to the platform.'
+              : 'Ban ${user.name ?? 'this user'}? They will be unable to access the platform.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: user.banned ? Colors.green : Colors.red,
             ),
-            child: Text(user.banned ? 'Unban' : 'Ban'),
+            child: Text(user.banned ? 'Reinstate' : 'Ban'),
           ),
         ],
       ),
@@ -69,7 +92,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       if (!mounted) return;
       setState(() => _user = updated);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('User ${updated.banned ? 'banned' : 'unbanned'}')),
+        SnackBar(content: Text('User ${updated.banned ? 'banned' : 'reinstated'}')),
       );
     } catch (e) {
       if (!mounted) return;
@@ -127,7 +150,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
               user.banned ? Icons.check_circle : Icons.block,
               color: user.banned ? Colors.green : Colors.red,
             ),
-            label: Text(user.banned ? 'Unban User' : 'Ban User'),
+            label: Text(user.banned ? 'Reinstate User' : 'Ban User'),
             style: OutlinedButton.styleFrom(
               foregroundColor: user.banned ? Colors.green : Colors.red,
             ),
@@ -223,40 +246,74 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Verification',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 16),
-                      Text('Status: ${user.verificationStatus.displayName}'),
-                      if (user.verificationStatus == VerificationStatus.pending) ...[
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            ElevatedButton.icon(
-                              onPressed: () => _updateVerification(VerificationStatus.verified),
-                              icon: const Icon(Icons.check),
-                              label: const Text('Approve'),
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                            ),
-                            const SizedBox(width: 8),
-                            OutlinedButton.icon(
-                              onPressed: () => _updateVerification(VerificationStatus.rejected),
-                              icon: const Icon(Icons.close, color: Colors.red),
-                              label: const Text('Reject'),
+              child: Column(
+                children: [
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Verification',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 16),
+                          Text('Status: ${user.verificationStatus.displayName}'),
+                          if (user.verificationStatus == VerificationStatus.pending) ...[
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                ElevatedButton.icon(
+                                  onPressed: () => _updateVerification(VerificationStatus.verified),
+                                  icon: const Icon(Icons.check),
+                                  label: const Text('Approve'),
+                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                                ),
+                                const SizedBox(width: 8),
+                                OutlinedButton.icon(
+                                  onPressed: () => _updateVerification(VerificationStatus.rejected),
+                                  icon: const Icon(Icons.close, color: Colors.red),
+                                  label: const Text('Reject'),
+                                ),
+                              ],
                             ),
                           ],
-                        ),
-                      ],
-                    ],
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 16),
+                  Card(
+                    clipBehavior: Clip.antiAlias,
+                    child: _ticketsLoading
+                        ? const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Center(child: CircularProgressIndicator()),
+                          )
+                        : ExpansionTile(
+                            title: Text(
+                              '${_tickets.length} Ticket${_tickets.length == 1 ? '' : 's'}',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            children: _tickets.isEmpty
+                                ? [
+                                    const Padding(
+                                      padding: EdgeInsets.all(16),
+                                      child: Text('No tickets'),
+                                    ),
+                                  ]
+                                : _tickets.map((ticket) {
+                                    return ListTile(
+                                      dense: true,
+                                      title: Text(ticket.eventName ?? ticket.eventId),
+                                      subtitle: Text(_ticketDateFormat.format(ticket.purchasedAt.toLocal())),
+                                      trailing: _TicketStatusChip(status: ticket.status),
+                                    );
+                                  }).toList(),
+                          ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -284,6 +341,32 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           Expanded(child: Text(value)),
         ],
       ),
+    );
+  }
+}
+
+class _TicketStatusChip extends StatelessWidget {
+  final TicketStatus status;
+
+  const _TicketStatusChip({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final (Color bg, Color fg) = switch (status) {
+      TicketStatus.purchased => (Colors.blue.shade50, Colors.blue.shade800),
+      TicketStatus.checkedIn => (Colors.green.shade50, Colors.green.shade800),
+      TicketStatus.cancelled => (Colors.grey.shade200, Colors.grey.shade700),
+      TicketStatus.refunded => (Colors.orange.shade50, Colors.orange.shade800),
+    };
+
+    return Chip(
+      label: Text(
+        status.name,
+        style: TextStyle(fontSize: 12, color: fg, fontWeight: FontWeight.w500),
+      ),
+      backgroundColor: bg,
+      visualDensity: VisualDensity.compact,
+      side: BorderSide.none,
     );
   }
 }

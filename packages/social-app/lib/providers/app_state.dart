@@ -11,13 +11,47 @@ class AppState extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
+  // Active event session (set on check-in, persisted across restarts)
+  String? _activeEventId;
+  String? _activeEventName;
+  DateTime? _activeEventEndTime;
+
   AppState({
     String? apiBaseUrl,
     ApiClient? apiClient,
     SecureStorage? storage,
   })  : _apiClient = apiClient ??
             ApiClient(baseUrl: apiBaseUrl ?? 'https://api.industrynight.net'),
-        _storage = storage ?? SecureStorage();
+        _storage = storage ?? SecureStorage() {
+    // Wire up automatic token refresh on 401 responses
+    _apiClient.onTokenExpired = _refreshAccessToken;
+  }
+
+  /// Attempt to refresh the access token using the stored refresh token.
+  /// Returns true if refresh succeeded (caller should retry the request).
+  Future<bool> _refreshAccessToken() async {
+    try {
+      final refreshToken = await _storage.getRefreshToken();
+      if (refreshToken == null) return false;
+
+      final response = await authApi.refreshToken(refreshToken);
+      await _storage.saveTokens(
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken,
+      );
+      // authApi.refreshToken already calls _apiClient.setToken
+      _currentUser = response.user;
+      return true;
+    } catch (e) {
+      debugPrint('[AppState] Token refresh failed: $e');
+      // Refresh failed — clear auth state so user gets redirected to login
+      await _storage.clearTokens();
+      _apiClient.clearToken();
+      _currentUser = null;
+      notifyListeners();
+      return false;
+    }
+  }
 
   // Getters
   User? get currentUser => _currentUser;
@@ -29,6 +63,18 @@ class AppState extends ChangeNotifier {
   bool get isOnboarded => _currentUser?.profileCompleted ?? false;
   bool get isVerified =>
       _currentUser?.verificationStatus == VerificationStatus.verified;
+
+  // Active event session getters
+  String? get activeEventId => hasActiveEvent ? _activeEventId : null;
+  String? get activeEventName => hasActiveEvent ? _activeEventName : null;
+  bool get hasActiveEvent {
+    if (_activeEventId == null || _activeEventEndTime == null) return false;
+    // Stored times are local-as-UTC; re-interpret for correct comparison
+    final dt = _activeEventEndTime!;
+    final localEnd = DateTime(dt.year, dt.month, dt.day, dt.hour, dt.minute,
+        dt.second, dt.millisecond);
+    return localEnd.isAfter(DateTime.now());
+  }
 
   // API instances
   late final AuthApi authApi = AuthApi(_apiClient);
@@ -45,6 +91,23 @@ class AppState extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Restore active event session
+      final activeEvent = await _storage.getActiveEvent();
+      if (activeEvent != null) {
+        // Stored times are local-as-UTC; re-interpret for correct comparison
+        final dt = activeEvent.endTime;
+        final localEnd = DateTime(dt.year, dt.month, dt.day, dt.hour,
+            dt.minute, dt.second, dt.millisecond);
+        if (localEnd.isAfter(DateTime.now())) {
+          _activeEventId = activeEvent.id;
+          _activeEventName = activeEvent.name;
+          _activeEventEndTime = activeEvent.endTime;
+        } else {
+          // Expired — clean up
+          await _storage.clearActiveEvent();
+        }
+      }
+
       // Check for existing token
       final token = await _storage.getAccessToken();
       if (token != null) {
@@ -208,7 +271,33 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  /// Log out
+  /// Set active event session (called after successful check-in)
+  Future<void> setActiveEvent({
+    required String eventId,
+    required String name,
+    required DateTime endTime,
+  }) async {
+    _activeEventId = eventId;
+    _activeEventName = name;
+    _activeEventEndTime = endTime;
+    await _storage.saveActiveEvent(
+      eventId: eventId,
+      eventName: name,
+      endTime: endTime,
+    );
+    notifyListeners();
+  }
+
+  /// Clear active event session
+  Future<void> clearActiveEvent() async {
+    _activeEventId = null;
+    _activeEventName = null;
+    _activeEventEndTime = null;
+    await _storage.clearActiveEvent();
+    notifyListeners();
+  }
+
+  /// Log out — preserves remembered phone for "Remember Me"
   Future<void> logout() async {
     try {
       await authApi.logout();
@@ -216,10 +305,23 @@ class AppState extends ChangeNotifier {
       // Ignore logout errors
     }
 
-    await _storage.clearAll();
+    _activeEventId = null;
+    _activeEventName = null;
+    _activeEventEndTime = null;
+    await _storage.clearAuthData();
     _apiClient.clearToken();
     _currentUser = null;
     notifyListeners();
+  }
+
+  /// Update local user to verified status (after first connection).
+  void setVerified() {
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(
+        verificationStatus: VerificationStatus.verified,
+      );
+      notifyListeners();
+    }
   }
 
   /// Clear error

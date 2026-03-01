@@ -22,24 +22,12 @@ class AdminSidebar extends StatelessWidget {
       child: Column(
         children: [
           // Logo
-          Container(
-            height: 64,
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.nightlife,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Industry Night',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            child: Image.asset(
+              'assets/logo.png',
+              width: 218,
+              fit: BoxFit.fitWidth,
             ),
           ),
 
@@ -67,6 +55,18 @@ class AdminSidebar extends StatelessWidget {
                   label: 'Events',
                   route: AdminRoutes.events,
                   isSelected: location.startsWith('/events'),
+                ),
+                _NavItem(
+                  icon: Icons.confirmation_number,
+                  label: 'Tickets',
+                  route: AdminRoutes.tickets,
+                  isSelected: location == AdminRoutes.tickets,
+                ),
+                _NavItem(
+                  icon: Icons.photo_library,
+                  label: 'Images',
+                  route: AdminRoutes.images,
+                  isSelected: location.startsWith('/images'),
                 ),
                 _NavItem(
                   icon: Icons.business,
@@ -163,7 +163,7 @@ class _NavItem extends StatelessWidget {
           ),
         ),
         selected: isSelected,
-        selectedTileColor: colorScheme.primary.withOpacity(0.1),
+        selectedTileColor: colorScheme.primary.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),

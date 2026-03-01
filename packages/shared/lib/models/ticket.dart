@@ -29,6 +29,18 @@ class Ticket extends Equatable {
   final DateTime purchasedAt;
   final DateTime createdAt;
 
+  /// Denormalized user info — only present in admin ticket list responses
+  final String? userName;
+  final String? userPhone;
+
+  /// Event name — present in admin ticket list and my-tickets responses
+  final String? eventName;
+
+  /// Event timing — only present in my-tickets response (for Connect tab / sorting)
+  final DateTime? eventStartTime;
+  final DateTime? eventEndTime;
+  final String? eventVenueName;
+
   const Ticket({
     required this.id,
     required this.userId,
@@ -41,6 +53,12 @@ class Ticket extends Equatable {
     this.checkedInAt,
     required this.purchasedAt,
     required this.createdAt,
+    this.userName,
+    this.userPhone,
+    this.eventName,
+    this.eventStartTime,
+    this.eventEndTime,
+    this.eventVenueName,
   });
 
   factory Ticket.fromJson(Map<String, dynamic> json) => _$TicketFromJson(json);
@@ -59,6 +77,12 @@ class Ticket extends Equatable {
     DateTime? checkedInAt,
     DateTime? purchasedAt,
     DateTime? createdAt,
+    String? userName,
+    String? userPhone,
+    String? eventName,
+    DateTime? eventStartTime,
+    DateTime? eventEndTime,
+    String? eventVenueName,
   }) {
     return Ticket(
       id: id ?? this.id,
@@ -72,6 +96,12 @@ class Ticket extends Equatable {
       checkedInAt: checkedInAt ?? this.checkedInAt,
       purchasedAt: purchasedAt ?? this.purchasedAt,
       createdAt: createdAt ?? this.createdAt,
+      userName: userName ?? this.userName,
+      userPhone: userPhone ?? this.userPhone,
+      eventName: eventName ?? this.eventName,
+      eventStartTime: eventStartTime ?? this.eventStartTime,
+      eventEndTime: eventEndTime ?? this.eventEndTime,
+      eventVenueName: eventVenueName ?? this.eventVenueName,
     );
   }
 
@@ -94,6 +124,12 @@ class Ticket extends Equatable {
         checkedInAt,
         purchasedAt,
         createdAt,
+        userName,
+        userPhone,
+        eventName,
+        eventStartTime,
+        eventEndTime,
+        eventVenueName,
       ];
 }
 
