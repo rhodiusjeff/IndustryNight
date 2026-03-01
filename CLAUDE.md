@@ -39,6 +39,8 @@ scripts/                            # Operational scripts (Node.js + bash)
   migrate.js                        # Apply pending DB migrations (safe to re-run)
   db-reset.js                       # Full database reset (drops all, re-runs migrations + seeds)
   db-scrub-user.js                  # Delete specific users by phone number
+  db-uncheckin.js                   # Reset check-in status for dev/testing
+  db-unconnect.js                   # Delete connections for dev/testing
   deploy-api.sh                     # Build, push Docker image to ECR, roll out to EKS
   pf-db.sh                          # Manage kubectl port-forward tunnel to RDS
   maintenance.sh                    # Toggle k8s maintenance mode
@@ -201,7 +203,7 @@ Optional (with defaults):
 | `auth` | `phone_entry_screen`, `sms_verify_screen` | Phone-based login with devCode auto-fill |
 | `onboarding` | `profile_setup_screen` | Name, specialties, bio setup |
 | `events` | `events_list_screen`, `event_detail_screen`, `activation_code_screen` | Browse and check into events |
-| `networking` | `connect_tab_screen`, `connections_list_screen`, `qr_scanner_screen` | QR-scan connections (connect tab is center nav icon) |
+| `networking` | `connect_tab_screen`, `connections_list_screen`, `qr_scanner_screen` | QR-scan connections with instant connect, celebration overlay, and polling-based notifications (connect tab is center nav icon) |
 | `community` | `community_feed_screen`, `create_post_screen`, `post_detail_screen` | Community feed |
 | `search` | `search_screen`, `user_profile_screen` | User discovery |
 | `profile` | `my_profile_screen`, `edit_profile_screen`, `settings_screen` | Profile management |
@@ -351,6 +353,8 @@ DB_PASSWORD=xxx node scripts/migrate.js
 | `scripts/migrate.js` | Apply pending migrations (safe to re-run) | `DB_PASSWORD=xxx node scripts/migrate.js [--skip-k8s] [--dry-run] [--status]` |
 | `scripts/db-reset.js` | Full DB reset (drop all, re-run migrations + seeds) | `DB_PASSWORD=xxx node scripts/db-reset.js [--skip-k8s] [--yes]` |
 | `scripts/db-scrub-user.js` | Delete specific users by phone | `DB_PASSWORD=xxx node scripts/db-scrub-user.js [--skip-k8s] [--yes] +15551234567` |
+| `scripts/db-uncheckin.js` | Reset check-in status for dev/testing | `DB_PASSWORD=xxx node scripts/db-uncheckin.js [--skip-k8s] [--yes] +15551234567` |
+| `scripts/db-unconnect.js` | Delete connections for dev/testing | `DB_PASSWORD=xxx node scripts/db-unconnect.js [--skip-k8s] [--yes] +15551234567` |
 | `scripts/deploy-api.sh` | Build Docker image, push to ECR, roll out to EKS | `./scripts/deploy-api.sh [--skip-build] [--status]` |
 | `scripts/pf-db.sh` | Manage kubectl port-forward tunnel to RDS | `./scripts/pf-db.sh start\|stop\|status` |
 | `scripts/maintenance.sh` | Toggle k8s maintenance mode | `./scripts/maintenance.sh on/off` |
@@ -498,6 +502,10 @@ When `TWILIO_VERIFY_SERVICE_SID` is set (production):
 
 12. **Dialog context:** When using `showDialog`, always use `dialogContext` from the builder callback for `Navigator.pop()`, not the parent widget's `context`. Using the wrong context pops the underlying screen instead of the dialog.
 
+13. **GoRouter refreshListenable + push/pop:** Never call `notifyListeners()` on GoRouter's `refreshListenable` (e.g. `AppState`) during an active `push<T>`/`pop(T)` cycle. It triggers route re-evaluation which can orphan the push future, causing the awaiting screen to never receive the result. Defer state changes that call `notifyListeners()` until after the push/pop completes.
+
+14. **JWT auto-refresh:** `ApiClient.onTokenExpired` must be wired up in `AppState` constructor. Access tokens expire after 15 minutes; without auto-refresh, users get "invalid or expired token" errors on any API call after that window.
+
 ## Roles
 
 | Role | Value | Admin middleware | Permissions |
@@ -518,7 +526,7 @@ When `TWILIO_VERIFY_SERVICE_SID` is set (production):
 - **No ORM:** Direct SQL via `pg` library with parameterized queries
 - **CASCADE deletes:** All user FKs use CASCADE except audit_log (SET NULL to preserve history)
 - **Open registration:** First SMS verify auto-creates user if phone not found
-- **QR networking:** Connections are instant and mutual on QR scan (no request/accept flow)
+- **QR networking:** Connections are instant and mutual on QR scan (no request/accept flow, no confirmation step). Scanner gets immediate celebration overlay. Scanned user gets notified via 4-second polling on `GET /connections`. Both users auto-verified on first connection.
 - **Venue as text fields:** `venue_name` and `venue_address` are plain text on `events` — no first-class Venue FK for new events. The `venues` table remains for legacy data only.
 - **posh_orders as tickets:** Posh webhook purchases write to `posh_orders`, which IS the canonical ticket record. The `tickets` table is for walk-in/manual check-ins. Posh buyers are NOT auto-created as users — they receive an invite to download the app.
 - **Publish gate:** Events require Posh event ID + venue name + at least 1 image before they can be published. Enforced at the API layer in `PATCH /admin/events/:id`.
