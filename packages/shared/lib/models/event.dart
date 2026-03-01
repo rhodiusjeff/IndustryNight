@@ -169,12 +169,12 @@ class Event extends Equatable {
 
   bool get isPublished => status == EventStatus.published;
   bool get isCancelled => status == EventStatus.cancelled;
-  bool get isUpcoming => startTime.isAfter(DateTime.now());
+  bool get isUpcoming => _asLocal(startTime).isAfter(DateTime.now());
   bool get isOngoing {
     final now = DateTime.now();
-    return now.isAfter(startTime) && now.isBefore(endTime);
+    return now.isAfter(_asLocal(startTime)) && now.isBefore(_asLocal(endTime));
   }
-  bool get isPast => endTime.isBefore(DateTime.now());
+  bool get isPast => _asLocal(endTime).isBefore(DateTime.now());
   bool get hasCapacity => capacity == null || attendeeCount < capacity!;
 
   /// Hero image URL from list endpoints, or first image from detail endpoint
@@ -193,6 +193,12 @@ class Event extends Equatable {
         createdAt, updatedAt,
       ];
 }
+
+/// Admin stores local times without UTC conversion, so the DB holds
+/// local-time-as-UTC. Re-interpret UTC components as local for correct
+/// epoch comparison with [DateTime.now()].
+DateTime _asLocal(DateTime dt) => DateTime(
+      dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.millisecond);
 
 EventStatus _eventStatusFromJson(String value) {
   return EventStatus.values.firstWhere(

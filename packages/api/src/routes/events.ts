@@ -34,7 +34,7 @@ router.get('/', authenticate, validate(listEventsSchema), async (req, res, next)
     }
 
     if (upcoming) {
-      whereClause += ` AND start_time > NOW()`;
+      whereClause += ` AND start_time > NOW() - INTERVAL '24 hours'`;
     }
 
     params.push(limit, offset);
@@ -132,7 +132,9 @@ router.get('/:id/my-ticket', authenticate, async (req, res, next) => {
   try {
     const ticket = await queryOne(
       `SELECT *, price::float AS price FROM tickets
-       WHERE event_id = $1 AND user_id = $2 AND status NOT IN ('cancelled', 'refunded')`,
+       WHERE event_id = $1 AND user_id = $2 AND status NOT IN ('cancelled', 'refunded')
+       ORDER BY CASE WHEN status = 'checkedIn' THEN 0 ELSE 1 END, created_at DESC
+       LIMIT 1`,
       [req.params.id, req.user!.userId]
     );
 

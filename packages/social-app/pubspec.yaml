@@ -19,6 +19,7 @@ dependencies:
   go_router: ^13.0.1
 
   # UI
+  confetti: ^0.7.0
   cupertino_icons: ^1.0.6
   cached_network_image: ^3.3.0
   shimmer: ^3.0.0

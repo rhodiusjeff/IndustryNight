@@ -63,8 +63,10 @@ router.get('/', authenticate, validate(searchSchema), async (req, res, next) => 
 router.get('/:id', authenticate, async (req, res, next) => {
   try {
     const user = await queryOne(
-      `SELECT id, name, bio, profile_photo_url, specialties, social_links,
-              verification_status, created_at
+      `SELECT id, phone, name, email, bio, profile_photo_url, specialties, social_links,
+              role, source, verification_status, profile_completed, banned,
+              analytics_consent, marketing_consent, profile_visibility,
+              consent_updated_at, created_at, last_login_at
        FROM users WHERE id = $1 AND banned = false`,
       [req.params.id]
     );

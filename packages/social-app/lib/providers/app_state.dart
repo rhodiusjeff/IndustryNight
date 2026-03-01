@@ -22,7 +22,36 @@ class AppState extends ChangeNotifier {
     SecureStorage? storage,
   })  : _apiClient = apiClient ??
             ApiClient(baseUrl: apiBaseUrl ?? 'https://api.industrynight.net'),
-        _storage = storage ?? SecureStorage();
+        _storage = storage ?? SecureStorage() {
+    // Wire up automatic token refresh on 401 responses
+    _apiClient.onTokenExpired = _refreshAccessToken;
+  }
+
+  /// Attempt to refresh the access token using the stored refresh token.
+  /// Returns true if refresh succeeded (caller should retry the request).
+  Future<bool> _refreshAccessToken() async {
+    try {
+      final refreshToken = await _storage.getRefreshToken();
+      if (refreshToken == null) return false;
+
+      final response = await authApi.refreshToken(refreshToken);
+      await _storage.saveTokens(
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken,
+      );
+      // authApi.refreshToken already calls _apiClient.setToken
+      _currentUser = response.user;
+      return true;
+    } catch (e) {
+      debugPrint('[AppState] Token refresh failed: $e');
+      // Refresh failed — clear auth state so user gets redirected to login
+      await _storage.clearTokens();
+      _apiClient.clearToken();
+      _currentUser = null;
+      notifyListeners();
+      return false;
+    }
+  }
 
   // Getters
   User? get currentUser => _currentUser;
@@ -38,10 +67,14 @@ class AppState extends ChangeNotifier {
   // Active event session getters
   String? get activeEventId => hasActiveEvent ? _activeEventId : null;
   String? get activeEventName => hasActiveEvent ? _activeEventName : null;
-  bool get hasActiveEvent =>
-      _activeEventId != null &&
-      _activeEventEndTime != null &&
-      _activeEventEndTime!.isAfter(DateTime.now());
+  bool get hasActiveEvent {
+    if (_activeEventId == null || _activeEventEndTime == null) return false;
+    // Stored times are local-as-UTC; re-interpret for correct comparison
+    final dt = _activeEventEndTime!;
+    final localEnd = DateTime(dt.year, dt.month, dt.day, dt.hour, dt.minute,
+        dt.second, dt.millisecond);
+    return localEnd.isAfter(DateTime.now());
+  }
 
   // API instances
   late final AuthApi authApi = AuthApi(_apiClient);
@@ -61,7 +94,11 @@ class AppState extends ChangeNotifier {
       // Restore active event session
       final activeEvent = await _storage.getActiveEvent();
       if (activeEvent != null) {
-        if (activeEvent.endTime.isAfter(DateTime.now())) {
+        // Stored times are local-as-UTC; re-interpret for correct comparison
+        final dt = activeEvent.endTime;
+        final localEnd = DateTime(dt.year, dt.month, dt.day, dt.hour,
+            dt.minute, dt.second, dt.millisecond);
+        if (localEnd.isAfter(DateTime.now())) {
           _activeEventId = activeEvent.id;
           _activeEventName = activeEvent.name;
           _activeEventEndTime = activeEvent.endTime;
@@ -275,6 +312,16 @@ class AppState extends ChangeNotifier {
     _apiClient.clearToken();
     _currentUser = null;
     notifyListeners();
+  }
+
+  /// Update local user to verified status (after first connection).
+  void setVerified() {
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(
+        verificationStatus: VerificationStatus.verified,
+      );
+      notifyListeners();
+    }
   }
 
   /// Clear error

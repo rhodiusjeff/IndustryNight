@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:industrynight_shared/shared.dart';
 import '../../../providers/app_state.dart';
 import '../../../shared/theme/app_theme.dart';
+import '../networking_state.dart';
 import '../widgets/digital_card.dart';
+import '../widgets/new_connection_overlay.dart';
 
 /// The Connect tab — shows the user's digital card and a "Scan to Connect" button
 /// when checked in, or contextual guidance when not.
@@ -18,11 +20,40 @@ class ConnectTabScreen extends StatefulWidget {
 class _ConnectTabScreenState extends State<ConnectTabScreen> {
   List<Ticket> _myTickets = [];
   bool _isLoadingTickets = true;
+  String? _celebratedConnectionId;
 
   @override
   void initState() {
     super.initState();
     _loadTickets();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _updatePolling();
+  }
+
+  @override
+  void dispose() {
+    try {
+      context.read<NetworkingState>().stopPolling();
+    } catch (_) {}
+    super.dispose();
+  }
+
+  void _updatePolling() {
+    final appState = context.read<AppState>();
+    final networkingState = context.read<NetworkingState>();
+
+    if (appState.hasActiveEvent) {
+      networkingState.startPolling(
+        currentVerificationStatus: appState.currentUser?.verificationStatus ??
+            VerificationStatus.unverified,
+      );
+    } else {
+      networkingState.stopPolling();
+    }
   }
 
   Future<void> _loadTickets() async {
@@ -40,16 +71,61 @@ class _ConnectTabScreenState extends State<ConnectTabScreen> {
     }
   }
 
+  Future<void> _showConnectionCelebration(
+    Connection connection,
+    bool wasJustVerified,
+  ) async {
+    final networkingState = context.read<NetworkingState>();
+    final appState = context.read<AppState>();
+    final otherUser = connection.getOtherUser(networkingState.currentUserId);
+
+    if (otherUser == null) {
+      networkingState.clearNewConnectionNotification();
+      return;
+    }
+
+    if (wasJustVerified) {
+      appState.setVerified();
+    }
+
+    await showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss celebration',
+      barrierColor: Colors.transparent,
+      pageBuilder: (dialogContext, _, __) {
+        return NewConnectionOverlay(
+          otherUser: otherUser,
+          justVerified: wasJustVerified,
+          onDismiss: () => Navigator.of(dialogContext).pop(),
+        );
+      },
+    );
+
+    if (!mounted) return;
+    networkingState.clearNewConnectionNotification();
+
+    // Resume polling to catch additional connections
+    networkingState.startPolling(
+      currentVerificationStatus: appState.currentUser?.verificationStatus ??
+          VerificationStatus.unverified,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    final networkingState = context.watch<NetworkingState>();
 
-    // Clear expired session lazily
-    if (appState.activeEventId == null &&
-        appState.hasActiveEvent == false &&
-        _myTickets.isEmpty &&
-        !_isLoadingTickets) {
-      // No active event, no tickets — state 3
+    // Detect new connection from polling
+    final newConn = networkingState.newConnection;
+    if (newConn != null && newConn.id != _celebratedConnectionId) {
+      _celebratedConnectionId = newConn.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _showConnectionCelebration(newConn, networkingState.wasJustVerified);
+        }
+      });
     }
 
     return Scaffold(

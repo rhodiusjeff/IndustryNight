@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:industrynight_shared/shared.dart';
 import '../../../providers/admin_state.dart';
 
@@ -329,7 +330,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   ),
                   if (e.activationCode != null) ...[
                     const SizedBox(height: 16),
-                    _ActivationCodeCard(code: e.activationCode!),
+                    _ActivationCodeCard(
+                    eventId: e.id,
+                    eventName: e.name,
+                    code: e.activationCode!,
+                  ),
                   ],
                 ],
               ),
@@ -923,9 +928,17 @@ class _StatRow extends StatelessWidget {
 // ────────────────────────────────────────────────────────────
 
 class _ActivationCodeCard extends StatelessWidget {
+  final String eventId;
+  final String eventName;
   final String code;
 
-  const _ActivationCodeCard({required this.code});
+  const _ActivationCodeCard({
+    required this.eventId,
+    required this.eventName,
+    required this.code,
+  });
+
+  String get _qrData => 'industrynight://checkin/$eventId/$code';
 
   @override
   Widget build(BuildContext context) {
@@ -935,8 +948,39 @@ class _ActivationCodeCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Activation Code', style: Theme.of(context).textTheme.titleMedium),
+            Row(
+              children: [
+                Text('Activation Code',
+                    style: Theme.of(context).textTheme.titleMedium),
+                const Spacer(),
+                TextButton.icon(
+                  icon: const Icon(Icons.print, size: 18),
+                  label: const Text('Print QR Code'),
+                  onPressed: () => _printQrCode(context),
+                ),
+              ],
+            ),
             const SizedBox(height: 16),
+
+            // QR Code
+            Center(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: QrImageView(
+                  data: _qrData,
+                  version: QrVersions.auto,
+                  size: 200,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Text code + copy button
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -967,9 +1011,95 @@ class _ActivationCodeCard extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(height: 8),
+            Center(
+              child: Text(
+                'Attendees scan this QR or enter the code to check in',
+                style: TextStyle(color: Theme.of(context).hintColor, fontSize: 12),
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  void _printQrCode(BuildContext context) {
+    // Generate SVG from QR matrix for crisp print output
+    final result = QrValidator.validate(
+      data: _qrData,
+      version: QrVersions.auto,
+      errorCorrectionLevel: QrErrorCorrectLevel.M,
+    );
+    if (result.status != QrValidationStatus.valid || result.qrCode == null) {
+      return;
+    }
+    final qrImage = QrImage(result.qrCode!);
+    final moduleCount = qrImage.moduleCount;
+    const svgSize = 400;
+    final cellSize = svgSize / moduleCount;
+    final svg = StringBuffer();
+    svg.write('<svg xmlns="http://www.w3.org/2000/svg" '
+        'width="$svgSize" height="$svgSize" viewBox="0 0 $svgSize $svgSize">');
+    svg.write('<rect width="$svgSize" height="$svgSize" fill="white"/>');
+    for (var y = 0; y < moduleCount; y++) {
+      for (var x = 0; x < moduleCount; x++) {
+        if (qrImage.isDark(y, x)) {
+          final px = (x * cellSize).toStringAsFixed(2);
+          final py = (y * cellSize).toStringAsFixed(2);
+          final cs = cellSize.toStringAsFixed(2);
+          svg.write(
+              '<rect x="$px" y="$py" width="$cs" height="$cs" fill="black"/>');
+        }
+      }
+    }
+    svg.write('</svg>');
+
+    final escapedName = eventName
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
+
+    final printHtml = '''<!DOCTYPE html>
+<html>
+<head>
+<title>Check-In QR - $escapedName</title>
+<style>
+  @page { size: letter; margin: 0.5in; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    text-align: center;
+  }
+  .qr { width: 5in; height: 5in; }
+  .qr svg { width: 100%; height: 100%; }
+  h1 { font-size: 2.5em; margin-top: 0.6em; color: #111; }
+  .event-name { font-size: 1.3em; color: #555; margin-top: 0.3em; }
+  .code {
+    font-size: 1.8em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    letter-spacing: 0.3em;
+    color: #666;
+    margin-top: 0.5em;
+  }
+</style>
+</head>
+<body onload="window.print()">
+  <div class="qr">${svg.toString()}</div>
+  <h1>Scan to Check In</h1>
+  <p class="event-name">$escapedName</p>
+  <p class="code">or enter code: $code</p>
+</body>
+</html>''';
+
+    // Open print page via Blob URL — onload triggers print dialog
+    final blob = html.Blob([printHtml], 'text/html');
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    html.window.open(url, 'printQR');
   }
 }

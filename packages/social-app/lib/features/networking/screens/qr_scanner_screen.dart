@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
+import 'package:industrynight_shared/shared.dart';
 import '../../../providers/app_state.dart';
 import '../../../shared/theme/app_theme.dart';
 import '../networking_state.dart';
-import '../widgets/scanned_user_sheet.dart';
+import '../widgets/new_connection_overlay.dart';
 
 class QrScannerScreen extends StatefulWidget {
   const QrScannerScreen({super.key});
@@ -47,51 +48,77 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     setState(() => _isProcessing = true);
 
     final networkingState = context.read<NetworkingState>();
-    final user = await networkingState.lookupScannedUser(userId);
+    final appState = context.read<AppState>();
 
-    if (!mounted) return;
+    try {
+      // Instant connection — no confirmation step
+      final result = await networkingState.createConnection(value);
+      if (!mounted) return;
 
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(networkingState.error ?? 'User not found'),
-        ),
-      );
-      setState(() => _isProcessing = false);
-      return;
-    }
+      final connection = result?.connection;
+      final justVerified = result?.justVerified ?? false;
 
-    // Show profile preview bottom sheet
-    final result = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) => ChangeNotifierProvider.value(
-        value: networkingState,
-        child: ScannedUserSheet(
-          user: user,
-          qrData: value,
-          onConnected: () {
-            Navigator.of(sheetContext).pop(true);
+      if (justVerified) {
+        appState.setVerified();
+      }
+
+      // Get the other user from the enriched connection response
+      final otherUser = connection?.getOtherUser(networkingState.currentUserId);
+
+      if (otherUser != null) {
+        // Show celebration overlay
+        await showGeneralDialog(
+          context: context,
+          barrierDismissible: true,
+          barrierLabel: 'Dismiss',
+          barrierColor: Colors.transparent,
+          pageBuilder: (dialogContext, _, __) {
+            return NewConnectionOverlay(
+              otherUser: otherUser,
+              justVerified: justVerified,
+              onDismiss: () => Navigator.of(dialogContext).pop(),
+            );
           },
-        ),
-      ),
-    );
+        );
+      }
 
-    if (!mounted) return;
-
-    if (result == true) {
-      // Connection was made — pop scanner back to Connect tab
+      // Pop scanner back to Connect tab
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      if (e.statusCode == 409) {
+        // Show dialog and pop back — don't resume scanning (causes loop)
+        await showDialog(
+          context: context,
+          barrierDismissible: true,
+          builder: (dialogContext) => AlertDialog(
+            icon: const Icon(Icons.people, size: 40, color: AppColors.primary),
+            title: const Text('Already Connected'),
+            content: const Text(
+              'You are already connected with this person.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        if (mounted) Navigator.of(context).pop();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+        setState(() => _isProcessing = false);
+      }
+    } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Connected with ${user.name ?? 'user'}!'),
-        ),
+        const SnackBar(content: Text('Connection failed. Please try again.')),
       );
-      Navigator.of(context).pop();
-    } else {
-      // Sheet dismissed without connecting — resume scanning
       setState(() => _isProcessing = false);
     }
   }

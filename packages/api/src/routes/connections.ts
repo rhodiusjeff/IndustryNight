@@ -95,16 +95,70 @@ router.post('/', authenticate, validate(createConnectionSchema), async (req, res
     }
 
     // Create connection (instant - no pending state)
-    const connection = await queryOne(
+    const inserted = await queryOne<{ id: string }>(
       `INSERT INTO connections (user_a_id, user_b_id, event_id)
        VALUES ($1, $2, $3)
-       RETURNING *`,
+       RETURNING id`,
       [userAId, userBId, eventId || null]
+    );
+
+    // Auto-verify unverified users on first connection
+    let justVerified = false;
+    const currentUserStatus = await queryOne<{ verification_status: string }>(
+      'SELECT verification_status FROM users WHERE id = $1',
+      [currentUserId]
+    );
+    if (currentUserStatus?.verification_status === 'unverified') {
+      await query(
+        "UPDATE users SET verification_status = 'verified', updated_at = NOW() WHERE id = $1",
+        [currentUserId]
+      );
+      justVerified = true;
+    }
+
+    // Also verify the other user if they're unverified
+    const otherUserStatus = await queryOne<{ verification_status: string }>(
+      'SELECT verification_status FROM users WHERE id = $1',
+      [otherUserId]
+    );
+    if (otherUserStatus?.verification_status === 'unverified') {
+      await query(
+        "UPDATE users SET verification_status = 'verified', updated_at = NOW() WHERE id = $1",
+        [otherUserId]
+      );
+    }
+
+    // Re-fetch connection with joined user data (same shape as GET /connections)
+    const connection = await queryOne(
+      `SELECT c.id, c.user_a_id, c.user_b_id, c.event_id, c.created_at,
+              json_build_object(
+                'id', ua.id, 'phone', ua.phone, 'name', ua.name,
+                'profile_photo_url', ua.profile_photo_url,
+                'specialties', ua.specialties,
+                'verification_status', ua.verification_status,
+                'role', ua.role, 'source', ua.source,
+                'profile_completed', ua.profile_completed,
+                'banned', ua.banned, 'created_at', ua.created_at
+              ) as user_a,
+              json_build_object(
+                'id', ub.id, 'phone', ub.phone, 'name', ub.name,
+                'profile_photo_url', ub.profile_photo_url,
+                'specialties', ub.specialties,
+                'verification_status', ub.verification_status,
+                'role', ub.role, 'source', ub.source,
+                'profile_completed', ub.profile_completed,
+                'banned', ub.banned, 'created_at', ub.created_at
+              ) as user_b
+       FROM connections c
+       JOIN users ua ON c.user_a_id = ua.id
+       JOIN users ub ON c.user_b_id = ub.id
+       WHERE c.id = $1`,
+      [inserted!.id]
     );
 
     // TODO: Log to audit_log
 
-    res.status(201).json({ connection });
+    res.status(201).json({ connection, justVerified });
   } catch (error) {
     next(error);
   }

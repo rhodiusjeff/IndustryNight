@@ -36,24 +36,45 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       _error = null;
     });
 
+    final eventsApi = context.read<AppState>().eventsApi;
+
+    // Load event first — this is required for the screen to render
     try {
-      final eventsApi = context.read<AppState>().eventsApi;
-      final results = await Future.wait([
-        eventsApi.getEvent(widget.eventId),
-        eventsApi.getMyTicket(widget.eventId),
-      ]);
+      final event = await eventsApi.getEvent(widget.eventId);
       if (!mounted) return;
       setState(() {
-        _event = results[0] as Event;
-        _myTicket = results[1] as Ticket?;
+        _event = event;
         _isLoading = false;
-        _isLoadingTicket = false;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _error = e is ApiException ? e.message : 'Failed to load event';
         _isLoading = false;
+        _isLoadingTicket = false;
+      });
+      return;
+    }
+
+    // Load ticket separately — a failure here shouldn't break the screen
+    await _refreshTicket();
+  }
+
+  /// Refresh only the ticket without resetting the whole screen.
+  Future<void> _refreshTicket() async {
+    try {
+      final ticket = await context.read<AppState>().eventsApi.getMyTicket(widget.eventId);
+      if (!mounted) return;
+      debugPrint('[EventDetail] ticket status: ${ticket?.status}');
+      setState(() {
+        _myTicket = ticket;
+        _isLoadingTicket = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      debugPrint('[EventDetail] ticket load error: $e');
+      setState(() {
+        _myTicket = null;
         _isLoadingTicket = false;
       });
     }
@@ -238,21 +259,127 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             ),
             if (!isCheckedIn && event.isPublished && !event.isPast) ...[
               const SizedBox(height: 12),
-              SizedBox(
+              Builder(builder: (context) {
+                final now = DateTime.now();
+                final eventDay = DateTime(event.startTime.year,
+                    event.startTime.month, event.startTime.day);
+                final today = DateTime(now.year, now.month, now.day);
+                final isEventDay = !eventDay.isAfter(today);
+
+                if (!isEventDay) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.schedule,
+                            size: 16, color: AppColors.textSecondary),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Check-in available on event day',
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      final appState = context.read<AppState>();
+                      final result = await context.push<Ticket>(
+                        '/events/${widget.eventId}/checkin',
+                        extra: {
+                          'eventName': event.name,
+                          'eventEndTime': event.endTime.toIso8601String(),
+                        },
+                      );
+                      if (!mounted) return;
+
+                      if (result != null && result.isCheckedIn) {
+                        // Direct update from check-in response
+                        setState(() {
+                          _myTicket = result;
+                          if (_event != null) {
+                            _event = _event!.copyWith(
+                              attendeeCount: _event!.attendeeCount + 1,
+                            );
+                          }
+                        });
+                      } else {
+                        // Fallback: refresh ticket from API
+                        await _refreshTicket();
+                      }
+
+                      // Set active event session AFTER local state is updated,
+                      // so the GoRouter refreshListenable rebuild sees correct state.
+                      if (!mounted) return;
+                      final currentTicket = _myTicket;
+                      if (currentTicket != null && currentTicket.isCheckedIn) {
+                        await appState.setActiveEvent(
+                          eventId: widget.eventId,
+                          name: event.name,
+                          endTime: event.endTime,
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.qr_code),
+                    label: const Text('Check In'),
+                  ),
+                );
+              }),
+            ],
+            if (isCheckedIn) ...[
+              const SizedBox(height: 16),
+              Container(
                 width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    await context.push(
-                      '/events/${widget.eventId}/checkin',
-                      extra: {
-                        'eventName': event.name,
-                        'eventEndTime': event.endTime.toIso8601String(),
-                      },
-                    );
-                    _loadEvent();
-                  },
-                  icon: const Icon(Icons.qr_code),
-                  label: const Text('Check In'),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    const Icon(Icons.people, color: AppColors.primary, size: 28),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Start Connecting!',
+                      style: AppTypography.titleMedium.copyWith(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Builder(builder: (context) {
+                      final appState = context.read<AppState>();
+                      final isUnverified = appState.currentUser?.verificationStatus ==
+                          VerificationStatus.unverified;
+                      return Text(
+                        isUnverified
+                            ? 'Connect with someone to get verified'
+                            : 'Open your QR code and start meeting people',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                        textAlign: TextAlign.center,
+                      );
+                    }),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () => context.go('/connect'),
+                        icon: const Icon(Icons.qr_code_scanner),
+                        label: const Text('Open Connect'),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

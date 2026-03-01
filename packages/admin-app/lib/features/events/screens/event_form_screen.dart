@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:industrynight_shared/shared.dart';
 import '../../../providers/admin_state.dart';
+import '../../../shared/widgets/address_autocomplete_field.dart';
 
 /// Used for both creating a new event and editing event metadata.
 /// Pass [event] to enter edit mode; omit it for create mode.
@@ -167,7 +168,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                       decoration: const InputDecoration(labelText: 'Venue Name'),
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
+                    AddressAutocompleteField(
                       controller: _venueAddressController,
                       decoration: const InputDecoration(labelText: 'Venue Address'),
                     ),

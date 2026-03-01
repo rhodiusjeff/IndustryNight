@@ -142,7 +142,6 @@ class AppRouter {
             return ChangeNotifierProvider(
               create: (_) => NetworkingState(
                 connectionsApi: appState.connectionsApi,
-                usersApi: appState.usersApi,
                 getCurrentUserId: () => appState.currentUser?.id ?? '',
                 getActiveEventId: () => appState.activeEventId,
               ),
