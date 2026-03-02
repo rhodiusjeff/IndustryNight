@@ -103,11 +103,13 @@ cd packages/shared && dart run build_runner build --delete-conflicting-outputs
 
 ## Documentation
 
-- [Requirements](docs/requirements.md) - Product requirements and MVP scope
-- [Implementation Plan](docs/implementation_plan.md) - Development roadmap and current progress
-- [AWS Architecture](docs/aws_architecture.md) - Infrastructure details
-- [Scripts User Guide](docs/scripts_user_guide.md) - All operational scripts with usage examples
-- [COOP Manual](docs/coop.md) - Infrastructure teardown/rebuild/backup/restore
+- [Requirements](docs/product/requirements.md) - Product requirements and MVP scope
+- [Implementation Plan](docs/product/implementation_plan.md) - Development roadmap and current progress
+- [AWS Architecture](docs/architecture/aws_architecture.md) - Infrastructure details
+- [Scripts User Guide](docs/guides/scripts_user_guide.md) - All operational scripts with usage examples
+- [COOP Manual](docs/guides/coop.md) - Infrastructure teardown/rebuild/backup/restore
+- [Executive Brief](docs/executive/executive-brief.md) - Stakeholder executive brief
+- [Social Network Analysis](docs/analysis/social_network_analysis.md) - Social features deep-dive
 
 ## Architecture
 

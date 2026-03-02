@@ -56,7 +56,7 @@ kubectl apply -f k8s/ingress.yaml
 
 ## Architecture
 
-See `docs/aws_architecture.md` for the full architecture diagram.
+See `docs/architecture/aws_architecture.md` for the full architecture diagram.
 
 ### Key Components
 

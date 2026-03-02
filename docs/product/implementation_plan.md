@@ -14,12 +14,12 @@
 | **1B: Core Mobile App** | **Complete** | Login, profile setup, events list/detail, activation code |
 | **1C: Verification & QR** | **Complete** | QR scan, instant connections, connect tab |
 | **1D: Event Social** | Partial | Basic attendance shown; Who's Going/Who's Here not yet built |
-| **1E: Community Board** | **Complete** | Feed, create post, post detail |
-| **1F: Creative Search** | **Complete** | Search screen, user profiles |
+| **1E: Community Board** | **Stub** | Screens exist with zero API calls; hardcoded fake data |
+| **1F: Creative Search** | **Stub** | Screens exist with zero API calls; hardcoded fake data |
 | **2A: Admin Foundation** | **Complete** | Login, dashboard, user management |
 | **2B: Admin Events** | **Complete** | Full event CRUD, multi-image upload (S3), hero image, activation codes, publish gate |
-| **2C: Admin Sponsors** | **Complete** | Sponsor CRUD, event-sponsor linking, discounts |
-| **2D: Admin Vendors** | **Complete** | Vendor CRUD |
+| **2C: Admin Sponsors** | Partial | Create + event linking works; edit endpoint missing, discount admin routes missing |
+| **2D: Admin Vendors** | Partial | Create works; edit endpoint missing |
 | **2E: Admin Moderation** | Stub | Post list screen exists, moderation actions not yet implemented |
 | **Phase 3** | Not started | In-app tickets, push notifications, analytics dashboard |
 

@@ -246,7 +246,7 @@ Enables remote Node.js debugging on the EKS API pod. Scales to 1 replica, inject
 
 ### generate-exec-brief.py
 
-Regenerates the 13-slide PowerPoint executive brief at `docs/Industry Night - Executive Brief.pptx`. Dark theme, purple accents, widescreen (16:9).
+Regenerates the 14-slide PowerPoint executive brief at `docs/executive/Industry Night - Executive Brief.pptx`. Dark theme, purple accents, widescreen (16:9).
 
 ```bash
 python3 -m venv /tmp/pptx-env && source /tmp/pptx-env/bin/activate && pip install python-pptx
@@ -257,7 +257,7 @@ Edit data values directly in the script before regenerating — see CLAUDE.md fo
 
 ### generate-exec-summary.py
 
-Regenerates the companion markdown executive summary at `docs/executive-brief.md`.
+Regenerates the companion markdown executive summary at `docs/executive/executive-brief.md`.
 
 ```bash
 python3 scripts/generate-exec-summary.py

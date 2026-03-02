@@ -27,14 +27,28 @@ Industry Night is a platform for discovering, promoting, and managing industry n
 ```
 CLAUDE.md                           # This file
 docs/                               # Project memory and documentation
-  industry_night_app_developer_context_handoff.md  # Full product requirements
-  requirements.md                   # Feature requirements
-  implementation_plan.md            # Implementation roadmap
-  aws_architecture.md               # AWS infra design
-  aws_setup_commands.md             # AWS provisioning commands
-  app_creative_direction.md         # UI/UX creative direction
-  app_rationale_treatise.md         # Product rationale
-  open_questions.md                 # Open design questions
+  architecture/                     # Infrastructure & technical design
+    aws_architecture.md             # AWS infra design
+    aws_setup_commands.md           # AWS provisioning commands
+  executive/                        # Stakeholder-facing decks & PDFs
+    executive-brief.md              # Executive brief (markdown)
+    *.pptx, *.pdf                   # Slide decks and PDF reports
+  product/                          # Requirements, plans, design direction
+    requirements.md                 # Feature requirements
+    implementation_plan.md          # Implementation roadmap
+    industry_night_app_developer_context_handoff.md  # Full product requirements
+    app_creative_direction.md       # UI/UX creative direction
+    app_rationale_treatise.md       # Product rationale
+    open_questions.md               # Open design questions
+  analysis/                         # Deep-dive reviews & analyses
+    social_network_analysis.md      # Social network analysis (technical)
+    social_network_analysis_product_owner.md  # Social network analysis (non-technical)
+    adversarial_review.md           # Requirements vs. reality audit
+    implementation_audit.md         # Implementation audit
+  guides/                           # Operational manuals
+    scripts_user_guide.md           # Scripts usage guide
+    coop.md                         # COOP teardown/rebuild/backup manual
+  archive/                          # Historical document versions
 scripts/                            # Operational scripts (Node.js + bash)
   migrate.js                        # Apply pending DB migrations (safe to re-run)
   db-reset.js                       # Full database reset (drops all, re-runs migrations + seeds)
@@ -364,7 +378,7 @@ DB scripts use `pg` from `packages/api/node_modules` (no separate install needed
 
 ### Executive Brief Generator
 
-`scripts/generate-exec-brief.py` generates a 13-slide PowerPoint presentation at `docs/Industry Night - Executive Brief.pptx`. Dark theme, purple accents, widescreen (16:9).
+`scripts/generate-exec-brief.py` generates a 14-slide PowerPoint presentation at `docs/executive/Industry Night - Executive Brief.pptx`. Dark theme, purple accents, widescreen (16:9).
 
 **To regenerate:**
 ```bash
@@ -374,7 +388,7 @@ python3 scripts/generate-exec-brief.py
 
 ### COOP Scripts (scripts/coop/)
 
-Infrastructure lifecycle management — tear down AWS to save costs, rebuild from scratch, backup/restore data. Full documentation in `docs/coop.md`.
+Infrastructure lifecycle management — tear down AWS to save costs, rebuild from scratch, backup/restore data. Full documentation in `docs/guides/coop.md`.
 
 | Script | Purpose | Usage |
 |--------|---------|-------|
@@ -535,22 +549,19 @@ When `TWILIO_VERIFY_SERVICE_SID` is set (production):
 
 ## Documentation
 
-The `docs/` directory is the project memory:
-- `industry_night_app_developer_context_handoff.md` — Full product requirements and MVP scope
-- `requirements.md` — Feature requirements
-- `implementation_plan.md` — Implementation roadmap
-- `aws_architecture.md` — AWS infrastructure design
-- `aws_setup_commands.md` — AWS provisioning commands
-- `app_creative_direction.md` — UI/UX creative direction
-- `app_rationale_treatise.md` — Product rationale
-- `open_questions.md` — Open design questions
-- `coop.md` — COOP scripts user manual (teardown/rebuild/backup/restore)
+The `docs/` directory is the project memory, organized into subfolders:
+- `docs/architecture/` — AWS infrastructure design and provisioning
+- `docs/executive/` — Stakeholder-facing decks, PDFs, and executive briefs
+- `docs/product/` — Product requirements, implementation plans, design direction
+- `docs/analysis/` — Deep-dive reviews (adversarial, social network, implementation audit)
+- `docs/guides/` — Operational manuals (scripts usage, COOP teardown/rebuild)
+- `docs/archive/` — Historical document versions
 
 ## Context Refresh & Knowledge Transfer
 
 **Important for Claude:** The project owner may return after extended breaks and will have lost context on what was built, why decisions were made, and how the operational tooling works. When this happens:
 
-1. **Don't assume knowledge.** If the user asks about infrastructure, COOP scripts, deployment, or any operational topic, start by pointing them to the relevant docs (`docs/coop.md`, `docs/aws_architecture.md`, etc.) and offer a walkthrough rather than jumping straight into commands.
+1. **Don't assume knowledge.** If the user asks about infrastructure, COOP scripts, deployment, or any operational topic, start by pointing them to the relevant docs (`docs/guides/coop.md`, `docs/architecture/aws_architecture.md`, etc.) and offer a walkthrough rather than jumping straight into commands.
 
 2. **Offer a refresher.** If the user seems uncertain or asks broad questions like "how does this work again?" or "what do we have?", proactively suggest walking through the system together. A good sequence:
    - Run `./scripts/coop/coop.sh status` to show current AWS state

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Industry Night — Executive Brief PowerPoint Generator
+Industry Night -- Executive Brief PowerPoint Generator
 
 Generates a professional .pptx presentation from project data.
 Re-run this script to regenerate the deck with updated metrics.
@@ -17,7 +17,7 @@ from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE
 from datetime import date
 
-# ─── Brand Colors ───────────────────────────────────────────────────────────
+# --- Brand Colors ---------------------------------------------------------------
 BLACK       = RGBColor(0x0F, 0x0F, 0x0F)
 DARK_BG     = RGBColor(0x1A, 0x1A, 0x2E)
 ACCENT      = RGBColor(0x6C, 0x5C, 0xE7)   # Purple accent
@@ -31,11 +31,11 @@ RED_SOFT    = RGBColor(0xE1, 0x7A, 0x7A)
 CARD_BG     = RGBColor(0x22, 0x22, 0x3A)
 SLIDE_BG    = RGBColor(0x12, 0x12, 0x22)
 
-# ─── Report Data (update these for weekly refresh) ──────────────────────────
+# --- Report Data (update these for weekly refresh) ------------------------------
 REPORT_DATE = date.today().strftime("%B %d, %Y")
-PERIOD      = "Project Inception through Week 2"
+PERIOD      = "Project Inception through Week 3"
 
-# ─── Helpers ────────────────────────────────────────────────────────────────
+# --- Helpers --------------------------------------------------------------------
 
 def set_slide_bg(slide, color):
     bg = slide.background
@@ -154,14 +154,14 @@ def add_table_slide(slide, title, headers, rows, col_widths=None, subtitle=None)
                 p.font.name = "Calibri"
 
 
-# ─── Presentation ───────────────────────────────────────────────────────────
+# --- Presentation ---------------------------------------------------------------
 
 prs = Presentation()
 prs.slide_width = Inches(13.333)
 prs.slide_height = Inches(7.5)
 
 
-# ━━━ SLIDE 1: Title ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# === SLIDE 1: Title =============================================================
 sl = prs.slides.add_slide(prs.slide_layouts[6])  # blank
 set_slide_bg(sl, SLIDE_BG)
 
@@ -189,11 +189,11 @@ add_para(tb2.text_frame, PERIOD, size=14, color=MID_GRAY, space_before=Pt(8))
 add_para(tb2.text_frame, "Confidential", size=12, color=MID_GRAY, space_before=Pt(20))
 
 
-# ━━━ SLIDE 2: What Is Industry Night? ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# === SLIDE 2: What Is Industry Night? ===========================================
 sl = prs.slides.add_slide(prs.slide_layouts[6])
-slide_title(sl, "What Is Industry Night?", "Platform for creative professionals in NYC")
+slide_title(sl, "What Is Industry Night?", "Event-first social network for creative professionals")
 
-# Left column — description
+# Left column -- description
 tb = add_textbox(sl, Inches(0.6), Inches(1.6), Inches(5.5), Inches(4.5))
 tf = tb.text_frame
 tf.word_wrap = True
@@ -203,12 +203,12 @@ add_bullet(tf, "Existing tools are generic (Meetup, Eventbrite) or portfolio-foc
 add_bullet(tf, "No platform ties event attendance to verified community membership", size=13, color=LIGHT_GRAY)
 add_para(tf, "", size=6, color=WHITE)
 add_para(tf, "The Solution", size=18, color=ACCENT_LIGHT, bold=True)
-add_bullet(tf, "Invite-only community tied to real-world event attendance", size=13, color=LIGHT_GRAY)
+add_bullet(tf, "Open registration with verification earned through real-world actions", size=13, color=LIGHT_GRAY)
 add_bullet(tf, "QR-code networking at events creates instant, mutual connections", size=13, color=LIGHT_GRAY)
 add_bullet(tf, "Verification through attendance builds trust and authenticity", size=13, color=LIGHT_GRAY)
 add_bullet(tf, "Two apps: Social (for creatives) + Admin (for operators)", size=13, color=LIGHT_GRAY)
 
-# Right column — two product cards
+# Right column -- two product cards
 card1 = add_rounded_rect(sl, Inches(6.8), Inches(1.6), Inches(5.8), Inches(2.2))
 tf1 = card1.text_frame
 tf1.margin_top = Inches(0.2)
@@ -227,19 +227,19 @@ tf2.word_wrap = True
 set_text(tf2, "Admin App", size=18, color=ACCENT_LIGHT, bold=True)
 add_para(tf2, "Target:  Platform operators", size=12, color=LIGHT_GRAY)
 add_para(tf2, "Platforms:  Web, iOS, Android", size=12, color=LIGHT_GRAY)
-add_para(tf2, "Purpose:  Manage events, users, sponsors, moderation", size=12, color=LIGHT_GRAY)
+add_para(tf2, "Purpose:  Manage events, users, tickets, sponsors, moderation", size=12, color=LIGHT_GRAY)
 
 
-# ━━━ SLIDE 3: How It Works ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# === SLIDE 3: How It Works =====================================================
 sl = prs.slides.add_slide(prs.slide_layouts[6])
-slide_title(sl, "How It Works", "Ticket purchase to verified community member")
+slide_title(sl, "How It Works", "Open registration to verified community member")
 
 steps = [
-    ("1", "Buy Ticket", "User purchases on\nPosh.vip", "Webhook creates\nuser record"),
-    ("2", "Download App", "SMS login\n(phone-based)", "Set up profile\n& specialties"),
-    ("3", "Attend Event", "Door staff gives\n4-digit activation code", "User enters code\nin app"),
-    ("4", "Connect & Verify", "Scan QR codes to\nmake connections", "First connection =\nVerified status"),
-    ("5", "Full Access", "Community board,\nsponsor perks", "Networking at\nfuture events"),
+    ("1", "Register", "Download app\nSMS phone login\nNo password needed", "Set up profile\nwith specialties"),
+    ("2", "Get Ticket", "Purchase on Posh.vip\nor admin-issued", "Auto-linked to\naccount by phone"),
+    ("3", "Attend Event", "Door staff gives\n4-digit activation code", "Check in via\napp (code + ticket)"),
+    ("4", "Connect", "Scan QR codes for\ninstant connections", "First connection =\nVerified status"),
+    ("5", "Full Access", "Community board,\nsponsor perks", "Networking persists\nacross events"),
 ]
 
 for i, (num, title, line1, line2) in enumerate(steps):
@@ -277,15 +277,16 @@ for i, (num, title, line1, line2) in enumerate(steps):
     add_para(ctf, line2, size=12, color=LIGHT_GRAY, alignment=PP_ALIGN.CENTER)
 
 
-# ━━━ SLIDE 4: Project Timeline ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# === SLIDE 4: Project Timeline ==================================================
 sl = prs.slides.add_slide(prs.slide_layouts[6])
-slide_title(sl, "Project Timeline", "12 days from first commit to foundation complete")
+slide_title(sl, "Project Timeline", "18 days from first commit to full-stack working platform")
 
 milestones = [
-    ("Feb 4", "Requirements\nFinalized", "Product requirements\ndocument v1.8\ncompleted"),
-    ("Feb 13", "Initial\nCommit", "Project scaffolded,\nmonorepo structure\nestablished"),
-    ("Feb 23", "Infrastructure\nLaydown", "AWS EKS, domain\nmigration, ops\ntooling, DB scripts"),
-    ("Feb 25", "PR #1\nMerged", "Foundation complete,\nadmin auth branch\nin progress"),
+    ("Feb 4", "Requirements\nFinalized", "Product requirements\ndocument v1.8"),
+    ("Feb 13", "Initial\nCommit", "Project scaffolded,\nmonorepo structure"),
+    ("Feb 23", "Infrastructure\nLaydown", "AWS EKS, domain\nmigration, ops tooling"),
+    ("Feb 25", "Foundation\nComplete", "PR #1 merged,\nadmin auth working"),
+    ("Mar 1", "Full Stack\nWorking", "QR connections,\ntickets, check-in,\nadversarial review"),
 ]
 
 # Timeline line
@@ -295,7 +296,7 @@ line.fill.fore_color.rgb = ACCENT
 line.line.fill.background()
 
 for i, (dt, title, desc) in enumerate(milestones):
-    cx = Inches(1.5 + i * 3.0)
+    cx = Inches(1.0 + i * 2.6)
     # Dot
     dot = sl.shapes.add_shape(MSO_SHAPE.OVAL, cx + Inches(0.5), Inches(3.45), Inches(0.35), Inches(0.35))
     dot.fill.solid()
@@ -316,16 +317,16 @@ for i, (dt, title, desc) in enumerate(milestones):
     set_text(ctf, desc, size=12, color=LIGHT_GRAY, alignment=PP_ALIGN.CENTER)
 
 
-# ━━━ SLIDE 5: Codebase by the Numbers ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# === SLIDE 5: Codebase Metrics ==================================================
 sl = prs.slides.add_slide(prs.slide_layouts[6])
 slide_title(sl, "Codebase at a Glance")
 
 # Top row: 5 stat cards
 stats = [
-    ("~15,700", "Lines of Code"),
-    ("116", "Source Files"),
-    ("21", "Database Tables"),
-    ("35", "App Screens"),
+    ("~17,000", "Lines of Code"),
+    ("120+", "Source Files"),
+    ("22", "Database Tables"),
+    ("35+", "App Screens"),
     ("11", "API Route Modules"),
 ]
 for i, (num, label) in enumerate(stats):
@@ -335,19 +336,19 @@ for i, (num, label) in enumerate(stats):
 stats2 = [
     ("9", "Data Models"),
     ("7", "API Clients"),
-    ("8", "Git Commits"),
-    ("13+", "Operational Scripts"),
+    ("20+", "Git Commits"),
+    ("15+", "Operational Scripts"),
 ]
 for i, (num, label) in enumerate(stats2):
     add_stat_card(sl, Inches(0.6 + i * 2.5), Inches(3.2), num, label, accent_color=GREEN)
 
 # LOC breakdown table
 add_table_data = [
-    ("Backend API (TypeScript)", "2,269", "24"),
-    ("Flutter Apps + Shared (Dart)", "10,006", "63"),
-    ("Database (SQL)", "545", "5"),
-    ("Scripts (JS + Bash)", "2,663", "17"),
-    ("Infrastructure (YAML)", "253", "7"),
+    ("Backend API (TypeScript)", "~2,500", "25+"),
+    ("Flutter Apps + Shared (Dart)", "~11,000", "70+"),
+    ("Database (SQL)", "700+", "6"),
+    ("Scripts (JS + Bash + Python)", "3,000+", "20+"),
+    ("Infrastructure (YAML)", "250+", "7"),
 ]
 
 tbl_shape = sl.shapes.add_table(len(add_table_data)+1, 3, Inches(0.6), Inches(4.9), Inches(6.5), Inches(0.32 * (len(add_table_data)+1)))
@@ -378,7 +379,7 @@ for r, row in enumerate(add_table_data):
             p.font.name = "Calibri"
 
 
-# ━━━ SLIDE 6: What Has Been Built — Backend ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# === SLIDE 6: What Has Been Built -- Backend ====================================
 sl = prs.slides.add_slide(prs.slide_layouts[6])
 slide_title(sl, "What Has Been Built", "Backend API + Database")
 
@@ -392,9 +393,9 @@ set_text(tf, "Backend API  (Node.js / Express / TypeScript)", size=16, color=ACC
 add_bullet(tf, "11 route modules: auth, users, events, connections, posts, sponsors, vendors, discounts, webhooks, admin, admin-auth", size=12, color=LIGHT_GRAY)
 add_bullet(tf, "4 middleware layers: JWT auth, admin auth (token family separation), role-based access, Zod validation", size=12, color=LIGHT_GRAY)
 add_bullet(tf, "3 service integrations: Twilio SMS/Verify, AWS SES email, Posh.vip webhooks", size=12, color=LIGHT_GRAY)
-add_bullet(tf, "JWT dual-auth: separate 'social' and 'admin' token families prevent cross-app token reuse", size=12, color=LIGHT_GRAY)
-add_bullet(tf, "DevCode system: simulator-friendly auth that bypasses Twilio when credentials not configured", size=12, color=LIGHT_GRAY)
-add_bullet(tf, "2,269 lines of TypeScript across 24 files", size=12, color=MID_GRAY)
+add_bullet(tf, "JWT dual-auth: separate social and admin token families prevent cross-app token reuse", size=12, color=LIGHT_GRAY)
+add_bullet(tf, "S3 image upload with public CDN URLs (event images, future: profile photos)", size=12, color=LIGHT_GRAY)
+add_bullet(tf, "Auto-refresh tokens (15 min access + long-lived refresh)", size=12, color=LIGHT_GRAY)
 
 # Database card
 card2 = add_rounded_rect(sl, Inches(7.0), Inches(1.6), Inches(5.7), Inches(5.2))
@@ -403,17 +404,16 @@ tf2.margin_top = Inches(0.2)
 tf2.margin_left = Inches(0.25)
 tf2.word_wrap = True
 set_text(tf2, "Database  (PostgreSQL 15 on RDS)", size=16, color=ACCENT_LIGHT, bold=True)
-add_bullet(tf2, "21 tables across 3 migrations", size=12, color=LIGHT_GRAY)
-add_bullet(tf2, "Core: users, admin_users, events, venues, tickets", size=12, color=LIGHT_GRAY)
+add_bullet(tf2, "22 tables across 4 migrations", size=12, color=LIGHT_GRAY)
+add_bullet(tf2, "Core: users, admin_users, events, tickets, posh_orders", size=12, color=LIGHT_GRAY)
 add_bullet(tf2, "Social: connections, posts, comments, likes", size=12, color=LIGHT_GRAY)
-add_bullet(tf2, "Business: sponsors, vendors, discounts", size=12, color=LIGHT_GRAY)
+add_bullet(tf2, "Business: sponsors, vendors, discounts, event_sponsors", size=12, color=LIGHT_GRAY)
+add_bullet(tf2, "Media: event_images (up to 5 per event, hero image system)", size=12, color=LIGHT_GRAY)
 add_bullet(tf2, "Operations: audit log, analytics tables, GDPR export tracking", size=12, color=LIGHT_GRAY)
-add_bullet(tf2, "CASCADE delete design with audit log preservation (SET NULL)", size=12, color=LIGHT_GRAY)
-add_bullet(tf2, "Seed data for specialties and dev environment", size=12, color=LIGHT_GRAY)
-add_bullet(tf2, "545 lines of SQL across 5 files", size=12, color=MID_GRAY)
+add_bullet(tf2, "CASCADE delete design with audit log preservation", size=12, color=LIGHT_GRAY)
 
 
-# ━━━ SLIDE 7: What Has Been Built — Apps ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# === SLIDE 7: What Has Been Built -- Apps =======================================
 sl = prs.slides.add_slide(prs.slide_layouts[6])
 slide_title(sl, "What Has Been Built", "Social App + Admin App + Shared Package")
 
@@ -424,15 +424,14 @@ tf.margin_top = Inches(0.2)
 tf.margin_left = Inches(0.25)
 tf.word_wrap = True
 set_text(tf, "Social App  (Flutter/Dart)", size=15, color=ACCENT_LIGHT, bold=True)
-add_para(tf, "19 screens, 8 feature modules", size=11, color=MID_GRAY)
-add_bullet(tf, "Auth: phone entry + SMS verify", size=12, color=LIGHT_GRAY)
-add_bullet(tf, "Onboarding: profile setup", size=12, color=LIGHT_GRAY)
-add_bullet(tf, "Events: browse, detail, activation", size=12, color=LIGHT_GRAY)
-add_bullet(tf, "Networking: QR display, scanner, connections, digital card", size=12, color=LIGHT_GRAY)
-add_bullet(tf, "Community: feed, create post, detail", size=12, color=LIGHT_GRAY)
-add_bullet(tf, "Search: user discovery + profiles", size=12, color=LIGHT_GRAY)
+add_para(tf, "19+ screens, 8 feature modules", size=11, color=MID_GRAY)
+add_bullet(tf, "Auth: phone entry + SMS verify + remember-me", size=12, color=LIGHT_GRAY)
+add_bullet(tf, "Events: browse, detail, tickets, check-in", size=12, color=LIGHT_GRAY)
+add_bullet(tf, "Networking: QR display, scanner, instant connect", size=12, color=LIGHT_GRAY)
+add_bullet(tf, "Real-time connection notifications (polling)", size=12, color=LIGHT_GRAY)
+add_bullet(tf, "Celebration overlay on new connections", size=12, color=LIGHT_GRAY)
 add_bullet(tf, "Profile: view, edit, settings", size=12, color=LIGHT_GRAY)
-add_bullet(tf, "Perks: sponsor discounts", size=12, color=LIGHT_GRAY)
+add_bullet(tf, "Community feed, search, perks (UI built, wiring pending)", size=12, color=LIGHT_GRAY)
 
 # Admin App
 card2 = add_rounded_rect(sl, Inches(4.9), Inches(1.6), Inches(4.0), Inches(5.2))
@@ -441,14 +440,14 @@ tf2.margin_top = Inches(0.2)
 tf2.margin_left = Inches(0.25)
 tf2.word_wrap = True
 set_text(tf2, "Admin App  (Flutter/Dart)", size=15, color=ACCENT_LIGHT, bold=True)
-add_para(tf2, "16 screens, 7 feature modules", size=11, color=MID_GRAY)
-add_bullet(tf2, "Auth: email/password login", size=12, color=LIGHT_GRAY)
+add_para(tf2, "16+ screens, 7 feature modules", size=11, color=MID_GRAY)
+add_bullet(tf2, "Auth: email/password admin login", size=12, color=LIGHT_GRAY)
 add_bullet(tf2, "Dashboard: stats overview", size=12, color=LIGHT_GRAY)
-add_bullet(tf2, "Users: list, detail, add user", size=12, color=LIGHT_GRAY)
-add_bullet(tf2, "Events: list, create, detail", size=12, color=LIGHT_GRAY)
-add_bullet(tf2, "Sponsors: management + discounts", size=12, color=LIGHT_GRAY)
-add_bullet(tf2, "Vendors: list + form", size=12, color=LIGHT_GRAY)
-add_bullet(tf2, "Moderation: posts + announcements", size=12, color=LIGHT_GRAY)
+add_bullet(tf2, "Users: list, detail, add, manage tickets", size=12, color=LIGHT_GRAY)
+add_bullet(tf2, "Events: full lifecycle + image management", size=12, color=LIGHT_GRAY)
+add_bullet(tf2, "Publish gate: Posh ID + venue + images required", size=12, color=LIGHT_GRAY)
+add_bullet(tf2, "Sponsors: link to events, discount management", size=12, color=LIGHT_GRAY)
+add_bullet(tf2, "Global image catalog with bulk operations", size=12, color=LIGHT_GRAY)
 
 # Shared Package
 card3 = add_rounded_rect(sl, Inches(9.2), Inches(1.6), Inches(3.5), Inches(5.2))
@@ -466,7 +465,7 @@ add_bullet(tf3, "Display formatters", size=12, color=LIGHT_GRAY)
 add_bullet(tf3, "Constants / enums", size=12, color=LIGHT_GRAY)
 
 
-# ━━━ SLIDE 8: Infrastructure & Operations ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# === SLIDE 8: Infrastructure & Operations =======================================
 sl = prs.slides.add_slide(prs.slide_layouts[6])
 slide_title(sl, "Infrastructure & Operations", "AWS EKS + Kubernetes + operational tooling")
 
@@ -481,8 +480,8 @@ add_bullet(tf, "EKS cluster (us-east-1) with auto-scaling 2-10 pods", size=12, c
 add_bullet(tf, "Kubernetes: deployment, service, ingress, secrets, HPA", size=12, color=LIGHT_GRAY)
 add_bullet(tf, "SSL/TLS via ACM on api.industrynight.net", size=12, color=LIGHT_GRAY)
 add_bullet(tf, "ECR container registry with Docker build pipeline", size=12, color=LIGHT_GRAY)
-add_bullet(tf, "RDS PostgreSQL 15 with port-forward access", size=12, color=LIGHT_GRAY)
-add_bullet(tf, "CI/CD: GitHub Actions for API, mobile, and web", size=12, color=LIGHT_GRAY)
+add_bullet(tf, "RDS PostgreSQL 15 (force SSL, automated backups)", size=12, color=LIGHT_GRAY)
+add_bullet(tf, "S3 bucket for event images (public-read ACL)", size=12, color=LIGHT_GRAY)
 
 # COOP card
 card2 = add_rounded_rect(sl, Inches(6.8), Inches(1.6), Inches(5.8), Inches(3.0))
@@ -506,25 +505,25 @@ tf3 = card3.text_frame
 tf3.margin_top = Inches(0.15)
 tf3.margin_left = Inches(0.25)
 tf3.word_wrap = True
-set_text(tf3, "Operational Scripts (13+)", size=14, color=ACCENT_LIGHT, bold=True)
-add_bullet(tf3, "seed-admin.js, db-reset.js, db-scrub-user.js (GDPR)", size=11, color=LIGHT_GRAY)
+set_text(tf3, "Operational Scripts (15+)", size=14, color=ACCENT_LIGHT, bold=True)
+add_bullet(tf3, "seed-admin.js, migrate.js, db-reset.js, db-scrub-user.js (GDPR)", size=11, color=LIGHT_GRAY)
 add_bullet(tf3, "deploy-api.sh, maintenance.sh, setup-local.sh", size=11, color=LIGHT_GRAY)
 add_bullet(tf3, "COOP: status, teardown, rebuild, export, import", size=11, color=LIGHT_GRAY)
+add_bullet(tf3, "generate-exec-brief.py, generate-exec-summary.py", size=11, color=LIGHT_GRAY)
 
 
-# ━━━ SLIDE 9: Architecture Decisions ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# === SLIDE 9: Architecture Decisions ============================================
 sl = prs.slides.add_slide(prs.slide_layouts[6])
 add_table_slide(sl, "Architecture Decisions",
     ["Decision", "Choice", "Rationale"],
     [
-        ["Database", "PostgreSQL 15 (RDS)", "Relational model fits domain; direct SQL, no ORM"],
+        ["Registration model", "Open registration + verification ladder", "Events list is marketing funnel; trust earned through attendance + connections"],
         ["Auth (social)", "Phone + SMS OTP", "Passwordless, phone-based identity for creatives"],
         ["Auth (admin)", "Email + password", "Separate admin_users table, separate token family"],
         ["Mobile framework", "Flutter/Dart", "Single codebase for iOS, Android, Web"],
-        ["API framework", "Express + TypeScript", "Proven, team familiarity"],
+        ["Ticketing", "Posh.vip (webhooks) + admin-issued", "Existing brand presence; auto-link by phone on registration"],
+        ["QR networking", "Instant mutual connection (no request/accept)", "Reduces friction; trust earned through physical co-presence"],
         ["Orchestration", "AWS EKS (Kubernetes)", "Scalability, infrastructure learning"],
-        ["SMS provider", "Twilio (Verify API)", "DevCode fallback for local testing"],
-        ["Ticketing", "Posh.vip (webhooks)", "Existing brand presence, staff trained"],
         ["State mgmt", "Provider + ChangeNotifier", "Simple, sufficient for current scope"],
         ["Cost mgmt", "COOP teardown/rebuild", "Reduce AWS spend during downtime"],
     ],
@@ -532,7 +531,7 @@ add_table_slide(sl, "Architecture Decisions",
 )
 
 
-# ━━━ SLIDE 10: Implementation Status ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# === SLIDE 10: Implementation Status ============================================
 sl = prs.slides.add_slide(prs.slide_layouts[6])
 slide_title(sl, "Implementation Status vs Plan")
 
@@ -541,15 +540,15 @@ phases = [
     ("1B", "Core Mobile App", "Complete", GREEN),
     ("1C", "Verification & QR Networking", "Complete", GREEN),
     ("1D", "Event Social Features", "Screens Built", AMBER),
-    ("1E", "Community Board", "Complete", GREEN),
-    ("1F", "Creative Search", "Complete", GREEN),
+    ("1E", "Community Board", "Backend Only", AMBER),
+    ("1F", "Creative Search", "Backend Only", AMBER),
     ("2A", "Admin App - Foundation", "Complete", GREEN),
     ("2B", "Admin App - Event Mgmt", "Complete", GREEN),
     ("2C", "Admin App - Sponsor Mgmt", "Complete", GREEN),
     ("2D", "Admin App - Vendor Mgmt", "Complete", GREEN),
-    ("2E", "Admin App - Moderation", "Complete", GREEN),
-    ("--", "Admin Auth (email/password)", "In Progress", ACCENT_LIGHT),
-    ("3", "Advanced (Stripe, Push, Analytics)", "Not Started", MID_GRAY),
+    ("2E", "Admin App - Moderation", "Screens Built", AMBER),
+    ("--", "Adversarial Review & Decisions", "Complete", GREEN),
+    ("3", "Community Feed + Engagement", "Planned", MID_GRAY),
 ]
 
 # Render as two columns of cards
@@ -582,7 +581,6 @@ for i, (phase, desc, status, color) in enumerate(phases):
     run2.font.name = "Calibri"
 
     # Status badge
-    badge_w = max(Inches(1.0), Inches(len(status) * 0.1))
     badge = add_rounded_rect(sl, left + Inches(4.3), top + Inches(0.1), Inches(1.3), Inches(0.38), fill_color=color)
     btf = badge.text_frame
     btf.margin_top = Inches(0.0)
@@ -590,25 +588,45 @@ for i, (phase, desc, status, color) in enumerate(phases):
     set_text(btf, status, size=9, color=SLIDE_BG, bold=True, alignment=PP_ALIGN.CENTER)
 
 
-# ━━━ SLIDE 11: Current WIP + What's Next ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# === SLIDE 11: Key Decisions Made ===============================================
+sl = prs.slides.add_slide(prs.slide_layouts[6])
+add_table_slide(sl, "Strategic Decisions (from Adversarial Review)",
+    ["Question", "Decision", "Implication"],
+    [
+        ["Invite-only or open?", "Open registration", "Events list = marketing funnel; verification ladder = trust gate"],
+        ["Posh webhook creates users?", "No -- auto-link by phone", "Users create own accounts; Posh orders reconciled on registration"],
+        ["Verification feature gating?", "Yes -- backend required", "requireVerified middleware gates community board, perks"],
+        ["Who's Going / Who's Here?", "Build behind feature flag", "Product owner decides visibility; avoids selective attendance concern"],
+        ["Server-side connection validation?", "Defer (low risk now)", "Client-side gate sufficient at current scale"],
+        ["Activation code time window?", "Event lifecycle IS the gate", "No code_valid_start/end columns needed"],
+        ["Market area filtering?", "Add to events + users", "market_area enum; default to user's home market"],
+        ["Sponsor/vendor/perks model?", "Deferred to product owner", "Current CRUD adequate for MVP; details TBD"],
+    ],
+    col_widths=[2.5, 2.0, 4.3],
+    subtitle="8 strategic questions resolved during requirements-vs-reality audit"
+)
+
+
+# === SLIDE 12: Current WIP + What's Next =======================================
 sl = prs.slides.add_slide(prs.slide_layouts[6])
 slide_title(sl, "Current Work & What's Next")
 
-# Current WIP
+# What's done recently
 card1 = add_rounded_rect(sl, Inches(0.6), Inches(1.6), Inches(5.8), Inches(4.5))
 tf = card1.text_frame
 tf.margin_top = Inches(0.2)
 tf.margin_left = Inches(0.25)
 tf.word_wrap = True
-set_text(tf, "In Progress Now", size=18, color=ACCENT_LIGHT, bold=True)
-add_para(tf, "Branch: feature/web-admin-login", size=11, color=MID_GRAY)
-add_para(tf, "", size=6, color=WHITE)
-add_bullet(tf, "Admin auth API routes (login, refresh, me, logout)", size=13, color=LIGHT_GRAY)
-add_bullet(tf, "Admin auth middleware (JWT with admin token family)", size=13, color=LIGHT_GRAY)
-add_bullet(tf, "admin_users database migration", size=13, color=LIGHT_GRAY)
-add_bullet(tf, "Shared Dart AdminUser model + AdminAuthApi client", size=13, color=LIGHT_GRAY)
-add_bullet(tf, "seed-admin.js script for bootstrapping accounts", size=13, color=LIGHT_GRAY)
-add_bullet(tf, "Restructure: mobile-app -> social-app, web-app -> admin-app", size=13, color=LIGHT_GRAY)
+set_text(tf, "Recently Completed", size=18, color=GREEN, bold=True)
+add_para(tf, "", size=4, color=WHITE)
+add_bullet(tf, "Instant QR connections with celebration overlay", size=13, color=LIGHT_GRAY)
+add_bullet(tf, "Real-time connection notifications (polling)", size=13, color=LIGHT_GRAY)
+add_bullet(tf, "Ticket-gated check-in system", size=13, color=LIGHT_GRAY)
+add_bullet(tf, "Admin ticket management (issue, refund, delete)", size=13, color=LIGHT_GRAY)
+add_bullet(tf, "JWT auto-refresh (15-min token lifecycle)", size=13, color=LIGHT_GRAY)
+add_bullet(tf, "Remember-me login persistence", size=13, color=LIGHT_GRAY)
+add_bullet(tf, "Adversarial review: 8 decisions, 30 issues tracked", size=13, color=LIGHT_GRAY)
+add_bullet(tf, "Social network analysis & sponsor revenue strategy", size=13, color=LIGHT_GRAY)
 
 # What's Next
 card2 = add_rounded_rect(sl, Inches(6.8), Inches(1.6), Inches(5.8), Inches(4.5))
@@ -617,41 +635,52 @@ tf2.margin_top = Inches(0.2)
 tf2.margin_left = Inches(0.25)
 tf2.word_wrap = True
 set_text(tf2, "Up Next", size=18, color=ACCENT_LIGHT, bold=True)
-add_para(tf2, "", size=6, color=WHITE)
+add_para(tf2, "", size=4, color=WHITE)
 items = [
-    ("1.", "Complete admin auth", "Finish login flow connecting Admin App to backend"),
-    ("2.", "End-to-end testing", "Validate social app auth flow with live backend"),
-    ("3.", "First live event test", "Test activation code + QR networking at a real event"),
-    ("4.", "API test coverage", "Establish baseline test suite (Jest configured)"),
-    ("5.", "Phase 2 planning", "In-app ticketing (Stripe), push notifications, analytics"),
+    ("1.", "Wire community feed", "Backend exists; connect Flutter UI to real data"),
+    ("2.", "Push notifications", "FCM/APNs for events, connections, feed activity"),
+    ("3.", "Verification gating", "Backend middleware to gate community + perks"),
+    ("4.", "Connection-only DMs", "Messaging between people who physically met"),
+    ("5.", "Redemption tracking", "Prove sponsor ROI: track discount code usage"),
 ]
 for num, title, desc in items:
     add_para(tf2, f"{num}  {title}", size=14, color=WHITE, bold=True, space_before=Pt(10))
     add_para(tf2, f"     {desc}", size=11, color=MID_GRAY, space_before=Pt(0))
 
 
-# ━━━ SLIDE 12: Technical Debt & Risks ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# === SLIDE 13: Scorecard ========================================================
 sl = prs.slides.add_slide(prs.slide_layouts[6])
-add_table_slide(sl, "Known Technical Debt",
-    ["Item", "Impact", "Priority"],
-    [
-        ["No API tests (Jest configured, no tests written)", "Risk of regressions on deploy", "High"],
-        ["No DB connectivity check in /health endpoint", "Silent database failures in production", "Medium"],
-        ["No pre-deploy migration runner in CI/CD", "Manual migration step required on deploy", "Medium"],
-        ["No post-deploy smoke tests", "No automated verification of deploys", "Medium"],
-        ["No down-migration files for rollback", "Cannot automatically roll back schema changes", "Low"],
-    ],
-    col_widths=[4.5, 2.8, 1.5]
-)
+slide_title(sl, "MVP Scorecard", "33 requirements items: 13 done, 5 partial-adequate, 7 tracked, 2 retired")
 
-# Priority legend
-tb = add_textbox(sl, Inches(0.6), Inches(4.8), Inches(8), Inches(0.5))
-tf = tb.text_frame
+# Stat cards
+add_stat_card(sl, Inches(0.6), Inches(1.5), "55%", "Done or Adequate", accent_color=GREEN)
+add_stat_card(sl, Inches(3.1), Inches(1.5), "85%", "Resolved or Tracked", accent_color=ACCENT)
+add_stat_card(sl, Inches(5.6), Inches(1.5), "30", "GitHub Issues Tracked", accent_color=ACCENT_LIGHT)
+add_stat_card(sl, Inches(8.1), Inches(1.5), "8", "Strategic Decisions Made", accent_color=AMBER)
+
+# Key gaps
+card = add_rounded_rect(sl, Inches(0.6), Inches(3.0), Inches(12.0), Inches(3.7))
+tf = card.text_frame
+tf.margin_top = Inches(0.2)
+tf.margin_left = Inches(0.25)
 tf.word_wrap = True
-set_text(tf, "All items are tracked and will be addressed as part of ongoing hardening.", size=12, color=MID_GRAY)
+set_text(tf, "Key Remaining Gaps (tracked in GitHub)", size=16, color=ACCENT_LIGHT, bold=True)
+add_para(tf, "", size=4, color=WHITE)
+
+gaps = [
+    ("#18", "Wire community feed to API", "P0 -- highest retention impact"),
+    ("#14", "Verification-based feature gating", "P1 -- gates community + perks access"),
+    ("#12-13", "Posh phone normalization + auto-link", "P1 -- enables walk-in ticket flow"),
+    ("#20", "Pre-MVP security review", "Required before public launch"),
+    ("New", "Push notifications", "P0 -- no way to pull users back between events"),
+    ("New", "Discount redemption tracking", "P1 -- enables Tier 2 sponsor revenue"),
+    ("New", "Connection-only DMs", "P1 -- biggest functional gap for retention"),
+]
+for issue, desc, priority in gaps:
+    add_para(tf, f"  {issue}:  {desc}  --  {priority}", size=12, color=LIGHT_GRAY, space_before=Pt(4))
 
 
-# ━━━ SLIDE 13: Summary ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# === SLIDE 14: Summary ==========================================================
 sl = prs.slides.add_slide(prs.slide_layouts[6])
 set_slide_bg(sl, SLIDE_BG)
 
@@ -660,25 +689,26 @@ bar.fill.solid()
 bar.fill.fore_color.rgb = ACCENT
 bar.line.fill.background()
 
-tb = add_textbox(sl, Inches(1.0), Inches(1.5), Inches(11), Inches(1.0))
+tb = add_textbox(sl, Inches(1.0), Inches(1.2), Inches(11), Inches(1.0))
 set_text(tb.text_frame, "Summary", size=36, color=WHITE, bold=True)
 
-tb2 = add_textbox(sl, Inches(1.0), Inches(2.5), Inches(10), Inches(4.0))
+tb2 = add_textbox(sl, Inches(1.0), Inches(2.2), Inches(10), Inches(4.5))
 tf = tb2.text_frame
 tf.word_wrap = True
-set_text(tf, "In 12 days, we have built:", size=20, color=LIGHT_GRAY)
+set_text(tf, "In 18 days, we have built:", size=20, color=LIGHT_GRAY)
 add_para(tf, "", size=10, color=WHITE)
 bullets = [
-    "A complete backend API with 11 route modules, dual JWT auth, and 3 external service integrations",
-    "A 21-table PostgreSQL database with full schema, migrations, and seed data",
-    "A social app with 19 screens covering auth, events, QR networking, community, search, and profiles",
-    "An admin app with 16 screens covering user, event, sponsor, vendor, and content management",
+    "A complete backend API with 11 route modules, dual JWT auth, and 3 external integrations",
+    "A 22-table PostgreSQL database with 4 migrations, full audit trail, and analytics schema",
+    "A social app with QR-based instant connections, real-time notifications, and ticket-gated check-in",
+    "An admin app with full event lifecycle, image management, ticket management, and publish gate",
     "A shared Dart package with 9 models, 7 API clients, and reusable utilities",
-    "Production AWS infrastructure (EKS, RDS, ECR, SSL) with cost-optimization tooling",
-    "13+ operational scripts for deployment, database management, and infrastructure lifecycle",
+    "Production AWS infrastructure (EKS, RDS, ECR, S3, SSL) with cost-optimization tooling",
+    "A comprehensive adversarial review with 8 strategic decisions and 30 tracked issues",
+    "A social network analysis with 3-tier sponsor revenue strategy",
 ]
 for b in bullets:
-    add_bullet(tf, b, size=15, color=LIGHT_GRAY)
+    add_bullet(tf, b, size=14, color=LIGHT_GRAY)
 
 line = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(1.0), Inches(6.3), Inches(4), Pt(2))
 line.fill.solid()
@@ -686,10 +716,10 @@ line.fill.fore_color.rgb = ACCENT
 line.line.fill.background()
 
 tb3 = add_textbox(sl, Inches(1.0), Inches(6.5), Inches(10), Inches(0.5))
-set_text(tb3.text_frame, f"~15,700 lines of code  |  116 files  |  {REPORT_DATE}", size=13, color=MID_GRAY)
+set_text(tb3.text_frame, f"~17,000 lines of code  |  120+ files  |  {REPORT_DATE}", size=13, color=MID_GRAY)
 
 
-# ─── Save ───────────────────────────────────────────────────────────────────
-output_path = "docs/Industry Night - Executive Brief.pptx"
+# --- Save -----------------------------------------------------------------------
+output_path = "docs/executive/Industry Night - Executive Brief.pptx"
 prs.save(output_path)
 print(f"Presentation saved to: {output_path}")

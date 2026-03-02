@@ -1,0 +1,8 @@
+% PDF formatting for Industry Night documents
+
+% Slightly more spacing in table rows
+\renewcommand{\arraystretch}{1.3}
+
+% Reduce inline code font size
+\let\oldtexttt\texttt
+\renewcommand{\texttt}[1]{{\small\oldtexttt{#1}}}
