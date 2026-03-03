@@ -107,15 +107,12 @@ if [[ "$RUN_MIGRATIONS" == "true" ]]; then
   psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
     -c 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp"' &>/dev/null
 
-  for migration in $MIGRATION_FILES; do
-    MIGRATION_PATH="$PROJECT_ROOT/$MIGRATIONS_DIR/$migration"
-    if [[ -f "$MIGRATION_PATH" ]]; then
-      log_info "  Applying: $migration"
-      psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
-        -f "$MIGRATION_PATH" &>/dev/null
-    else
-      log_warn "  Migration not found: $migration"
-    fi
+  for migration_file in "$PROJECT_ROOT/$MIGRATIONS_DIR"/*.sql; do
+    [[ -f "$migration_file" ]] || continue
+    FILENAME=$(basename "$migration_file")
+    log_info "  Applying: $FILENAME"
+    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+      -f "$migration_file" &>/dev/null
   done
   log_success "Migrations applied"
 else

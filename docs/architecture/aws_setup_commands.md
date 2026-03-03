@@ -295,8 +295,7 @@ kubectl create secret generic db-credentials \
 
 ```bash
 kubectl create configmap db-migrations \
-  --from-file=001_initial_schema.sql=packages/database/migrations/001_initial_schema.sql \
-  --from-file=002_add_sponsors.sql=packages/database/migrations/002_add_sponsors.sql \
+  --from-file=001_baseline_schema.sql=packages/database/migrations/001_baseline_schema.sql \
   --from-file=specialties.sql=packages/database/seeds/specialties.sql \
   -n industrynight
 ```
@@ -324,8 +323,7 @@ spec:
         - /bin/sh
         - -c
         - |
-          psql -f /migrations/001_initial_schema.sql
-          psql -f /migrations/002_add_sponsors.sql
+          psql -f /migrations/001_baseline_schema.sql
           psql -f /migrations/specialties.sql
           psql -c "\dt"
         env:

@@ -7,7 +7,7 @@
  *   2. Scales API deployment to 0 (kills pods, drops all DB connections)
  *   3. Re-establishes kubectl port-forward to db-proxy (scale-down kills it)
  *   4. Drops ALL tables, types, and extensions in the database
- *   5. Runs migrations (001_initial_schema.sql, 002_add_sponsors.sql)
+ *   5. Runs all migrations from packages/database/migrations/ (in filename order)
  *   6. Runs seed data (specialties.sql, then dev_seed.sql)
  *   7. Scales API deployment back up
  *   8. Waits for pods to be healthy

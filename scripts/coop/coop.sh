@@ -67,10 +67,21 @@ case "$COMMAND" in
     print_banner
     shift
 
-    # Run export first, then teardown — pass all args through
-    "$SCRIPT_DIR/db-export.sh" "$@"
+    # Separate export args from teardown args
+    EXPORT_ARGS=()
+    TEARDOWN_ARGS=()
+    for arg in "$@"; do
+      case $arg in
+        --yes) EXPORT_ARGS+=("$arg"); TEARDOWN_ARGS+=("$arg") ;;
+        --skip-rds-snapshot) TEARDOWN_ARGS+=("$arg") ;;
+        *) TEARDOWN_ARGS+=("$arg") ;;
+      esac
+    done
+
+    # Run export first, then teardown
+    "$SCRIPT_DIR/db-export.sh" "${EXPORT_ARGS[@]+"${EXPORT_ARGS[@]}"}"
     echo ""
-    "$SCRIPT_DIR/infra-teardown.sh" "$@"
+    "$SCRIPT_DIR/infra-teardown.sh" "${TEARDOWN_ARGS[@]+"${TEARDOWN_ARGS[@]}"}"
 
     echo ""
     log_success "COOP teardown complete."

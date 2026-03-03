@@ -56,6 +56,7 @@ scripts/                            # Operational scripts (Node.js + bash)
   db-uncheckin.js                   # Reset check-in status for dev/testing
   db-unconnect.js                   # Delete connections for dev/testing
   deploy-api.sh                     # Build, push Docker image to ECR, roll out to EKS
+  deploy-admin.sh                   # Build Flutter web, sync to S3, invalidate CloudFront
   pf-db.sh                          # Manage kubectl port-forward tunnel to RDS
   maintenance.sh                    # Toggle k8s maintenance mode
   setup-local.sh                    # Local dev environment setup
@@ -87,10 +88,9 @@ PostgreSQL 15 on RDS. Schema built from sequential migrations in `packages/datab
 ### Migrations
 | File | Description |
 |------|-------------|
-| `001_initial_schema.sql` | Core tables: users, events, tickets, connections, posts, venues, audit_log, analytics |
-| `002_add_sponsors.sql` | Sponsors and discounts tables |
-| `003_admin_users.sql` | Admin user accounts table |
-| `004_event_enhancements.sql` | Multi-image support, event_sponsors junction, posh_orders, venue text fields |
+| `001_baseline_schema.sql` | Complete schema: all tables, enums, triggers, indexes (consolidated from original 001-004) |
+
+Future migrations start at `002_*.sql`. Archived originals are in `packages/database/migrations/archive/`.
 
 ### Enum types
 - `admin_role`: `platformAdmin`
@@ -332,8 +332,10 @@ cd packages/shared && dart run build_runner build --delete-conflicting-outputs
 - **EKS cluster:** industrynight (defined in `infrastructure/eks/cluster.yaml`)
 - **ECR repo:** `047593684855.dkr.ecr.us-east-1.amazonaws.com/industrynight-api`
 - **RDS:** PostgreSQL 15
-- **S3 bucket:** `industrynight-assets-prod` (Object Ownership: BucketOwnerPreferred, public ACLs enabled)
-- **Domain:** `api.industrynight.net` (ALB ingress with ACM SSL)
+- **S3 buckets:** `industrynight-assets-prod` (images, Object Ownership: BucketOwnerPreferred, public ACLs enabled), `industrynight-web-admin` (admin web app, OAC-restricted)
+- **CloudFront:** `E196TNDGV555BI` (`d3bwcp8qy737m.cloudfront.net`) — serves admin web app from S3
+- **Domains:** `api.industrynight.net` (ALB ingress with ACM SSL), `admin.industrynight.net` (CloudFront)
+- **DNS:** Cloudflare (not Route 53) — `api` CNAME → ALB, `admin` CNAME → CloudFront
 - **AWS Profile:** `industrynight-admin`
 
 ### Kubernetes
@@ -341,7 +343,7 @@ cd packages/shared && dart run build_runner build --delete-conflicting-outputs
 - **Deployment:** `industrynight-api` (2 replicas min, 10 max via HPA)
 - **Resources:** 256Mi-512Mi memory, 250m-500m CPU per pod
 - **Health:** liveness + readiness probes on `/health`
-- **Secrets:** `industrynight-secrets` (DB_PASSWORD, JWT_SECRET, Twilio creds, etc.)
+- **Secrets:** `industrynight-secrets` (DB_PASSWORD, JWT_SECRET, CORS_ORIGINS, Twilio creds, etc.)
 - **DB Proxy:** `db-proxy` pod for port-forwarding: `./scripts/pf-db.sh start`
 
 ### Deployment workflow
@@ -357,6 +359,9 @@ DB_PASSWORD=xxx node scripts/migrate.js
 
 # Push existing image without rebuild
 ./scripts/deploy-api.sh --skip-build
+
+# Build and deploy admin web app to S3/CloudFront
+./scripts/deploy-admin.sh
 ```
 
 ## Scripts
@@ -370,6 +375,7 @@ DB_PASSWORD=xxx node scripts/migrate.js
 | `scripts/db-uncheckin.js` | Reset check-in status for dev/testing | `DB_PASSWORD=xxx node scripts/db-uncheckin.js [--skip-k8s] [--yes] +15551234567` |
 | `scripts/db-unconnect.js` | Delete connections for dev/testing | `DB_PASSWORD=xxx node scripts/db-unconnect.js [--skip-k8s] [--yes] +15551234567` |
 | `scripts/deploy-api.sh` | Build Docker image, push to ECR, roll out to EKS | `./scripts/deploy-api.sh [--skip-build] [--status]` |
+| `scripts/deploy-admin.sh` | Build admin web app, sync to S3, invalidate CloudFront | `./scripts/deploy-admin.sh [--skip-build] [--status]` |
 | `scripts/pf-db.sh` | Manage kubectl port-forward tunnel to RDS | `./scripts/pf-db.sh start\|stop\|status` |
 | `scripts/maintenance.sh` | Toggle k8s maintenance mode | `./scripts/maintenance.sh on/off` |
 | `scripts/setup-local.sh` | Local dev environment setup | `./scripts/setup-local.sh` |

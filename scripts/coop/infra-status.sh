@@ -126,7 +126,7 @@ echo ""
 # ---- S3 ----
 echo -e "${BOLD}Storage (S3)${NC}"
 for bucket in $S3_ASSETS_BUCKET $S3_WEB_BUCKET; do
-  if aws_cmd s3api head-bucket --bucket "$bucket" 2>/dev/null; then
+  if aws_cmd s3api head-bucket --bucket "$bucket" &>/dev/null; then
     OBJECTS=$(aws_cmd s3api list-objects-v2 --bucket "$bucket" \
       --query 'KeyCount' --output text 2>/dev/null || echo "0")
     print_status "S3 Bucket" "$bucket" "exists" "($OBJECTS objects)"

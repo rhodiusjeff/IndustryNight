@@ -197,18 +197,18 @@ elif [[ "$RDS_EXISTS" == "NOT_FOUND" ]]; then
     --query 'cluster.resourcesVpcConfig.vpcId' --output text)
   log_info "  VPC: $VPC_ID"
 
-  # Create DB subnet group if needed
-  if ! aws_cmd rds describe-db-subnet-groups \
-    --db-subnet-group-name "$RDS_SUBNET_GROUP" &>/dev/null; then
-    log_info "  Creating DB subnet group..."
-    PRIVATE_SUBNETS=$(aws_cmd ec2 describe-subnets \
-      --filters "Name=vpc-id,Values=$VPC_ID" "Name=tag:Name,Values=*Private*" \
-      --query 'Subnets[].SubnetId' --output text)
-    aws_cmd rds create-db-subnet-group \
-      --db-subnet-group-name "$RDS_SUBNET_GROUP" \
-      --db-subnet-group-description "Industry Night RDS subnet group" \
-      --subnet-ids $PRIVATE_SUBNETS
-  fi
+  # Delete old DB subnet group if it exists (may reference subnets from previous VPC)
+  aws_cmd rds delete-db-subnet-group \
+    --db-subnet-group-name "$RDS_SUBNET_GROUP" 2>/dev/null || true
+
+  log_info "  Creating DB subnet group..."
+  PRIVATE_SUBNETS=$(aws_cmd ec2 describe-subnets \
+    --filters "Name=vpc-id,Values=$VPC_ID" "Name=tag:Name,Values=*Private*" \
+    --query 'Subnets[].SubnetId' --output text)
+  aws_cmd rds create-db-subnet-group \
+    --db-subnet-group-name "$RDS_SUBNET_GROUP" \
+    --db-subnet-group-description "Industry Night RDS subnet group" \
+    --subnet-ids $PRIVATE_SUBNETS
 
   # Create security group for RDS if needed
   RDS_SG=$(aws_cmd ec2 describe-security-groups \
@@ -301,11 +301,14 @@ kube_cmd create secret generic industrynight-secrets \
   --from-literal=DB_USER="$DB_USER_VAL" \
   --from-literal=DB_PASSWORD="$DB_PASS_VAL" \
   --from-literal=JWT_SECRET="$(openssl rand -base64 32)" \
+  --from-literal=CORS_ORIGINS="https://admin.${DOMAIN},http://localhost:3000,http://localhost:8080" \
   -n "$K8S_NAMESPACE"
 log_info "  K8s secrets created"
 
 # Deployment, Service, Ingress
-kube_cmd apply -f "$PROJECT_ROOT/$K8S_MANIFESTS_DIR/deployment.yaml"
+# deployment.yaml uses ${AWS_ACCOUNT_ID} placeholder — substitute before applying
+sed "s|\${AWS_ACCOUNT_ID}|${AWS_ACCOUNT}|g" \
+  "$PROJECT_ROOT/$K8S_MANIFESTS_DIR/deployment.yaml" | kube_cmd apply -f -
 kube_cmd apply -f "$PROJECT_ROOT/$K8S_MANIFESTS_DIR/service.yaml"
 kube_cmd apply -f "$PROJECT_ROOT/$K8S_MANIFESTS_DIR/ingress.yaml"
 log_success "  Manifests applied"
@@ -401,13 +404,18 @@ ALB_DNS=$(kube_cmd get ingress/"$K8S_DEPLOYMENT" -n "$K8S_NAMESPACE" \
 
 if [[ -n "$ALB_DNS" ]]; then
   log_info "  ALB DNS: $ALB_DNS"
+
+  # Update Cloudflare DNS to point to new ALB
+  log_info "  Updating Cloudflare DNS..."
+  update_cloudflare_cname "$CF_API_RECORD_NAME" "$ALB_DNS" || true
+
   sleep 10
-  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://$ALB_DNS/health" 2>/dev/null || echo "000")
+  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.${DOMAIN}/health" 2>/dev/null || echo "000")
   if [[ "$HTTP_STATUS" == "200" ]]; then
     log_success "  Health check passed (HTTP $HTTP_STATUS)"
   else
     log_warn "  Health check returned HTTP $HTTP_STATUS (ALB may still be provisioning)"
-    log_warn "  Try: curl http://$ALB_DNS/health"
+    log_warn "  Try: curl https://api.${DOMAIN}/health"
   fi
 else
   log_warn "  ALB not yet provisioned. Check in a few minutes:"
@@ -420,12 +428,12 @@ echo ""
 echo "  EKS Cluster:  $EKS_CLUSTER"
 echo "  RDS Instance: $RDS_INSTANCE"
 echo "  RDS Endpoint: $NEW_RDS_ENDPOINT"
+echo "  ALB DNS:      $ALB_DNS"
 echo "  API Endpoint: https://api.$DOMAIN/health"
 echo ""
 echo "  Next steps:"
 echo "    - Import data:       ./scripts/coop/coop.sh import <backup-dir>"
 echo "    - Check status:      ./scripts/coop/coop.sh status"
-echo "    - Update Route 53:   Point api.$DOMAIN to the new ALB"
 if [[ "$IMAGE_COUNT" -eq 0 ]]; then
   echo "    - Build & push API:  ./scripts/deploy-api.sh"
 fi

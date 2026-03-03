@@ -51,15 +51,20 @@ DOMAIN="industrynight.net"
 # ---- ACM ----
 ACM_CERT_ARN="arn:aws:acm:us-east-1:047593684855:certificate/97021927-0213-4347-90fa-8e8113ef4a52"
 
+# ---- Cloudflare ----
+CF_SECRETS_ID="industrynight/cloudflare"
+CF_ZONE_ID="926771c2c344a268af440e076bd89339"
+CF_API_RECORD_NAME="api.${DOMAIN}"
+
 # ---- Database Tables (FK-ordered for export/import) ----
 # Tier 0: No foreign keys
 # Tier 1: References tier 0 only
 # Tier 2: References tier 0 + 1
 # Tier 3: References tier 2
 # Tier 4: Audit + analytics (can reference anything)
-TIER_0_TABLES="specialties venues users verification_codes"
+TIER_0_TABLES="specialties venues users verification_codes admin_users"
 TIER_1_TABLES="events sponsors"
-TIER_2_TABLES="tickets connections posts vendors discounts"
+TIER_2_TABLES="tickets connections posts vendors discounts event_images event_sponsors posh_orders"
 TIER_3_TABLES="post_comments post_likes event_vendors"
 TIER_4_TABLES="audit_log data_export_requests analytics_connections_daily analytics_users_daily analytics_events analytics_influence"
 ALL_TABLES_ORDERED="$TIER_0_TABLES $TIER_1_TABLES $TIER_2_TABLES $TIER_3_TABLES $TIER_4_TABLES"
@@ -67,7 +72,6 @@ ALL_TABLES_ORDERED="$TIER_0_TABLES $TIER_1_TABLES $TIER_2_TABLES $TIER_3_TABLES 
 # ---- Migrations and Seeds ----
 MIGRATIONS_DIR="packages/database/migrations"
 SEEDS_DIR="packages/database/seeds"
-MIGRATION_FILES="001_initial_schema.sql 002_add_sponsors.sql"
 
 # ---- Backups ----
 BACKUPS_DIR="backups"
@@ -221,4 +225,57 @@ get_db_password() {
 # Create timestamp for backup directory naming
 create_timestamp() {
   date +"%Y-%m-%d_%H%M%S"
+}
+
+# Update Cloudflare DNS CNAME record
+# Usage: update_cloudflare_cname "api.industrynight.net" "new-alb-dns.elb.amazonaws.com"
+update_cloudflare_cname() {
+  local record_name=$1
+  local new_target=$2
+
+  # Get Cloudflare API token from Secrets Manager
+  local cf_secret
+  cf_secret=$(aws_cmd secretsmanager get-secret-value \
+    --secret-id "$CF_SECRETS_ID" \
+    --query 'SecretString' --output text 2>/dev/null)
+  if [[ $? -ne 0 ]]; then
+    log_warn "Cloudflare credentials not found in Secrets Manager ($CF_SECRETS_ID)"
+    log_warn "Update DNS manually: $record_name → $new_target"
+    return 1
+  fi
+
+  local cf_token
+  cf_token=$(echo "$cf_secret" | python3 -c "import sys, json; print(json.load(sys.stdin)['api_token'])")
+
+  # Look up the DNS record ID
+  local record_id
+  record_id=$(curl -s "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records?name=${record_name}&type=CNAME" \
+    -H "Authorization: Bearer $cf_token" | \
+    python3 -c "import sys, json; r=json.load(sys.stdin); print(r['result'][0]['id'] if r['success'] and r['result'] else '')")
+
+  if [[ -z "$record_id" ]]; then
+    log_warn "Cloudflare DNS record not found for $record_name"
+    log_warn "Update DNS manually: $record_name → $new_target"
+    return 1
+  fi
+
+  # Update the record
+  local result
+  result=$(curl -s -X PATCH \
+    "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records/${record_id}" \
+    -H "Authorization: Bearer $cf_token" \
+    -H "Content-Type: application/json" \
+    --data "{\"content\":\"${new_target}\"}")
+
+  local success
+  success=$(echo "$result" | python3 -c "import sys, json; print(json.load(sys.stdin).get('success', False))")
+
+  if [[ "$success" == "True" ]]; then
+    log_success "Cloudflare DNS updated: $record_name → $new_target"
+    return 0
+  else
+    log_warn "Cloudflare DNS update failed for $record_name"
+    log_warn "Update DNS manually: $record_name → $new_target"
+    return 1
+  fi
 }
