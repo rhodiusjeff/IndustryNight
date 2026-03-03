@@ -8,16 +8,21 @@ set -euo pipefail
 #   --tables   Execute per-table INSERT files (FK checks disabled during import)
 #
 # Usage:
-#   ./scripts/coop/db-import.sh <backup-dir> --full     # Restore from full dump
-#   ./scripts/coop/db-import.sh <backup-dir> --tables   # Per-table INSERT restore
-#   ./scripts/coop/db-import.sh <backup-dir>            # Defaults to --full
+#   ./scripts/coop/db-import.sh [--env dev|prod] <backup-dir> --full     # Restore from full dump
+#   ./scripts/coop/db-import.sh [--env dev|prod] <backup-dir> --tables   # Per-table INSERT restore
+#   ./scripts/coop/db-import.sh [--env dev|prod] <backup-dir>            # Defaults to --full
 #
 # Options:
+#   --env dev|prod    Target environment (default: dev)
 #   --run-migrations  Run migration SQL before importing (for empty databases)
 #   --yes             Skip confirmation prompts
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/config.sh"
+
+parse_env_flag "$@"
+set -- "${PASSTHROUGH_ARGS[@]+"${PASSTHROUGH_ARGS[@]}"}"
+load_environment "$IN_ENV"
 
 # Parse args
 BACKUP_DIR=""
@@ -69,16 +74,27 @@ fi
 TOTAL_STEPS=5
 CURRENT_STEP=0
 
+env_color=$CYAN
+[[ "$ENV_NAME" == "prod" ]] && env_color=$RED
+
 echo -e "${BOLD}=== Database Import ===${NC}"
+ENV_UPPER=$(echo "$ENV_NAME" | tr '[:lower:]' '[:upper:]')
+echo -e "  Environment: ${env_color}${ENV_UPPER}${NC} ($ENV_LABEL)"
 echo "  Source: $BACKUP_DIR"
 echo "  Mode:   $IMPORT_MODE"
 if [[ -f "$BACKUP_DIR/metadata.json" ]]; then
   BACKUP_TS=$(python3 -c "import json; m=json.load(open('$BACKUP_DIR/metadata.json')); print(m.get('timestamp','unknown'))" 2>/dev/null || echo "unknown")
+  BACKUP_ENV=$(python3 -c "import json; m=json.load(open('$BACKUP_DIR/metadata.json')); print(m.get('environment','unknown'))" 2>/dev/null || echo "unknown")
   echo "  Backup: $BACKUP_TS"
+  # Warn if importing cross-environment
+  if [[ "$BACKUP_ENV" != "unknown" && "$BACKUP_ENV" != "$ENV_NAME" ]]; then
+    echo ""
+    log_warn "Cross-environment import: backup is from '$BACKUP_ENV' but target is '$ENV_NAME'"
+  fi
 fi
 echo ""
 
-confirm_destructive "This will overwrite data in the $RDS_DB_NAME database."
+confirm_destructive "This will overwrite data in the $RDS_DB_NAME database ($ENV_NAME)."
 
 # Step 1: Prerequisites
 log_step $((++CURRENT_STEP)) $TOTAL_STEPS "Checking prerequisites..."
@@ -168,4 +184,4 @@ for table in $ALL_TABLES_ORDERED; do
 done
 
 echo ""
-echo -e "${BOLD}=== Import Complete ===${NC}"
+echo -e "${BOLD}=== Import Complete ($ENV_NAME) ===${NC}"

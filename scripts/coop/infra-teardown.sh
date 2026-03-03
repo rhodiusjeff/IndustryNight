@@ -27,11 +27,15 @@ set -euo pipefail
 #   - Secrets Manager (~$0.40/mo)
 #
 # Usage:
-#   ./scripts/coop/infra-teardown.sh [--yes]
-#   ./scripts/coop/infra-teardown.sh [--skip-rds-snapshot] [--yes]
+#   ./scripts/coop/infra-teardown.sh [--env dev|prod] [--yes]
+#   ./scripts/coop/infra-teardown.sh [--env dev|prod] [--skip-rds-snapshot] [--yes]
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/config.sh"
+
+parse_env_flag "$@"
+set -- "${PASSTHROUGH_ARGS[@]+"${PASSTHROUGH_ARGS[@]}"}"
+load_environment "$IN_ENV"
 
 SKIP_CONFIRM=false
 SKIP_RDS_SNAPSHOT=false
@@ -46,7 +50,12 @@ done
 TOTAL_STEPS=8
 CURRENT_STEP=0
 
+env_color=$CYAN
+[[ "$ENV_NAME" == "prod" ]] && env_color=$RED
+
 echo -e "${BOLD}=== Infrastructure Teardown ===${NC}"
+ENV_UPPER=$(echo "$ENV_NAME" | tr '[:lower:]' '[:upper:]')
+echo -e "  Environment: ${env_color}${ENV_UPPER}${NC} ($ENV_LABEL)"
 echo ""
 echo "  Resources to ${RED}TEAR DOWN${NC}:"
 echo "    - EKS cluster: $EKS_CLUSTER"
@@ -107,7 +116,7 @@ fi
 # Step 3: Enable maintenance mode (if EKS is up)
 if [[ "$EKS_STATUS" == "ACTIVE" ]]; then
   log_step $((++CURRENT_STEP)) $TOTAL_STEPS "Enabling maintenance mode..."
-  "$SCRIPT_DIR/../maintenance.sh" on 2>/dev/null || log_warn "Maintenance mode failed (may already be enabled)"
+  "$SCRIPT_DIR/../maintenance.sh" --env "$IN_ENV" on 2>/dev/null || log_warn "Maintenance mode failed (may already be enabled)"
   tee_log "Action: Maintenance mode enabled"
 else
   log_step $((++CURRENT_STEP)) $TOTAL_STEPS "Skipping maintenance mode (EKS not active)"
@@ -373,7 +382,7 @@ if [[ "$RDS_STATUS" != "NOT_FOUND" ]]; then
 
     tee_log "Action: RDS deletion initiated (no final snapshot)"
   else
-    FINAL_SNAPSHOT="industrynight-db-final-$(date +%Y%m%d-%H%M%S)"
+    FINAL_SNAPSHOT="${RDS_INSTANCE}-final-$(date +%Y%m%d-%H%M%S)"
     log_info "  Creating final snapshot: $FINAL_SNAPSHOT"
 
     aws_cmd rds delete-db-instance \
@@ -428,8 +437,8 @@ tee_log ""
 tee_log "=== Teardown Complete ==="
 
 echo ""
-echo -e "${BOLD}=== Teardown Complete ===${NC}"
+echo -e "${BOLD}=== Teardown Complete ($ENV_NAME) ===${NC}"
 echo "  Manifest: $MANIFEST"
 echo ""
-echo "  To rebuild: ./scripts/coop/coop.sh rebuild"
-echo "  To check:   ./scripts/coop/coop.sh status"
+echo "  To rebuild: ./scripts/coop/coop.sh --env $ENV_NAME rebuild"
+echo "  To check:   ./scripts/coop/coop.sh --env $ENV_NAME status"

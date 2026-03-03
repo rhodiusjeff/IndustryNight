@@ -16,10 +16,14 @@ set -euo pipefail
 #  10. Verify health
 #
 # Usage:
-#   ./scripts/coop/infra-rebuild.sh [--yes]
+#   ./scripts/coop/infra-rebuild.sh [--env dev|prod] [--yes]
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/config.sh"
+
+parse_env_flag "$@"
+set -- "${PASSTHROUGH_ARGS[@]+"${PASSTHROUGH_ARGS[@]}"}"
+load_environment "$IN_ENV"
 
 SKIP_CONFIRM=false
 for arg in "$@"; do
@@ -32,7 +36,12 @@ done
 TOTAL_STEPS=10
 CURRENT_STEP=0
 
+env_color=$CYAN
+[[ "$ENV_NAME" == "prod" ]] && env_color=$RED
+
 echo -e "${BOLD}=== Infrastructure Rebuild ===${NC}"
+ENV_UPPER=$(echo "$ENV_NAME" | tr '[:lower:]' '[:upper:]')
+echo -e "  Environment: ${env_color}${ENV_UPPER}${NC} ($ENV_LABEL)"
 echo ""
 
 confirm_destructive "This will create new EKS and RDS resources (AWS costs begin immediately)."
@@ -106,8 +115,10 @@ if [[ "$EKS_EXISTS" == "ACTIVE" ]]; then
   log_warn "  EKS cluster already exists and is ACTIVE. Skipping creation."
 else
   log_warn "  This will take 15-20 minutes..."
+  CLUSTER_CONFIG=$(generate_cluster_config)
+  log_info "  Using cluster config: $CLUSTER_CONFIG"
   eksctl create cluster \
-    -f "$PROJECT_ROOT/$EKS_CLUSTER_CONFIG" \
+    -f "$CLUSTER_CONFIG" \
     --profile "$AWS_PROFILE"
 
   log_success "  EKS cluster created"
@@ -289,7 +300,7 @@ DB_PASS_VAL=$(echo "$SECRET_JSON" | python3 -c "import sys, json; print(json.loa
 log_step $((++CURRENT_STEP)) $TOTAL_STEPS "Applying Kubernetes manifests..."
 
 # Namespace
-kube_cmd apply -f "$PROJECT_ROOT/$K8S_MANIFESTS_DIR/namespace.yaml"
+apply_k8s_manifest "namespace.yaml"
 log_info "  Namespace applied"
 
 # Create K8s secret from Secrets Manager values
@@ -301,16 +312,14 @@ kube_cmd create secret generic industrynight-secrets \
   --from-literal=DB_USER="$DB_USER_VAL" \
   --from-literal=DB_PASSWORD="$DB_PASS_VAL" \
   --from-literal=JWT_SECRET="$(openssl rand -base64 32)" \
-  --from-literal=CORS_ORIGINS="https://admin.${DOMAIN},http://localhost:3000,http://localhost:8080" \
+  --from-literal=CORS_ORIGINS="$CORS_ORIGINS" \
   -n "$K8S_NAMESPACE"
 log_info "  K8s secrets created"
 
 # Deployment, Service, Ingress
-# deployment.yaml uses ${AWS_ACCOUNT_ID} placeholder — substitute before applying
-sed "s|\${AWS_ACCOUNT_ID}|${AWS_ACCOUNT}|g" \
-  "$PROJECT_ROOT/$K8S_MANIFESTS_DIR/deployment.yaml" | kube_cmd apply -f -
-kube_cmd apply -f "$PROJECT_ROOT/$K8S_MANIFESTS_DIR/service.yaml"
-kube_cmd apply -f "$PROJECT_ROOT/$K8S_MANIFESTS_DIR/ingress.yaml"
+apply_k8s_manifest "deployment.yaml"
+apply_k8s_manifest "service.yaml"
+apply_k8s_manifest "ingress.yaml"
 log_success "  Manifests applied"
 
 # Step 8: Create db-proxy pod
@@ -392,7 +401,7 @@ if [[ "$IMAGE_COUNT" -gt 0 ]]; then
   log_success "  API deployed"
 else
   log_warn "  No ECR image found. Build and push first:"
-  log_warn "    ./scripts/deploy-api.sh"
+  log_warn "    ./scripts/deploy-api.sh --env $ENV_NAME"
 fi
 
 # Check pods
@@ -410,12 +419,12 @@ if [[ -n "$ALB_DNS" ]]; then
   update_cloudflare_cname "$CF_API_RECORD_NAME" "$ALB_DNS" || true
 
   sleep 10
-  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.${DOMAIN}/health" 2>/dev/null || echo "000")
+  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://${API_HOST}/health" 2>/dev/null || echo "000")
   if [[ "$HTTP_STATUS" == "200" ]]; then
     log_success "  Health check passed (HTTP $HTTP_STATUS)"
   else
     log_warn "  Health check returned HTTP $HTTP_STATUS (ALB may still be provisioning)"
-    log_warn "  Try: curl https://api.${DOMAIN}/health"
+    log_warn "  Try: curl https://${API_HOST}/health"
   fi
 else
   log_warn "  ALB not yet provisioned. Check in a few minutes:"
@@ -423,17 +432,17 @@ else
 fi
 
 echo ""
-echo -e "${BOLD}=== Rebuild Complete ===${NC}"
+echo -e "${BOLD}=== Rebuild Complete ($ENV_NAME) ===${NC}"
 echo ""
 echo "  EKS Cluster:  $EKS_CLUSTER"
 echo "  RDS Instance: $RDS_INSTANCE"
 echo "  RDS Endpoint: $NEW_RDS_ENDPOINT"
 echo "  ALB DNS:      $ALB_DNS"
-echo "  API Endpoint: https://api.$DOMAIN/health"
+echo "  API Endpoint: https://${API_HOST}/health"
 echo ""
 echo "  Next steps:"
-echo "    - Import data:       ./scripts/coop/coop.sh import <backup-dir>"
-echo "    - Check status:      ./scripts/coop/coop.sh status"
+echo "    - Import data:       ./scripts/coop/coop.sh --env $ENV_NAME import <backup-dir>"
+echo "    - Check status:      ./scripts/coop/coop.sh --env $ENV_NAME status"
 if [[ "$IMAGE_COUNT" -eq 0 ]]; then
-  echo "    - Build & push API:  ./scripts/deploy-api.sh"
+  echo "    - Build & push API:  ./scripts/deploy-api.sh --env $ENV_NAME"
 fi

@@ -9,15 +9,24 @@ set -euo pipefail
 #   RED    = Missing / Deleted / Error
 #
 # Usage:
-#   ./scripts/coop/infra-status.sh
+#   ./scripts/coop/infra-status.sh [--env dev|prod]
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/config.sh"
 
+parse_env_flag "$@"
+load_environment "$IN_ENV"
+
+# Environment-specific banner
+env_color=$CYAN
+[[ "$ENV_NAME" == "prod" ]] && env_color=$RED
+
 echo -e "${BOLD}=== Industry Night Infrastructure Status ===${NC}"
-echo "  Region:  $AWS_REGION"
-echo "  Profile: $AWS_PROFILE"
-echo "  Time:    $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+ENV_UPPER=$(echo "$ENV_NAME" | tr '[:lower:]' '[:upper:]')
+echo -e "  Environment: ${env_color}${ENV_UPPER}${NC} ($ENV_LABEL)"
+echo "  Region:      $AWS_REGION"
+echo "  Profile:     $AWS_PROFILE"
+echo "  Time:        $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 echo ""
 
 check_aws_credentials
@@ -174,13 +183,17 @@ fi
 echo ""
 
 # ---- Cost Summary ----
-echo -e "${BOLD}Estimated Cost${NC}"
+echo -e "${BOLD}Estimated Cost (${ENV_NAME})${NC}"
 if [[ "$EKS_STATUS" == "ACTIVE" && "$RDS_STATUS" == "available" ]]; then
-  echo -e "  ${RED}RUNNING${NC} — EKS + RDS are active. Estimated ~\$160/month."
-  echo "  To save costs: ./scripts/coop/coop.sh teardown"
+  if [[ "$ENV_NAME" == "dev" ]]; then
+    echo -e "  ${RED}RUNNING${NC} — EKS + RDS are active. Estimated ~\$110/month (dev)."
+  else
+    echo -e "  ${RED}RUNNING${NC} — EKS + RDS are active. Estimated ~\$160/month (prod)."
+  fi
+  echo "  To save costs: ./scripts/coop/coop.sh --env $ENV_NAME teardown"
 elif [[ "$EKS_STATUS" == "NOT_FOUND" && "$RDS_STATUS" == "NOT_FOUND" ]]; then
   echo -e "  ${GREEN}HIBERNATED${NC} — Only cheap/free resources active (~\$2-5/month)."
-  echo "  To bring back: ./scripts/coop/coop.sh rebuild"
+  echo "  To bring back: ./scripts/coop/coop.sh --env $ENV_NAME rebuild"
 elif [[ "$RDS_STATUS" == "stopped" && "$EKS_STATUS" == "ACTIVE" ]]; then
   echo -e "  ${YELLOW}PARTIAL${NC} — EKS running, RDS stopped (~\$130/month)."
 else

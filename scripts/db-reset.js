@@ -57,8 +57,8 @@ const DB_CONFIG = {
   ssl: { rejectUnauthorized: false },
 };
 
-const NAMESPACE = 'industrynight';
-const DEPLOYMENT = 'industrynight-api';
+const NAMESPACE  = process.env.IN_NAMESPACE  || 'industrynight';
+const DEPLOYMENT = process.env.IN_DEPLOYMENT || 'industrynight-api';
 
 const PROJECT_ROOT = path.resolve(__dirname, '..');
 const MIGRATIONS_DIR = path.join(PROJECT_ROOT, 'packages/database/migrations');
@@ -125,6 +125,8 @@ async function main() {
   const totalSteps = SKIP_K8S ? (SEED_ONLY ? 1 : 3) : (SEED_ONLY ? 5 : 7);
   let currentStep = 0;
 
+  const envFlag = process.env.IN_ENV ? `--env ${process.env.IN_ENV}` : '';
+
   console.log('=== Industry Night Database Reset ===');
   console.log(`Mode: ${SEED_ONLY ? 'seed-only' : 'full reset'}${SKIP_K8S ? ' (skip k8s)' : ''}`);
   console.log(`Database: ${DB_CONFIG.host}:${DB_CONFIG.port}/${DB_CONFIG.database}`);
@@ -148,7 +150,7 @@ async function main() {
   if (!SKIP_K8S) {
     step(++currentStep, totalSteps, 'Enabling maintenance mode...');
     try {
-      execSync(`${path.join(__dirname, 'maintenance.sh')} on`, { stdio: 'inherit' });
+      execSync(`${path.join(__dirname, 'maintenance.sh')} ${envFlag} on`, { stdio: 'inherit' });
     } catch (e) {
       console.warn('  Warning: maintenance.sh failed — continuing anyway');
     }
@@ -287,7 +289,7 @@ async function main() {
   if (!SKIP_K8S) {
     step(++currentStep, totalSteps, 'Disabling maintenance mode...');
     try {
-      execSync(`${path.join(__dirname, 'maintenance.sh')} off`, { stdio: 'inherit' });
+      execSync(`${path.join(__dirname, 'maintenance.sh')} ${envFlag} off`, { stdio: 'inherit' });
     } catch (e) {
       console.warn('  Warning: maintenance.sh off failed — run manually: ./scripts/maintenance.sh off');
     }

@@ -62,13 +62,13 @@ scripts/                            # Operational scripts (Node.js + bash)
   setup-local.sh                    # Local dev environment setup
   run-api.sh / run-mobile.sh / run-admin-app.sh / debug-api.sh
 infrastructure/
-  eks/cluster.yaml                  # EKS cluster definition
-  k8s/                              # Kubernetes manifests
-    namespace.yaml                  # industrynight namespace
-    deployment.yaml                 # API deployment + HPA (2-10 replicas)
-    service.yaml                    # ClusterIP service
+  eks/cluster.yaml.template         # EKS cluster template (__PLACEHOLDER__ tokens)
+  k8s/                              # Kubernetes manifest templates
+    namespace.yaml                  # Namespace (templated: __NAMESPACE__, __ENVIRONMENT__)
+    deployment.yaml                 # API deployment + HPA (templated)
+    service.yaml                    # ClusterIP service (templated)
     secrets.yaml                    # Secret template
-    ingress.yaml                    # ALB ingress for api.industrynight.net
+    ingress.yaml                    # ALB ingress (templated)
 packages/
   api/                              # Express API server
   shared/                           # Shared Flutter/Dart package
@@ -327,44 +327,61 @@ cd packages/shared && dart run build_runner build --delete-conflicting-outputs
 
 ## Infrastructure
 
+### Environments
+
+Two environments in the same AWS account, isolated by naming convention. All scripts accept `--env dev|prod` (default: **dev**).
+
+| | Dev | Prod |
+|---|---|---|
+| EKS cluster | `industrynight-dev` (1 node) | `industrynight-prod` (2 nodes) |
+| K8s namespace | `industrynight-dev` | `industrynight` |
+| HPA | 1-2 pods | 2-10 pods |
+| RDS | `industrynight-db-dev` | `industrynight-db` |
+| S3 assets | `industrynight-assets-dev` | `industrynight-assets-prod` |
+| S3 admin web | `industrynight-web-admin-dev` | `industrynight-web-admin` |
+| Secrets Manager | `industrynight/database-dev` | `industrynight/database` |
+| API domain | `dev-api.industrynight.net` | `api.industrynight.net` |
+| Admin domain | `dev-admin.industrynight.net` | `admin.industrynight.net` |
+| ECR tag | `:dev` | `:latest` |
+| CloudFront (prod) | (see dev.env) | `E196TNDGV555BI` |
+
+Environment config files: `scripts/coop/environments/{dev,prod}.env`
+Shared config: `scripts/coop/config.sh` (AWS account, region, ECR repo, helpers)
+
 ### AWS
+- **Account:** 047593684855
 - **Region:** us-east-1
-- **EKS cluster:** industrynight (defined in `infrastructure/eks/cluster.yaml`)
-- **ECR repo:** `047593684855.dkr.ecr.us-east-1.amazonaws.com/industrynight-api`
-- **RDS:** PostgreSQL 15
-- **S3 buckets:** `industrynight-assets-prod` (images, Object Ownership: BucketOwnerPreferred, public ACLs enabled), `industrynight-web-admin` (admin web app, OAC-restricted)
-- **CloudFront:** `E196TNDGV555BI` (`d3bwcp8qy737m.cloudfront.net`) — serves admin web app from S3
-- **Domains:** `api.industrynight.net` (ALB ingress with ACM SSL), `admin.industrynight.net` (CloudFront)
-- **DNS:** Cloudflare (not Route 53) — `api` CNAME → ALB, `admin` CNAME → CloudFront
+- **ECR repo:** `047593684855.dkr.ecr.us-east-1.amazonaws.com/industrynight-api` (shared, tags: `:dev`, `:latest`)
+- **ACM cert:** wildcard `*.industrynight.net` (covers both environments)
+- **DNS:** Cloudflare (not Route 53) — CNAMEs for both environments
 - **AWS Profile:** `industrynight-admin`
 
 ### Kubernetes
-- **Namespace:** `industrynight`
-- **Deployment:** `industrynight-api` (2 replicas min, 10 max via HPA)
+- **Manifests:** `infrastructure/k8s/` — templated with `__PLACEHOLDER__` tokens, applied via `apply_k8s_manifest()` in config.sh
+- **Cluster template:** `infrastructure/eks/cluster.yaml.template` — generated per-environment via `generate_cluster_config()`
 - **Resources:** 256Mi-512Mi memory, 250m-500m CPU per pod
 - **Health:** liveness + readiness probes on `/health`
-- **Secrets:** `industrynight-secrets` (DB_PASSWORD, JWT_SECRET, CORS_ORIGINS, Twilio creds, etc.)
-- **DB Proxy:** `db-proxy` pod for port-forwarding: `./scripts/pf-db.sh start`
+- **DB Proxy:** `db-proxy` pod for port-forwarding: `./scripts/pf-db.sh [--env dev|prod] start`
 
 ### Deployment workflow
 ```bash
+# All commands default to dev. Add --env prod for production.
+
 # Apply pending DB migrations first (always before deploying new API code)
 DB_PASSWORD=xxx node scripts/migrate.js
 
 # Build, push, and roll out the API
-./scripts/deploy-api.sh
-
-# Check status only
-./scripts/deploy-api.sh --status
-
-# Push existing image without rebuild
-./scripts/deploy-api.sh --skip-build
+./scripts/deploy-api.sh                       # dev
+./scripts/deploy-api.sh --env prod            # prod
 
 # Build and deploy admin web app to S3/CloudFront
-./scripts/deploy-admin.sh
+./scripts/deploy-admin.sh                     # dev
+./scripts/deploy-admin.sh --env prod          # prod
 ```
 
 ## Scripts
+
+All infrastructure scripts support `--env dev|prod` (default: dev). Node.js scripts pick up the target environment via `IN_NAMESPACE`, `IN_DEPLOYMENT`, and `IN_AWS_PROFILE` environment variables exported by `load_environment()` in config.sh.
 
 | Script | Purpose | Usage |
 |--------|---------|-------|
@@ -374,10 +391,10 @@ DB_PASSWORD=xxx node scripts/migrate.js
 | `scripts/db-scrub-user.js` | Delete specific users by phone | `DB_PASSWORD=xxx node scripts/db-scrub-user.js [--skip-k8s] [--yes] +15551234567` |
 | `scripts/db-uncheckin.js` | Reset check-in status for dev/testing | `DB_PASSWORD=xxx node scripts/db-uncheckin.js [--skip-k8s] [--yes] +15551234567` |
 | `scripts/db-unconnect.js` | Delete connections for dev/testing | `DB_PASSWORD=xxx node scripts/db-unconnect.js [--skip-k8s] [--yes] +15551234567` |
-| `scripts/deploy-api.sh` | Build Docker image, push to ECR, roll out to EKS | `./scripts/deploy-api.sh [--skip-build] [--status]` |
-| `scripts/deploy-admin.sh` | Build admin web app, sync to S3, invalidate CloudFront | `./scripts/deploy-admin.sh [--skip-build] [--status]` |
-| `scripts/pf-db.sh` | Manage kubectl port-forward tunnel to RDS | `./scripts/pf-db.sh start\|stop\|status` |
-| `scripts/maintenance.sh` | Toggle k8s maintenance mode | `./scripts/maintenance.sh on/off` |
+| `scripts/deploy-api.sh` | Build Docker image, push to ECR, roll out to EKS | `./scripts/deploy-api.sh [--env dev\|prod] [--skip-build] [--status]` |
+| `scripts/deploy-admin.sh` | Build admin web app, sync to S3, invalidate CloudFront | `./scripts/deploy-admin.sh [--env dev\|prod] [--skip-build] [--status]` |
+| `scripts/pf-db.sh` | Manage kubectl port-forward tunnel to RDS | `./scripts/pf-db.sh [--env dev\|prod] start\|stop\|status` |
+| `scripts/maintenance.sh` | Toggle k8s maintenance mode | `./scripts/maintenance.sh [--env dev\|prod] on/off` |
 | `scripts/setup-local.sh` | Local dev environment setup | `./scripts/setup-local.sh` |
 
 DB scripts use `pg` from `packages/api/node_modules` (no separate install needed). They auto-start kubectl port-forward unless `--skip-k8s` is passed.
@@ -394,23 +411,26 @@ python3 scripts/generate-exec-brief.py
 
 ### COOP Scripts (scripts/coop/)
 
-Infrastructure lifecycle management — tear down AWS to save costs, rebuild from scratch, backup/restore data. Full documentation in `docs/guides/coop.md`.
+Infrastructure lifecycle management — tear down AWS to save costs, rebuild from scratch, backup/restore data. All commands accept `--env dev|prod` (default: dev). Full documentation in `docs/guides/coop.md`.
 
 | Script | Purpose | Usage |
 |--------|---------|-------|
-| `scripts/coop/coop.sh` | Controller (single entry point) | `./scripts/coop/coop.sh <command>` |
-| `scripts/coop/config.sh` | Shared constants and helpers | Sourced by other scripts |
+| `scripts/coop/coop.sh` | Controller (single entry point) | `./scripts/coop/coop.sh [--env dev\|prod] <command>` |
+| `scripts/coop/config.sh` | Shared constants, helpers, `load_environment()` | Sourced by other scripts |
+| `scripts/coop/environments/*.env` | Environment-specific values (dev.env, prod.env) | Sourced by `load_environment()` |
+| `scripts/coop/setup-dev-persistent.sh` | One-time dev persistent resources (S3, Secrets, CF, DNS) | `./scripts/coop/setup-dev-persistent.sh` |
 | `scripts/coop/infra-status.sh` | Color-coded AWS resource status | `./scripts/coop/coop.sh status` |
 | `scripts/coop/db-export.sh` | Database backup (pg_dump + per-table) | `./scripts/coop/coop.sh export` |
 | `scripts/coop/db-import.sh` | Database restore (full or selective) | `./scripts/coop/coop.sh import <dir>` |
-| `scripts/coop/infra-teardown.sh` | Tear down EKS + RDS (~$160→$3/mo) | `./scripts/coop/coop.sh teardown` |
+| `scripts/coop/infra-teardown.sh` | Tear down EKS + RDS | `./scripts/coop/coop.sh teardown` |
 | `scripts/coop/infra-rebuild.sh` | Rebuild all infra from scratch | `./scripts/coop/coop.sh rebuild` |
 
 Key commands:
 ```bash
-./scripts/coop/coop.sh status                                    # What's running? What's it costing?
-./scripts/coop/coop.sh teardown                                  # Export data + tear down (saves ~$155/mo)
-./scripts/coop/coop.sh rebuild --import backups/YYYY-MM-DD_HHMMSS  # Rebuild + restore data
+./scripts/coop/coop.sh status                                             # Dev status (default)
+./scripts/coop/coop.sh --env prod status                                  # Prod status
+./scripts/coop/coop.sh teardown                                           # Tear down dev
+./scripts/coop/coop.sh rebuild --import backups/dev/YYYY-MM-DD_HHMMSS    # Rebuild dev + restore
 ```
 
 ## Git Workflow
@@ -525,6 +545,8 @@ When `TWILIO_VERIFY_SERVICE_SID` is set (production):
 13. **GoRouter refreshListenable + push/pop:** Never call `notifyListeners()` on GoRouter's `refreshListenable` (e.g. `AppState`) during an active `push<T>`/`pop(T)` cycle. It triggers route re-evaluation which can orphan the push future, causing the awaiting screen to never receive the result. Defer state changes that call `notifyListeners()` until after the push/pop completes.
 
 14. **JWT auto-refresh:** `ApiClient.onTokenExpired` must be wired up in `AppState` constructor. Access tokens expire after 15 minutes; without auto-refresh, users get "invalid or expired token" errors on any API call after that window.
+
+15. **Multi-environment `--env` flag:** All infrastructure scripts default to `dev`. Production requires explicit `--env prod`. Shell scripts use `parse_env_flag()` + `load_environment()` from config.sh. Node.js scripts read `IN_NAMESPACE`, `IN_DEPLOYMENT`, `IN_AWS_PROFILE` environment variables (exported by `load_environment()`). K8s manifests use `__PLACEHOLDER__` tokens substituted at apply time via `apply_k8s_manifest()`.
 
 ## Roles
 

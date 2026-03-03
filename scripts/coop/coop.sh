@@ -13,26 +13,40 @@ set -euo pipefail
 #   import     Import database from a backup directory
 #
 # Usage:
-#   ./scripts/coop/coop.sh teardown [--yes]
-#   ./scripts/coop/coop.sh rebuild [--import backups/YYYY-MM-DD_HHMMSS] [--yes]
-#   ./scripts/coop/coop.sh status
-#   ./scripts/coop/coop.sh export [--yes]
-#   ./scripts/coop/coop.sh import <backup-dir> [--full|--tables] [--run-migrations] [--yes]
+#   ./scripts/coop/coop.sh [--env dev|prod] teardown [--yes]
+#   ./scripts/coop/coop.sh [--env dev|prod] rebuild [--import backups/...] [--yes]
+#   ./scripts/coop/coop.sh [--env dev|prod] status
+#   ./scripts/coop/coop.sh [--env dev|prod] export [--yes]
+#   ./scripts/coop/coop.sh [--env dev|prod] import <backup-dir> [--full|--tables] [--yes]
+#
+# Default environment: dev (use --env prod for production)
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/config.sh"
 
+# Parse --env flag from all args
+parse_env_flag "$@"
+set -- "${PASSTHROUGH_ARGS[@]+"${PASSTHROUGH_ARGS[@]}"}"
+load_environment "$IN_ENV"
+
 print_banner() {
+  local env_color
+  if [[ "$ENV_NAME" == "prod" ]]; then
+    env_color=$RED
+  else
+    env_color=$CYAN
+  fi
   echo -e "${BOLD}"
   echo "============================================"
   echo "  Industry Night COOP System"
-  echo "  Continuity of Operations Plan"
+  ENV_UPPER=$(echo "$ENV_NAME" | tr '[:lower:]' '[:upper:]')
+  echo -e "  Environment: ${env_color}${ENV_UPPER}${NC}${BOLD} ($ENV_LABEL)"
   echo "============================================"
   echo -e "${NC}"
 }
 
 print_usage() {
-  echo "Usage: $0 <command> [options]"
+  echo "Usage: $0 [--env dev|prod] <command> [options]"
   echo ""
   echo "Commands:"
   echo "  teardown              Export data, then tear down EKS cluster + RDS database"
@@ -42,6 +56,7 @@ print_usage() {
   echo "  import <dir>          Import database from backup directory"
   echo ""
   echo "Options:"
+  echo "  --env dev|prod        Target environment (default: dev)"
   echo "  --yes                 Skip confirmation prompts"
   echo "  --import <dir>        (rebuild) Import data from backup after rebuild"
   echo "  --full                (import) Use pg_restore from full dump (default)"
@@ -50,14 +65,12 @@ print_usage() {
   echo "  --skip-rds-snapshot   (teardown) Skip creating RDS final snapshot"
   echo ""
   echo "Examples:"
-  echo "  $0 teardown"
-  echo "  $0 teardown --yes"
-  echo "  $0 rebuild"
-  echo "  $0 rebuild --import backups/2026-02-25_143000"
-  echo "  $0 status"
-  echo "  $0 export"
-  echo "  $0 import backups/2026-02-25_143000 --full"
-  echo "  $0 import backups/2026-02-25_143000 --tables --run-migrations"
+  echo "  $0 teardown                                    # Teardown dev (default)"
+  echo "  $0 --env prod teardown --yes                   # Teardown production"
+  echo "  $0 rebuild                                     # Rebuild dev"
+  echo "  $0 rebuild --import backups/dev/2026-03-01_120000"
+  echo "  $0 status                                      # Dev status"
+  echo "  $0 --env prod status                           # Production status"
 }
 
 COMMAND="${1:-}"
@@ -79,12 +92,12 @@ case "$COMMAND" in
     done
 
     # Run export first, then teardown
-    "$SCRIPT_DIR/db-export.sh" "${EXPORT_ARGS[@]+"${EXPORT_ARGS[@]}"}"
+    "$SCRIPT_DIR/db-export.sh" --env "$IN_ENV" "${EXPORT_ARGS[@]+"${EXPORT_ARGS[@]}"}"
     echo ""
-    "$SCRIPT_DIR/infra-teardown.sh" "${TEARDOWN_ARGS[@]+"${TEARDOWN_ARGS[@]}"}"
+    "$SCRIPT_DIR/infra-teardown.sh" --env "$IN_ENV" "${TEARDOWN_ARGS[@]+"${TEARDOWN_ARGS[@]}"}"
 
     echo ""
-    log_success "COOP teardown complete."
+    log_success "COOP teardown complete ($ENV_NAME)."
     log_info "Preserved: S3, ECR, Route 53, ACM, Secrets Manager."
     log_info "Estimated monthly cost: ~\$2-5"
     ;;
@@ -95,7 +108,7 @@ case "$COMMAND" in
 
     # Parse --import flag separately, pass rest through
     IMPORT_DIR=""
-    PASSTHROUGH_ARGS=()
+    REBUILD_ARGS=()
     while [[ $# -gt 0 ]]; do
       case $1 in
         --import)
@@ -103,32 +116,32 @@ case "$COMMAND" in
           shift 2
           ;;
         *)
-          PASSTHROUGH_ARGS+=("$1")
+          REBUILD_ARGS+=("$1")
           shift
           ;;
       esac
     done
 
-    "$SCRIPT_DIR/infra-rebuild.sh" "${PASSTHROUGH_ARGS[@]+"${PASSTHROUGH_ARGS[@]}"}"
+    "$SCRIPT_DIR/infra-rebuild.sh" --env "$IN_ENV" "${REBUILD_ARGS[@]+"${REBUILD_ARGS[@]}"}"
 
     if [[ -n "$IMPORT_DIR" ]]; then
       echo ""
-      "$SCRIPT_DIR/db-import.sh" "$IMPORT_DIR" --full "${PASSTHROUGH_ARGS[@]+"${PASSTHROUGH_ARGS[@]}"}"
+      "$SCRIPT_DIR/db-import.sh" --env "$IN_ENV" "$IMPORT_DIR" --full "${REBUILD_ARGS[@]+"${REBUILD_ARGS[@]}"}"
     fi
 
     echo ""
-    log_success "COOP rebuild complete."
+    log_success "COOP rebuild complete ($ENV_NAME)."
     ;;
 
   status)
     print_banner
-    "$SCRIPT_DIR/infra-status.sh"
+    "$SCRIPT_DIR/infra-status.sh" --env "$IN_ENV"
     ;;
 
   export)
     print_banner
     shift
-    "$SCRIPT_DIR/db-export.sh" "$@"
+    "$SCRIPT_DIR/db-export.sh" --env "$IN_ENV" "$@"
     ;;
 
   import)
@@ -137,25 +150,25 @@ case "$COMMAND" in
     if [[ $# -lt 1 ]]; then
       log_error "Import requires a backup directory path."
       echo ""
-      echo "Usage: $0 import <backup-dir> [--full|--tables] [--run-migrations] [--yes]"
+      echo "Usage: $0 [--env dev|prod] import <backup-dir> [--full|--tables] [--run-migrations] [--yes]"
       echo ""
-      # List available backups
-      if [[ -d "$PROJECT_ROOT/$BACKUPS_DIR" ]]; then
-        echo "Available backups:"
-        for dir in "$PROJECT_ROOT/$BACKUPS_DIR"/*/; do
+      # List available backups for this environment
+      if [[ -d "$BACKUPS_PATH" ]]; then
+        echo "Available backups ($ENV_NAME):"
+        for dir in "$BACKUPS_PATH"/*/; do
           [[ -d "$dir" ]] || continue
           DIRNAME=$(basename "$dir")
           if [[ -f "$dir/metadata.json" ]]; then
             TS=$(python3 -c "import json; m=json.load(open('$dir/metadata.json')); print(m.get('timestamp',''))" 2>/dev/null || echo "")
-            echo "  $BACKUPS_DIR/$DIRNAME  ($TS)"
+            echo "  $BACKUPS_DIR/$BACKUPS_SUBDIR/$DIRNAME  ($TS)"
           else
-            echo "  $BACKUPS_DIR/$DIRNAME"
+            echo "  $BACKUPS_DIR/$BACKUPS_SUBDIR/$DIRNAME"
           fi
         done
       fi
       exit 1
     fi
-    "$SCRIPT_DIR/db-import.sh" "$@"
+    "$SCRIPT_DIR/db-import.sh" --env "$IN_ENV" "$@"
     ;;
 
   help|--help|-h)
