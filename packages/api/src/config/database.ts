@@ -1,7 +1,8 @@
 import { Pool } from 'pg';
 import { config } from './env';
 
-const sslConfig = { rejectUnauthorized: false };  // Always use SSL — defense in depth
+// SSL: required in dev/prod (defense in depth), disabled in test (testcontainers has no SSL)
+const sslConfig = config.nodeEnv === 'test' ? false : { rejectUnauthorized: false };
 
 const pool = new Pool(
   config.database.url
