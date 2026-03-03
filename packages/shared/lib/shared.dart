@@ -30,6 +30,9 @@ export 'api/admin_api.dart';
 export 'constants/specialties.dart';
 export 'constants/verification_status.dart';
 
+// Config
+export 'config/app_config.dart';
+
 // Utils
 export 'utils/validators.dart';
 export 'utils/formatters.dart';
