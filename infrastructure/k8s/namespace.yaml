@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: industrynight
+  name: __NAMESPACE__
   labels:
-    name: industrynight
-    environment: production
+    name: __NAMESPACE__
+    environment: __ENVIRONMENT__

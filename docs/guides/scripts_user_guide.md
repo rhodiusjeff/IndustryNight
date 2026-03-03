@@ -1,18 +1,19 @@
 # Scripts User Guide
 
-Operational scripts for developing, debugging, and managing the Industry Night platform.
+Operational scripts for developing, debugging, and managing the Industry Night platform. All infrastructure scripts support `--env dev|prod` (default: `dev`).
 
 ## Quick Reference
 
 | Script | Purpose | Key flags |
 |--------|---------|-----------|
-| `deploy-api.sh` | Build & deploy API to EKS | `--skip-build`, `--status` |
-| `pf-db.sh` | DB tunnel: localhost:5432 → db-proxy → RDS | `start`, `stop`, `status` |
+| `deploy-api.sh` | Build & deploy API to EKS | `--env`, `--skip-build`, `--status` |
+| `deploy-admin.sh` | Build admin web app, deploy to S3/CloudFront | `--env`, `--skip-build`, `--status` |
+| `pf-db.sh` | DB tunnel: localhost:5432 → db-proxy → RDS | `--env`, `start`, `stop`, `status` |
 | `db-reset.js` | Full DB reset + migrations | `--skip-k8s`, `--seed-only`, `--yes` |
 | `db-scrub-user.js` | Delete users by phone | `--skip-k8s`, `--yes` |
 | `migrate.js` | Apply pending DB migrations | `--skip-k8s`, `--dry-run`, `--status` |
 | `seed-admin.js` | Create or reset an admin user | `--skip-k8s` |
-| `maintenance.sh` | ALB maintenance mode toggle | `on`, `off`, `status` |
+| `maintenance.sh` | ALB maintenance mode toggle | `--env`, `on`, `off`, `status` |
 | `setup-local.sh` | Init local dev environment | (none) |
 | `run-api.sh` | Start API dev server | (none) |
 | `run-mobile.sh` | Start **social app** on simulator/device | (none) |
@@ -20,6 +21,15 @@ Operational scripts for developing, debugging, and managing the Industry Night p
 | `debug-api.sh` | Remote Node.js debugging on EKS | `enable`, `disable` |
 | `generate-exec-brief.py` | Regenerate PowerPoint executive brief | (none) |
 | `generate-exec-summary.py` | Regenerate markdown executive summary | (none) |
+
+### Environment flag
+
+Scripts that interact with AWS/K8s accept `--env dev` or `--env prod`. Default is **dev**. Production operations display red warnings and require extra confirmation.
+
+```bash
+./scripts/deploy-api.sh                # deploys to dev
+./scripts/deploy-api.sh --env prod     # deploys to prod (warns if not on master)
+```
 
 ---
 
@@ -84,27 +94,50 @@ Starts the Flutter **admin app** in Chrome at port 8080. Connects to `https://ap
 Builds the API Docker image, pushes to ECR, and performs a rolling restart on EKS.
 
 ```bash
-./scripts/deploy-api.sh              # Full: build → push → rollout
-./scripts/deploy-api.sh --skip-build # Push existing image + rollout only
-./scripts/deploy-api.sh --status     # Check current deployment status
+./scripts/deploy-api.sh                       # Full: build → push → rollout (dev)
+./scripts/deploy-api.sh --env prod            # Deploy to production
+./scripts/deploy-api.sh --skip-build          # Push existing image + rollout only
+./scripts/deploy-api.sh --status              # Check current deployment status
+./scripts/deploy-api.sh --env prod --status   # Check prod deployment status
 ```
 
-**Requires:** Docker running, `AWS_PROFILE=industrynight-admin` configured, kubectl connected to EKS
+**Requires:** Docker running, `industrynight-admin` AWS profile configured, kubectl connected to EKS
 
 **What happens:**
-1. Authenticates with ECR
-2. Builds `linux/amd64` Docker image from `packages/api/`
-3. Pushes to `047593684855.dkr.ecr.us-east-1.amazonaws.com/industrynight-api:latest`
-4. Restarts the deployment and waits for rollout to complete
+1. Sources environment config from `scripts/coop/config.sh`
+2. Authenticates with ECR
+3. Builds `linux/amd64` Docker image from `packages/api/`
+4. Tags with environment-specific tag (`:dev` or `:latest`)
+5. Pushes to ECR
+6. Restarts the deployment in the target namespace and waits for rollout
+
+**Safety:** Deploying to prod from a non-master branch triggers a warning with confirmation prompt.
+
+### deploy-admin.sh
+
+Builds the Flutter admin web app and deploys to S3/CloudFront.
+
+```bash
+./scripts/deploy-admin.sh                # Build + deploy (dev)
+./scripts/deploy-admin.sh --env prod     # Deploy to production
+./scripts/deploy-admin.sh --skip-build   # Sync + invalidate only
+./scripts/deploy-admin.sh --status       # Check current status
+```
+
+**What happens:**
+1. Builds Flutter web app with `--dart-define=API_BASE_URL` pointing to the env-specific API domain
+2. Syncs build output to the env-specific S3 web bucket
+3. Invalidates CloudFront cache
 
 ### maintenance.sh
 
 Toggles maintenance mode at the ALB level. When enabled, the ALB returns a 503 JSON response to all requests without reaching backend pods.
 
 ```bash
-./scripts/maintenance.sh on       # Enable (ALB returns 503)
-./scripts/maintenance.sh off      # Disable (resume normal traffic)
-./scripts/maintenance.sh status   # Check current state
+./scripts/maintenance.sh on                    # Enable (dev)
+./scripts/maintenance.sh off                   # Disable (dev)
+./scripts/maintenance.sh status                # Check state (dev)
+./scripts/maintenance.sh --env prod on         # Enable for prod
 ```
 
 ---
@@ -116,12 +149,15 @@ Toggles maintenance mode at the ALB level. When enabled, the ALB returns a 503 J
 Opens and closes the kubectl port-forward tunnel to the RDS database via the `db-proxy` pod. Use this when you need a persistent DB connection for ad-hoc work — running `psql`, resetting admin credentials with `seed-admin.js`, etc.
 
 ```bash
-./scripts/pf-db.sh start    # Open tunnel: localhost:5432 → db-proxy → RDS
-./scripts/pf-db.sh stop     # Close tunnel and free port 5432
-./scripts/pf-db.sh status   # Is the tunnel open?
+./scripts/pf-db.sh start                 # Open tunnel (dev)
+./scripts/pf-db.sh stop                  # Close tunnel
+./scripts/pf-db.sh status                # Is the tunnel open?
+./scripts/pf-db.sh --env prod start      # Open tunnel to prod DB
 ```
 
-**Note:** `db-reset.js`, `db-scrub-user.js`, `migrate.js`, and `seed-admin.js` all manage their own port-forward internally — you do not need to run `pf-db.sh` before those scripts.
+Each environment uses its own PID file (`/tmp/industrynight-pf-db-{env}.pid`), so you can have both dev and prod tunnels open simultaneously on different ports if needed.
+
+**Note:** `db-reset.js`, `db-scrub-user.js`, `migrate.js`, and `seed-admin.js` all manage their own port-forward internally — you do not need to run `pf-db.sh` before those scripts. These Node.js scripts pick up the target environment via `IN_NAMESPACE` and `IN_DEPLOYMENT` environment variables (exported by `load_environment()` in config.sh).
 
 ### migrate.js
 
@@ -269,7 +305,7 @@ python3 scripts/generate-exec-summary.py
 
 ### Launch the admin app locally
 
-The admin app talks to the production API (`https://api.industrynight.net`) — no local API or DB tunnel needed.
+The admin app talks to the dev API (`https://dev-api.industrynight.net`) — no local API or DB tunnel needed.
 
 ```bash
 ./scripts/run-admin-app.sh
@@ -299,7 +335,15 @@ node scripts/seed-admin.js \
 # Edit code in packages/api/
 # If schema changed, run migrations first:
 DB_PASSWORD=xxx node scripts/migrate.js
-./scripts/deploy-api.sh
+./scripts/deploy-api.sh                   # deploys to dev
+./scripts/deploy-api.sh --env prod        # deploys to production
+```
+
+### Deploy admin app
+
+```bash
+./scripts/deploy-admin.sh                 # builds + deploys to dev
+./scripts/deploy-admin.sh --env prod      # builds + deploys to production
 ```
 
 ### Reset a test user between test cycles
@@ -308,7 +352,7 @@ DB_PASSWORD=xxx node scripts/migrate.js
 DB_PASSWORD=xxx node scripts/db-scrub-user.js +15712120927
 ```
 
-### Full database reset (staging/prod)
+### Full database reset
 
 ```bash
 DB_PASSWORD=xxx node scripts/db-reset.js
@@ -327,7 +371,8 @@ DB_PASSWORD=xxx node scripts/db-reset.js
 ### Ad-hoc database access (psql or other tools)
 
 ```bash
-./scripts/pf-db.sh start
+./scripts/pf-db.sh start                 # dev
+./scripts/pf-db.sh --env prod start      # prod
 psql -h localhost -U industrynight -d industrynight
 # ... do your work ...
 ./scripts/pf-db.sh stop

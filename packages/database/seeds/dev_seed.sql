@@ -17,9 +17,14 @@ INSERT INTO users (id, phone, name, email, role, specialties, verification_statu
     ('dddddddd-dddd-dddd-dddd-dddddddddddd', '+11234567893', 'Test User 3', NULL, 'user', ARRAY['makeup_artist', 'model'], 'unverified', false, 'app');
 
 -- Create test events
-INSERT INTO events (id, name, description, venue_id, start_time, end_time, status, activation_code, capacity) VALUES
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'Industry Night LA - January', 'Monthly industry night event', '11111111-1111-1111-1111-111111111111', NOW() + INTERVAL '7 days', NOW() + INTERVAL '7 days' + INTERVAL '4 hours', 'published', 'JAN2024', 200),
-    ('ffffffff-ffff-ffff-ffff-ffffffffffff', 'Industry Night LA - February', 'Monthly industry night event', '11111111-1111-1111-1111-111111111111', NOW() + INTERVAL '37 days', NOW() + INTERVAL '37 days' + INTERVAL '4 hours', 'draft', 'FEB2024', 200);
+INSERT INTO events (id, name, description, venue_id, venue_name, venue_address, start_time, end_time, status, activation_code, capacity) VALUES
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'Industry Night LA - January', 'Monthly industry night event', '11111111-1111-1111-1111-111111111111', 'The Grand Venue', '123 Main St, Los Angeles, CA 90001', NOW() + INTERVAL '7 days', NOW() + INTERVAL '7 days' + INTERVAL '4 hours', 'published', 'JAN2024', 200),
+    ('ffffffff-ffff-ffff-ffff-ffffffffffff', 'Industry Night LA - February', 'Monthly industry night event', '11111111-1111-1111-1111-111111111111', 'The Grand Venue', '123 Main St, Los Angeles, CA 90001', NOW() + INTERVAL '37 days', NOW() + INTERVAL '37 days' + INTERVAL '4 hours', 'draft', 'FEB2024', 200);
+
+-- Create test event images (hero + secondary for published event)
+INSERT INTO event_images (event_id, url, sort_order) VALUES
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'https://industrynight-assets-prod.s3.amazonaws.com/placeholder/event1-hero.jpg', 0),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'https://industrynight-assets-prod.s3.amazonaws.com/placeholder/event1-secondary.jpg', 1);
 
 -- Create test tickets
 INSERT INTO tickets (user_id, event_id, ticket_type, price, status, purchased_at) VALUES
@@ -39,6 +44,10 @@ INSERT INTO sponsors (id, name, description, website, tier, is_active) VALUES
 INSERT INTO discounts (sponsor_id, title, description, type, value, code, is_active) VALUES
     ('11111111-2222-3333-4444-555555555555', '20% Off All Products', 'Valid for verified industry members', 'percentage', 20, 'INDUSTRY20', true),
     ('22222222-3333-4444-5555-666666666666', '$50 Off Rentals', 'First rental discount', 'fixedAmount', 50, 'FIRST50', true);
+
+-- Link sponsor to published event
+INSERT INTO event_sponsors (event_id, sponsor_id) VALUES
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '11111111-2222-3333-4444-555555555555');
 
 -- Create test vendors
 INSERT INTO vendors (name, description, category, is_active) VALUES

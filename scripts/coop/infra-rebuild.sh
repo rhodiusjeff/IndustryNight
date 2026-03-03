@@ -16,10 +16,14 @@ set -euo pipefail
 #  10. Verify health
 #
 # Usage:
-#   ./scripts/coop/infra-rebuild.sh [--yes]
+#   ./scripts/coop/infra-rebuild.sh [--env dev|prod] [--yes]
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/config.sh"
+
+parse_env_flag "$@"
+set -- "${PASSTHROUGH_ARGS[@]+"${PASSTHROUGH_ARGS[@]}"}"
+load_environment "$IN_ENV"
 
 SKIP_CONFIRM=false
 for arg in "$@"; do
@@ -32,7 +36,12 @@ done
 TOTAL_STEPS=10
 CURRENT_STEP=0
 
+env_color=$CYAN
+[[ "$ENV_NAME" == "prod" ]] && env_color=$RED
+
 echo -e "${BOLD}=== Infrastructure Rebuild ===${NC}"
+ENV_UPPER=$(echo "$ENV_NAME" | tr '[:lower:]' '[:upper:]')
+echo -e "  Environment: ${env_color}${ENV_UPPER}${NC} ($ENV_LABEL)"
 echo ""
 
 confirm_destructive "This will create new EKS and RDS resources (AWS costs begin immediately)."
@@ -106,8 +115,10 @@ if [[ "$EKS_EXISTS" == "ACTIVE" ]]; then
   log_warn "  EKS cluster already exists and is ACTIVE. Skipping creation."
 else
   log_warn "  This will take 15-20 minutes..."
+  CLUSTER_CONFIG=$(generate_cluster_config)
+  log_info "  Using cluster config: $CLUSTER_CONFIG"
   eksctl create cluster \
-    -f "$PROJECT_ROOT/$EKS_CLUSTER_CONFIG" \
+    -f "$CLUSTER_CONFIG" \
     --profile "$AWS_PROFILE"
 
   log_success "  EKS cluster created"
@@ -197,18 +208,18 @@ elif [[ "$RDS_EXISTS" == "NOT_FOUND" ]]; then
     --query 'cluster.resourcesVpcConfig.vpcId' --output text)
   log_info "  VPC: $VPC_ID"
 
-  # Create DB subnet group if needed
-  if ! aws_cmd rds describe-db-subnet-groups \
-    --db-subnet-group-name "$RDS_SUBNET_GROUP" &>/dev/null; then
-    log_info "  Creating DB subnet group..."
-    PRIVATE_SUBNETS=$(aws_cmd ec2 describe-subnets \
-      --filters "Name=vpc-id,Values=$VPC_ID" "Name=tag:Name,Values=*Private*" \
-      --query 'Subnets[].SubnetId' --output text)
-    aws_cmd rds create-db-subnet-group \
-      --db-subnet-group-name "$RDS_SUBNET_GROUP" \
-      --db-subnet-group-description "Industry Night RDS subnet group" \
-      --subnet-ids $PRIVATE_SUBNETS
-  fi
+  # Delete old DB subnet group if it exists (may reference subnets from previous VPC)
+  aws_cmd rds delete-db-subnet-group \
+    --db-subnet-group-name "$RDS_SUBNET_GROUP" 2>/dev/null || true
+
+  log_info "  Creating DB subnet group..."
+  PRIVATE_SUBNETS=$(aws_cmd ec2 describe-subnets \
+    --filters "Name=vpc-id,Values=$VPC_ID" "Name=tag:Name,Values=*Private*" \
+    --query 'Subnets[].SubnetId' --output text)
+  aws_cmd rds create-db-subnet-group \
+    --db-subnet-group-name "$RDS_SUBNET_GROUP" \
+    --db-subnet-group-description "Industry Night RDS subnet group" \
+    --subnet-ids $PRIVATE_SUBNETS
 
   # Create security group for RDS if needed
   RDS_SG=$(aws_cmd ec2 describe-security-groups \
@@ -289,7 +300,7 @@ DB_PASS_VAL=$(echo "$SECRET_JSON" | python3 -c "import sys, json; print(json.loa
 log_step $((++CURRENT_STEP)) $TOTAL_STEPS "Applying Kubernetes manifests..."
 
 # Namespace
-kube_cmd apply -f "$PROJECT_ROOT/$K8S_MANIFESTS_DIR/namespace.yaml"
+apply_k8s_manifest "namespace.yaml"
 log_info "  Namespace applied"
 
 # Create K8s secret from Secrets Manager values
@@ -301,13 +312,14 @@ kube_cmd create secret generic industrynight-secrets \
   --from-literal=DB_USER="$DB_USER_VAL" \
   --from-literal=DB_PASSWORD="$DB_PASS_VAL" \
   --from-literal=JWT_SECRET="$(openssl rand -base64 32)" \
+  --from-literal=CORS_ORIGINS="$CORS_ORIGINS" \
   -n "$K8S_NAMESPACE"
 log_info "  K8s secrets created"
 
 # Deployment, Service, Ingress
-kube_cmd apply -f "$PROJECT_ROOT/$K8S_MANIFESTS_DIR/deployment.yaml"
-kube_cmd apply -f "$PROJECT_ROOT/$K8S_MANIFESTS_DIR/service.yaml"
-kube_cmd apply -f "$PROJECT_ROOT/$K8S_MANIFESTS_DIR/ingress.yaml"
+apply_k8s_manifest "deployment.yaml"
+apply_k8s_manifest "service.yaml"
+apply_k8s_manifest "ingress.yaml"
 log_success "  Manifests applied"
 
 # Step 8: Create db-proxy pod
@@ -384,12 +396,13 @@ IMAGE_COUNT=$(aws_cmd ecr list-images --repository-name "$ECR_REPO" \
   --query 'imageIds | length(@)' --output text 2>/dev/null || echo "0")
 
 if [[ "$IMAGE_COUNT" -gt 0 ]]; then
-  kube_cmd rollout restart deployment/"$K8S_DEPLOYMENT" -n "$K8S_NAMESPACE"
-  kube_cmd rollout status deployment/"$K8S_DEPLOYMENT" -n "$K8S_NAMESPACE" --timeout=120s
+  # Pods were just created in step 7 with the correct image.
+  # Only wait for them to become ready — no restart needed.
+  kube_cmd rollout status deployment/"$K8S_DEPLOYMENT" -n "$K8S_NAMESPACE" --timeout=180s
   log_success "  API deployed"
 else
   log_warn "  No ECR image found. Build and push first:"
-  log_warn "    ./scripts/deploy-api.sh"
+  log_warn "    ./scripts/deploy-api.sh --env $ENV_NAME"
 fi
 
 # Check pods
@@ -401,13 +414,18 @@ ALB_DNS=$(kube_cmd get ingress/"$K8S_DEPLOYMENT" -n "$K8S_NAMESPACE" \
 
 if [[ -n "$ALB_DNS" ]]; then
   log_info "  ALB DNS: $ALB_DNS"
+
+  # Update Cloudflare DNS to point to new ALB
+  log_info "  Updating Cloudflare DNS..."
+  update_cloudflare_cname "$CF_API_RECORD_NAME" "$ALB_DNS" || true
+
   sleep 10
-  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://$ALB_DNS/health" 2>/dev/null || echo "000")
+  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://${API_HOST}/health" 2>/dev/null || echo "000")
   if [[ "$HTTP_STATUS" == "200" ]]; then
     log_success "  Health check passed (HTTP $HTTP_STATUS)"
   else
     log_warn "  Health check returned HTTP $HTTP_STATUS (ALB may still be provisioning)"
-    log_warn "  Try: curl http://$ALB_DNS/health"
+    log_warn "  Try: curl https://${API_HOST}/health"
   fi
 else
   log_warn "  ALB not yet provisioned. Check in a few minutes:"
@@ -415,17 +433,17 @@ else
 fi
 
 echo ""
-echo -e "${BOLD}=== Rebuild Complete ===${NC}"
+echo -e "${BOLD}=== Rebuild Complete ($ENV_NAME) ===${NC}"
 echo ""
 echo "  EKS Cluster:  $EKS_CLUSTER"
 echo "  RDS Instance: $RDS_INSTANCE"
 echo "  RDS Endpoint: $NEW_RDS_ENDPOINT"
-echo "  API Endpoint: https://api.$DOMAIN/health"
+echo "  ALB DNS:      $ALB_DNS"
+echo "  API Endpoint: https://${API_HOST}/health"
 echo ""
 echo "  Next steps:"
-echo "    - Import data:       ./scripts/coop/coop.sh import <backup-dir>"
-echo "    - Check status:      ./scripts/coop/coop.sh status"
-echo "    - Update Route 53:   Point api.$DOMAIN to the new ALB"
+echo "    - Import data:       ./scripts/coop/coop.sh --env $ENV_NAME import <backup-dir>"
+echo "    - Check status:      ./scripts/coop/coop.sh --env $ENV_NAME status"
 if [[ "$IMAGE_COUNT" -eq 0 ]]; then
-  echo "    - Build & push API:  ./scripts/deploy-api.sh"
+  echo "    - Build & push API:  ./scripts/deploy-api.sh --env $ENV_NAME"
 fi

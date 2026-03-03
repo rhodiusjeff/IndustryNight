@@ -65,7 +65,7 @@ const DB_CONFIG = {
   ssl: { rejectUnauthorized: false },
 };
 
-const NAMESPACE = 'industrynight';
+const NAMESPACE = process.env.IN_NAMESPACE || 'industrynight';
 
 // Normalize phone numbers to E.164
 function normalizePhone(phone) {

@@ -10,10 +10,14 @@ set -euo pipefail
 #   - metadata.json      — Timestamp, row counts, database version
 #
 # Usage:
-#   ./scripts/coop/db-export.sh [--yes]
+#   ./scripts/coop/db-export.sh [--env dev|prod] [--yes]
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/config.sh"
+
+parse_env_flag "$@"
+set -- "${PASSTHROUGH_ARGS[@]+"${PASSTHROUGH_ARGS[@]}"}"
+load_environment "$IN_ENV"
 
 # Parse args
 SKIP_CONFIRM=false
@@ -27,7 +31,12 @@ done
 TOTAL_STEPS=6
 CURRENT_STEP=0
 
+env_color=$CYAN
+[[ "$ENV_NAME" == "prod" ]] && env_color=$RED
+
 echo -e "${BOLD}=== Database Export ===${NC}"
+ENV_UPPER=$(echo "$ENV_NAME" | tr '[:lower:]' '[:upper:]')
+echo -e "  Environment: ${env_color}${ENV_UPPER}${NC} ($ENV_LABEL)"
 echo ""
 
 # Step 1: Prerequisites
@@ -59,7 +68,8 @@ log_success "Database connection verified"
 # Step 4: Create backup directory
 log_step $((++CURRENT_STEP)) $TOTAL_STEPS "Creating backup directory..."
 TIMESTAMP=$(create_timestamp)
-BACKUP_DIR="$PROJECT_ROOT/$BACKUPS_DIR/$TIMESTAMP"
+mkdir -p "$BACKUPS_PATH"
+BACKUP_DIR="$BACKUPS_PATH/$TIMESTAMP"
 mkdir -p "$BACKUP_DIR/tables"
 log_success "Created: $BACKUP_DIR"
 
@@ -138,6 +148,7 @@ PG_VERSION=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
 {
   echo "{"
   echo "  \"timestamp\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\","
+  echo "  \"environment\": \"$ENV_NAME\","
   echo "  \"database\": \"$DB_NAME\","
   echo "  \"postgres_version\": \"$PG_VERSION\","
   echo "  \"tables\": {"
@@ -168,5 +179,6 @@ echo "  SQL dump:   full_dump.sql ($(du -h "$BACKUP_DIR/full_dump.sql" | cut -f1
 echo "  Tables:     $TABLE_INDEX files in tables/"
 echo "  Metadata:   metadata.json"
 echo ""
-echo "  To restore (full):   ./scripts/coop/coop.sh import $BACKUPS_DIR/$TIMESTAMP --full"
-echo "  To restore (tables): ./scripts/coop/coop.sh import $BACKUPS_DIR/$TIMESTAMP --tables"
+RELATIVE_BACKUP="$BACKUPS_DIR/$BACKUPS_SUBDIR/$TIMESTAMP"
+echo "  To restore (full):   ./scripts/coop/coop.sh --env $ENV_NAME import $RELATIVE_BACKUP --full"
+echo "  To restore (tables): ./scripts/coop/coop.sh --env $ENV_NAME import $RELATIVE_BACKUP --tables"

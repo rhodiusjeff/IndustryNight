@@ -61,8 +61,8 @@ const DB_CONFIG = {
   ssl: { rejectUnauthorized: false },
 };
 
-const NAMESPACE      = 'industrynight';
-const AWS_PROFILE    = 'industrynight-admin';
+const NAMESPACE      = process.env.IN_NAMESPACE   || 'industrynight';
+const AWS_PROFILE    = process.env.IN_AWS_PROFILE || 'industrynight-admin';
 const MIGRATIONS_DIR = path.resolve(__dirname, '../packages/database/migrations');
 
 const args     = process.argv.slice(2);

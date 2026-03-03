@@ -1,55 +1,58 @@
 #!/bin/bash
 # config.sh — Shared constants and helpers for COOP scripts
 #
-# Sourced by all other scripts in scripts/coop/
+# Sourced by all other scripts in scripts/coop/ and scripts/deploy-*.sh
 # Do not execute directly.
+#
+# Environment-specific values live in scripts/coop/environments/{dev,prod}.env
+# Call load_environment() after sourcing this file.
 
 # ---- Project Root ----
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+ENVIRONMENTS_DIR="$SCRIPT_DIR/environments"
 
-# ---- AWS Configuration ----
+# ---- Shared AWS Configuration (same across all environments) ----
 AWS_PROFILE="industrynight-admin"
 AWS_REGION="us-east-1"
 AWS_ACCOUNT="047593684855"
+DOMAIN="industrynight.net"
 
-# ---- EKS ----
-EKS_CLUSTER="industrynight-prod"
-EKS_NODEGROUP="standard-workers-v2"
-EKS_CLUSTER_CONFIG="infrastructure/eks/cluster.yaml"
+# ---- ECR (shared repo, environment-specific tags) ----
+ECR_REPO="industrynight-api"
+ECR_URI="${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
 
-# ---- RDS ----
-RDS_INSTANCE="industrynight-db"
+# ---- ACM (wildcard cert covers all environments) ----
+ACM_CERT_ARN="arn:aws:acm:us-east-1:047593684855:certificate/97021927-0213-4347-90fa-8e8113ef4a52"
+
+# ---- Route 53 ----
+HOSTED_ZONE_ID="Z06747281HOR0DFK445GN"
+
+# ---- Cloudflare ----
+CF_SECRETS_ID="industrynight/cloudflare"
+CF_ZONE_ID="926771c2c344a268af440e076bd89339"
+
+# ---- RDS Defaults (shared across environments) ----
 RDS_ENGINE="postgres"
 RDS_ENGINE_VERSION="16.4"
 RDS_INSTANCE_CLASS="db.t3.micro"
 RDS_STORAGE="20"
 RDS_MASTER_USER="industrynight"
 RDS_DB_NAME="industrynight"
-RDS_SUBNET_GROUP="industrynight-db-subnet"
 
 # ---- Kubernetes ----
-K8S_NAMESPACE="industrynight"
 K8S_DEPLOYMENT="industrynight-api"
 K8S_MANIFESTS_DIR="infrastructure/k8s"
 
-# ---- ECR ----
-ECR_REPO="industrynight-api"
-ECR_URI="${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
+# ---- EKS Cluster Template ----
+EKS_CLUSTER_TEMPLATE="infrastructure/eks/cluster.yaml.template"
 
-# ---- S3 ----
-S3_ASSETS_BUCKET="industrynight-assets-prod"
-S3_WEB_BUCKET="industrynight-web-admin"
+# ---- Migrations and Seeds ----
+MIGRATIONS_DIR="packages/database/migrations"
+SEEDS_DIR="packages/database/seeds"
 
-# ---- Secrets Manager ----
-SECRETS_ID="industrynight/database"
-
-# ---- Route 53 ----
-HOSTED_ZONE_ID="Z06747281HOR0DFK445GN"
-DOMAIN="industrynight.net"
-
-# ---- ACM ----
-ACM_CERT_ARN="arn:aws:acm:us-east-1:047593684855:certificate/97021927-0213-4347-90fa-8e8113ef4a52"
+# ---- Backups ----
+BACKUPS_DIR="backups"
 
 # ---- Database Tables (FK-ordered for export/import) ----
 # Tier 0: No foreign keys
@@ -57,20 +60,12 @@ ACM_CERT_ARN="arn:aws:acm:us-east-1:047593684855:certificate/97021927-0213-4347-
 # Tier 2: References tier 0 + 1
 # Tier 3: References tier 2
 # Tier 4: Audit + analytics (can reference anything)
-TIER_0_TABLES="specialties venues users verification_codes"
+TIER_0_TABLES="specialties venues users verification_codes admin_users"
 TIER_1_TABLES="events sponsors"
-TIER_2_TABLES="tickets connections posts vendors discounts"
+TIER_2_TABLES="tickets connections posts vendors discounts event_images event_sponsors posh_orders"
 TIER_3_TABLES="post_comments post_likes event_vendors"
 TIER_4_TABLES="audit_log data_export_requests analytics_connections_daily analytics_users_daily analytics_events analytics_influence"
 ALL_TABLES_ORDERED="$TIER_0_TABLES $TIER_1_TABLES $TIER_2_TABLES $TIER_3_TABLES $TIER_4_TABLES"
-
-# ---- Migrations and Seeds ----
-MIGRATIONS_DIR="packages/database/migrations"
-SEEDS_DIR="packages/database/seeds"
-MIGRATION_FILES="001_initial_schema.sql 002_add_sponsors.sql"
-
-# ---- Backups ----
-BACKUPS_DIR="backups"
 
 # ---- Colors ----
 RED='\033[0;31m'
@@ -80,6 +75,58 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m'
+
+# ---- Environment Loading ----
+
+# Parse --env flag from any argument list.
+# Sets IN_ENV and removes --env from the args.
+# Usage: parse_env_flag "$@"; set -- "${PASSTHROUGH_ARGS[@]+"${PASSTHROUGH_ARGS[@]}"}"
+PASSTHROUGH_ARGS=()
+parse_env_flag() {
+  IN_ENV="${IN_ENV:-dev}"  # Default to dev
+  PASSTHROUGH_ARGS=()
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      --env)
+        IN_ENV="$2"
+        shift 2
+        ;;
+      *)
+        PASSTHROUGH_ARGS+=("$1")
+        shift
+        ;;
+    esac
+  done
+}
+
+# Load environment-specific configuration.
+# Sources the corresponding .env file from scripts/coop/environments/
+# Usage: load_environment "dev" or load_environment "prod"
+load_environment() {
+  local env_name="${1:-dev}"
+
+  local env_file="$ENVIRONMENTS_DIR/${env_name}.env"
+  if [[ ! -f "$env_file" ]]; then
+    log_error "Environment file not found: $env_file"
+    log_error "Available environments:"
+    for f in "$ENVIRONMENTS_DIR"/*.env; do
+      [[ -f "$f" ]] && echo "  $(basename "$f" .env)"
+    done
+    exit 1
+  fi
+
+  source "$env_file"
+
+  # Derived values
+  ECR_IMAGE="${ECR_URI}:${ECR_IMAGE_TAG}"
+  BACKUPS_PATH="$PROJECT_ROOT/$BACKUPS_DIR/$BACKUPS_SUBDIR"
+
+  # Export for Node.js scripts
+  export IN_ENV="$env_name"
+  export IN_NAMESPACE="$K8S_NAMESPACE"
+  export IN_DEPLOYMENT="$K8S_DEPLOYMENT"
+  export IN_AWS_PROFILE="$AWS_PROFILE"
+}
 
 # ---- Helper Functions ----
 
@@ -117,12 +164,17 @@ kube_cmd() {
 }
 
 # Safety confirmation prompt (skipped if SKIP_CONFIRM=true)
+# Shows extra warning for production environment
 confirm_destructive() {
   local message=$1
   if [[ "${SKIP_CONFIRM:-false}" == "true" ]]; then
     return 0
   fi
   echo ""
+  if [[ "${ENV_NAME:-}" == "prod" ]]; then
+    echo -e "${RED}${BOLD}!!! PRODUCTION ENVIRONMENT !!!${NC}"
+    echo ""
+  fi
   echo -e "${RED}${BOLD}WARNING:${NC} $message"
   echo ""
   read -p "Type 'yes' to confirm: " answer
@@ -221,4 +273,99 @@ get_db_password() {
 # Create timestamp for backup directory naming
 create_timestamp() {
   date +"%Y-%m-%d_%H%M%S"
+}
+
+# Apply a K8s manifest with environment-specific placeholder substitution
+# Usage: apply_k8s_manifest <filename>
+apply_k8s_manifest() {
+  local file=$1
+  sed -e "s|__NAMESPACE__|${K8S_NAMESPACE}|g" \
+      -e "s|__ECR_IMAGE__|${ECR_IMAGE}|g" \
+      -e "s|__ACM_CERT_ARN__|${ACM_CERT_ARN}|g" \
+      -e "s|__API_HOST__|${API_HOST}|g" \
+      -e "s|__ENVIRONMENT__|${ENV_LABEL}|g" \
+      -e "s|__HPA_MIN__|${K8S_HPA_MIN}|g" \
+      -e "s|__HPA_MAX__|${K8S_HPA_MAX}|g" \
+      -e "s|\${AWS_ACCOUNT_ID}|${AWS_ACCOUNT}|g" \
+      "$PROJECT_ROOT/$K8S_MANIFESTS_DIR/$file" | kube_cmd apply -f -
+}
+
+# Generate eksctl cluster config from template
+# Usage: generate_cluster_config -> prints path to generated file
+generate_cluster_config() {
+  local output="/tmp/industrynight-cluster-${ENV_NAME}.yaml"
+
+  sed -e "s|__CLUSTER_NAME__|${EKS_CLUSTER}|g" \
+      -e "s|__REGION__|${AWS_REGION}|g" \
+      -e "s|__NAMESPACE__|${K8S_NAMESPACE}|g" \
+      -e "s|__NODEGROUP_NAME__|${EKS_NODEGROUP}|g" \
+      -e "s|__DESIRED_CAPACITY__|${EKS_DESIRED_CAPACITY}|g" \
+      -e "s|__MIN_SIZE__|${EKS_MIN_SIZE}|g" \
+      -e "s|__MAX_SIZE__|${EKS_MAX_SIZE}|g" \
+      -e "s|__ENVIRONMENT__|${ENV_LABEL}|g" \
+      "$PROJECT_ROOT/$EKS_CLUSTER_TEMPLATE" > "$output"
+
+  # Handle CW log types (convert comma-separated to YAML list)
+  python3 -c "
+import sys
+content = open('$output').read()
+types = '${CW_LOG_TYPES}'.split(',')
+yaml_list = '\n'.join(f'      - {t.strip()}' for t in types)
+content = content.replace('    enableTypes: __CW_LOG_TYPES__', f'    enableTypes:\n{yaml_list}')
+open('$output', 'w').write(content)
+"
+  echo "$output"
+}
+
+# Update Cloudflare DNS CNAME record
+# Usage: update_cloudflare_cname "api.industrynight.net" "new-alb-dns.elb.amazonaws.com"
+update_cloudflare_cname() {
+  local record_name=$1
+  local new_target=$2
+
+  # Get Cloudflare API token from Secrets Manager
+  local cf_secret
+  cf_secret=$(aws_cmd secretsmanager get-secret-value \
+    --secret-id "$CF_SECRETS_ID" \
+    --query 'SecretString' --output text 2>/dev/null)
+  if [[ $? -ne 0 ]]; then
+    log_warn "Cloudflare credentials not found in Secrets Manager ($CF_SECRETS_ID)"
+    log_warn "Update DNS manually: $record_name → $new_target"
+    return 1
+  fi
+
+  local cf_token
+  cf_token=$(echo "$cf_secret" | python3 -c "import sys, json; print(json.load(sys.stdin)['api_token'])")
+
+  # Look up the DNS record ID
+  local record_id
+  record_id=$(curl -s "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records?name=${record_name}&type=CNAME" \
+    -H "Authorization: Bearer $cf_token" | \
+    python3 -c "import sys, json; r=json.load(sys.stdin); print(r['result'][0]['id'] if r['success'] and r['result'] else '')")
+
+  if [[ -z "$record_id" ]]; then
+    log_warn "Cloudflare DNS record not found for $record_name"
+    log_warn "Update DNS manually: $record_name → $new_target"
+    return 1
+  fi
+
+  # Update the record
+  local result
+  result=$(curl -s -X PATCH \
+    "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records/${record_id}" \
+    -H "Authorization: Bearer $cf_token" \
+    -H "Content-Type: application/json" \
+    --data "{\"content\":\"${new_target}\"}")
+
+  local success
+  success=$(echo "$result" | python3 -c "import sys, json; print(json.load(sys.stdin).get('success', False))")
+
+  if [[ "$success" == "True" ]]; then
+    log_success "Cloudflare DNS updated: $record_name → $new_target"
+    return 0
+  else
+    log_warn "Cloudflare DNS update failed for $record_name"
+    log_warn "Update DNS manually: $record_name → $new_target"
+    return 1
+  fi
 }

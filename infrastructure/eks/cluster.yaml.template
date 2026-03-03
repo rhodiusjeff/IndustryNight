@@ -1,12 +1,13 @@
-# eksctl cluster configuration
-# Create with: eksctl create cluster -f cluster.yaml
+# eksctl cluster configuration template
+# Generated at runtime by COOP rebuild script via generate_cluster_config()
+# Do not apply directly — use: ./scripts/coop/coop.sh --env <env> rebuild
 
 apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
 
 metadata:
-  name: industrynight-prod
-  region: us-east-1
+  name: __CLUSTER_NAME__
+  region: __REGION__
   version: "1.31"
 
 # IAM configuration
@@ -16,7 +17,7 @@ iam:
     # Service account for API pods (IRSA)
     - metadata:
         name: industrynight-api
-        namespace: industrynight
+        namespace: __NAMESPACE__
       attachPolicyARNs:
         - arn:aws:iam::aws:policy/AmazonS3FullAccess
         - arn:aws:iam::aws:policy/SecretsManagerReadWrite
@@ -37,18 +38,18 @@ vpc:
 
 # Node groups
 managedNodeGroups:
-  - name: standard-workers-v2
+  - name: __NODEGROUP_NAME__
     instanceType: t3.small
-    desiredCapacity: 2
-    minSize: 1
-    maxSize: 4
+    desiredCapacity: __DESIRED_CAPACITY__
+    minSize: __MIN_SIZE__
+    maxSize: __MAX_SIZE__
     volumeSize: 20
     volumeType: gp3
     amiFamily: AmazonLinux2
     labels:
       role: worker
     tags:
-      Environment: production
+      Environment: __ENVIRONMENT__
       Project: industrynight
     iam:
       withAddonPolicies:
@@ -69,9 +70,4 @@ addons:
 # CloudWatch logging
 cloudWatch:
   clusterLogging:
-    enableTypes:
-      - api
-      - audit
-      - authenticator
-      - controllerManager
-      - scheduler
+    enableTypes: __CW_LOG_TYPES__

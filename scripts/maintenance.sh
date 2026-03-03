@@ -18,27 +18,33 @@
 # (e.g., during deploys, infrastructure changes, etc.)
 #
 # USAGE:
-#   ./scripts/maintenance.sh on     # Enable maintenance mode
-#   ./scripts/maintenance.sh off    # Disable maintenance mode
-#   ./scripts/maintenance.sh status # Check current state
+#   ./scripts/maintenance.sh [--env dev|prod] on     # Enable maintenance mode
+#   ./scripts/maintenance.sh [--env dev|prod] off    # Disable maintenance mode
+#   ./scripts/maintenance.sh [--env dev|prod] status # Check current state
 #
 
-NAMESPACE="industrynight"
-INGRESS="industrynight-api"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/coop/config.sh"
 
-case "$1" in
+parse_env_flag "$@"
+set -- "${PASSTHROUGH_ARGS[@]+"${PASSTHROUGH_ARGS[@]}"}"
+load_environment "$IN_ENV"
+
+INGRESS="$K8S_DEPLOYMENT"
+
+case "${1:-}" in
   on)
-    echo "=== Enabling maintenance mode ==="
+    echo "=== Enabling maintenance mode ($ENV_NAME) ==="
 
     # The ALB ingress controller supports a "fixed-response" action.
     # When this annotation is present, the ALB returns the specified
     # response directly — no backend pods are contacted.
-    kubectl annotate ingress/$INGRESS -n $NAMESPACE --overwrite \
+    kube_cmd annotate ingress/$INGRESS -n $K8S_NAMESPACE --overwrite \
       "alb.ingress.kubernetes.io/actions.fixed-response"='{"type":"fixed-response","fixedResponseConfig":{"contentType":"application/json","statusCode":"503","messageBody":"{\"status\":\"maintenance\",\"message\":\"Industry Night is undergoing scheduled maintenance. Please try again shortly.\"}"}}'
 
     # Swap the backend to use the fixed-response action
     # We do this by patching the ingress path's backend to use the action
-    kubectl patch ingress/$INGRESS -n $NAMESPACE --type='json' -p='[
+    kube_cmd patch ingress/$INGRESS -n $K8S_NAMESPACE --type='json' -p='[
       {
         "op": "replace",
         "path": "/spec/rules/0/http/paths/0/backend",
@@ -54,16 +60,16 @@ case "$1" in
     ]'
 
     echo ""
-    echo "=== Maintenance mode ENABLED ==="
+    echo "=== Maintenance mode ENABLED ($ENV_NAME) ==="
     echo "All requests will receive 503 with maintenance message."
-    echo "Run './scripts/maintenance.sh off' to restore normal traffic."
+    echo "Run './scripts/maintenance.sh --env $ENV_NAME off' to restore normal traffic."
     ;;
 
   off)
-    echo "=== Disabling maintenance mode ==="
+    echo "=== Disabling maintenance mode ($ENV_NAME) ==="
 
     # Restore the original backend service
-    kubectl patch ingress/$INGRESS -n $NAMESPACE --type='json' -p='[
+    kube_cmd patch ingress/$INGRESS -n $K8S_NAMESPACE --type='json' -p='[
       {
         "op": "replace",
         "path": "/spec/rules/0/http/paths/0/backend",
@@ -79,26 +85,26 @@ case "$1" in
     ]'
 
     # Remove the fixed-response annotation
-    kubectl annotate ingress/$INGRESS -n $NAMESPACE \
+    kube_cmd annotate ingress/$INGRESS -n $K8S_NAMESPACE \
       "alb.ingress.kubernetes.io/actions.fixed-response"-
 
     echo ""
-    echo "=== Maintenance mode DISABLED ==="
+    echo "=== Maintenance mode DISABLED ($ENV_NAME) ==="
     echo "Traffic is flowing to API pods normally."
     ;;
 
   status)
-    ANNOTATION=$(kubectl get ingress/$INGRESS -n $NAMESPACE -o jsonpath='{.metadata.annotations.alb\.ingress\.kubernetes\.io/actions\.fixed-response}' 2>/dev/null)
+    ANNOTATION=$(kube_cmd get ingress/$INGRESS -n $K8S_NAMESPACE -o jsonpath='{.metadata.annotations.alb\.ingress\.kubernetes\.io/actions\.fixed-response}' 2>/dev/null)
     if [ -n "$ANNOTATION" ]; then
-      echo "Maintenance mode: ON"
+      echo "Maintenance mode ($ENV_NAME): ON"
       echo "Response: $ANNOTATION"
     else
-      echo "Maintenance mode: OFF"
+      echo "Maintenance mode ($ENV_NAME): OFF"
     fi
     ;;
 
   *)
-    echo "Usage: $0 {on|off|status}"
+    echo "Usage: $0 [--env dev|prod] {on|off|status}"
     echo ""
     echo "  on      - Return 503 maintenance JSON to all requests"
     echo "  off     - Resume normal API traffic"

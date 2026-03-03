@@ -1,25 +1,62 @@
 # COOP — Continuity of Operations Plan
 
-Scripts for managing Industry Night's AWS infrastructure lifecycle: tear down to save costs, rebuild from scratch, and backup/restore database data.
+Scripts for managing Industry Night's AWS infrastructure lifecycle: tear down to save costs, rebuild from scratch, and backup/restore database data. Supports multiple environments (dev, prod) via the `--env` flag.
 
 ## Quick Reference
 
 ```bash
-# Check what's running and what it costs
-./scripts/coop/coop.sh status
+# All commands default to --env dev. Use --env prod for production.
 
-# Export database, then tear down EKS + RDS (~$160/mo → ~$3/mo)
+# Check what's running and what it costs
+./scripts/coop/coop.sh status                    # dev (default)
+./scripts/coop/coop.sh --env prod status         # prod
+
+# Export database, then tear down EKS + RDS
 ./scripts/coop/coop.sh teardown
 
 # Rebuild everything and restore data
-./scripts/coop/coop.sh rebuild --import backups/2026-02-25_143000
+./scripts/coop/coop.sh rebuild --import backups/dev/2026-02-25_143000
 
 # Export database only
 ./scripts/coop/coop.sh export
 
 # Import database only
-./scripts/coop/coop.sh import backups/2026-02-25_143000
+./scripts/coop/coop.sh import backups/dev/2026-02-25_143000
 ```
+
+## Environments
+
+All COOP scripts accept `--env dev` or `--env prod`. Default is **dev** (safer during active development; production requires explicit `--env prod`).
+
+| | Dev | Prod |
+|---|---|---|
+| EKS cluster | `industrynight-dev` | `industrynight-prod` |
+| Nodes | 1× t3.small | 2× t3.small |
+| HPA | 1-2 pods | 2-10 pods |
+| RDS instance | `industrynight-db-dev` | `industrynight-db` |
+| Namespace | `industrynight-dev` | `industrynight` |
+| API domain | `dev-api.industrynight.net` | `api.industrynight.net` |
+| Admin domain | `dev-admin.industrynight.net` | `admin.industrynight.net` |
+| S3 assets | `industrynight-assets-dev` | `industrynight-assets-prod` |
+| S3 web admin | `industrynight-web-admin-dev` | `industrynight-web-admin` |
+| Secrets Manager | `industrynight/database-dev` | `industrynight/database` |
+| Backups | `backups/dev/` | `backups/prod/` |
+| Running cost | ~$110/mo | ~$160/mo |
+| Hibernated cost | ~$2/mo | ~$3/mo |
+
+Environment configuration lives in `scripts/coop/environments/`:
+- `dev.env` — dev-specific resource names, sizing, domains
+- `prod.env` — prod-specific values
+
+Shared constants (AWS account, region, ECR repo, Cloudflare zone, helpers) are in `scripts/coop/config.sh`.
+
+### Safety guardrails
+
+- Environment name displayed prominently in every script banner (dev = cyan, prod = red)
+- Prod destructive operations require double confirmation with `!!! PRODUCTION ENVIRONMENT !!!`
+- `deploy-api.sh --env prod` warns if not on `master` branch
+- Backup directories are separated by environment (`backups/dev/`, `backups/prod/`)
+- Cross-environment import warns (e.g., "This backup is from prod but you're importing into dev")
 
 ## Prerequisites
 
@@ -45,7 +82,8 @@ aws configure --profile industrynight-admin
 ### `status` — Check Infrastructure State
 
 ```bash
-./scripts/coop/coop.sh status
+./scripts/coop/coop.sh status              # dev (default)
+./scripts/coop/coop.sh --env prod status   # prod
 ```
 
 Shows the status of every AWS resource with color coding:
@@ -53,18 +91,19 @@ Shows the status of every AWS resource with color coding:
 - **Yellow** — Stopped / Degraded
 - **Red** — Missing / Deleted
 
-Includes a cost summary at the bottom telling you whether you're in RUNNING (~$160/mo), HIBERNATED (~$3/mo), or MIXED state.
+Includes a cost summary at the bottom telling you whether you're in RUNNING, HIBERNATED, or MIXED state (costs vary by environment).
 
 Safe to run anytime — read-only, changes nothing.
 
 ### `teardown` — Spin Down to Save Costs
 
 ```bash
-./scripts/coop/coop.sh teardown [--yes] [--skip-rds-snapshot]
+./scripts/coop/coop.sh teardown [--yes] [--skip-rds-snapshot]             # dev
+./scripts/coop/coop.sh --env prod teardown [--yes] [--skip-rds-snapshot]  # prod
 ```
 
 Does two things in sequence:
-1. **Exports** the database to a timestamped backup in `backups/`
+1. **Exports** the database to a timestamped backup in `backups/{env}/`
 2. **Tears down** EKS cluster and RDS instance
 
 **What gets deleted:**
@@ -89,22 +128,24 @@ Does two things in sequence:
 ### `rebuild` — Recreate Infrastructure from Scratch
 
 ```bash
-./scripts/coop/coop.sh rebuild [--yes] [--import backups/YYYY-MM-DD_HHMMSS]
+./scripts/coop/coop.sh rebuild [--yes] [--import backups/dev/YYYY-MM-DD_HHMMSS]
+./scripts/coop/coop.sh --env prod rebuild [--yes] [--import backups/prod/YYYY-MM-DD_HHMMSS]
 ```
 
 Recreates everything that was torn down:
 
 1. Verifies preserved resources still exist (fails fast if ECR or Secrets Manager are missing)
-2. Creates EKS cluster from `infrastructure/eks/cluster.yaml`
+2. Generates EKS cluster config from `infrastructure/eks/cluster.yaml.template` (env-specific name, node count)
 3. Installs AWS Load Balancer Controller via Helm
 4. Creates new RDS instance (discovers VPC/subnets from the new cluster)
 5. Updates Secrets Manager with the new RDS endpoint
-6. Applies all Kubernetes manifests (namespace, secrets, deployment, service, ingress)
+6. Applies all Kubernetes manifests via templated `apply_k8s_manifest()` (namespace, secrets, deployment, service, ingress)
 7. Creates the `db-proxy` pod for database access
 8. Runs database migrations (tracks applied migrations in `_migrations` table)
 9. Loads specialties seed data
-10. Deploys API from the latest ECR image
-11. Verifies health endpoint
+10. Deploys API from the latest ECR image (env-specific tag)
+11. Updates Cloudflare DNS to point to new ALB
+12. Verifies health endpoint
 
 **Options:**
 - `--yes` — Skip confirmation prompts
@@ -113,18 +154,19 @@ Recreates everything that was torn down:
 **How long it takes:** 20-30 minutes (EKS creation is ~15-20 min, RDS is ~5-10 min).
 
 **After rebuild, you may need to:**
-- Update the Route 53 A/ALIAS record for `api.industrynight.net` to point to the new ALB DNS name (printed in the output)
-- Build and push a new API image if ECR is empty: `./scripts/deploy-api.sh`
+- Build and push a new API image if ECR is empty: `./scripts/deploy-api.sh [--env dev|prod]`
+- Seed admin user: `node scripts/seed-admin.js --email x --name y --password z`
 
 ### `export` — Backup Database
 
 ```bash
-./scripts/coop/coop.sh export [--yes]
+./scripts/coop/coop.sh export [--yes]              # dev
+./scripts/coop/coop.sh --env prod export [--yes]   # prod
 ```
 
-Creates a timestamped backup directory:
+Creates a timestamped backup directory under the environment's backup path:
 ```
-backups/2026-02-25_143000/
+backups/dev/2026-02-25_143000/
   full_dump.custom        # pg_dump binary format (fastest restore)
   full_dump.sql           # Plain SQL (human-readable)
   tables/                 # Per-table INSERT scripts
@@ -132,7 +174,7 @@ backups/2026-02-25_143000/
     01_venues.sql
     02_users.sql
     ...
-  metadata.json           # Timestamp, row counts, PG version
+  metadata.json           # Timestamp, row counts, PG version, environment
 ```
 
 **Two backup formats:**
@@ -145,13 +187,16 @@ Requires the EKS cluster to be running (needs `db-proxy` pod for port-forward).
 
 ```bash
 ./scripts/coop/coop.sh import <backup-dir> [--full|--tables] [--run-migrations] [--yes]
+./scripts/coop/coop.sh --env prod import <backup-dir> [--full|--tables] [--yes]
 ```
 
-Restores data from a backup directory. Two modes:
+Restores data from a backup directory. Warns if the backup's `environment` field in `metadata.json` doesn't match the target environment (cross-environment import detection).
+
+Two modes:
 
 **`--full` (default)** — Uses `pg_restore` from `full_dump.custom`:
 ```bash
-./scripts/coop/coop.sh import backups/2026-02-25_143000 --full
+./scripts/coop/coop.sh import backups/dev/2026-02-25_143000 --full
 ```
 - Drops and recreates all database objects
 - Fastest and most complete restore
@@ -159,7 +204,7 @@ Restores data from a backup directory. Two modes:
 
 **`--tables`** — Runs per-table INSERT files in FK order:
 ```bash
-./scripts/coop/coop.sh import backups/2026-02-25_143000 --tables
+./scripts/coop/coop.sh import backups/dev/2026-02-25_143000 --tables
 ```
 - Disables FK checks during import, re-enables after
 - Useful for selective data restore or importing into an empty schema
@@ -167,7 +212,7 @@ Restores data from a backup directory. Two modes:
 
 **`--run-migrations`** — Runs migration SQL files before importing:
 ```bash
-./scripts/coop/coop.sh import backups/2026-02-25_143000 --tables --run-migrations
+./scripts/coop/coop.sh import backups/dev/2026-02-25_143000 --tables --run-migrations
 ```
 Use this when importing into a completely empty database (e.g., after a fresh RDS creation without using `rebuild`).
 
@@ -181,27 +226,42 @@ If you run `import` with no backup directory, it lists available backups.
 # 1. Check current state
 ./scripts/coop/coop.sh status
 
-# 2. Tear down (exports data automatically)
+# 2. Tear down dev (exports data automatically)
 ./scripts/coop/coop.sh teardown
 
 # 3. Verify hibernation
 ./scripts/coop/coop.sh status
-# Should show: HIBERNATED — ~$3/month
+# Should show: HIBERNATED — ~$2/month
 ```
 
 ### Resuming Development
 
 ```bash
 # 1. Find your most recent backup
-ls backups/
+ls backups/dev/
 
 # 2. Rebuild and restore data
-./scripts/coop/coop.sh rebuild --import backups/2026-02-25_143000
+./scripts/coop/coop.sh rebuild --import backups/dev/2026-02-25_143000
 
 # 3. Verify everything is healthy
 ./scripts/coop/coop.sh status
+# DNS is updated automatically (Cloudflare CNAME → new ALB)
+```
 
-# 4. Update Route 53 if needed (new ALB gets a new DNS name)
+### Pausing Production (Hibernation)
+
+```bash
+# Same workflow, but explicit --env prod
+./scripts/coop/coop.sh --env prod teardown
+./scripts/coop/coop.sh --env prod status
+```
+
+### Restoring Production
+
+```bash
+./scripts/coop/coop.sh --env prod rebuild --import backups/prod/2026-02-25_143000
+./scripts/deploy-api.sh --env prod
+./scripts/deploy-admin.sh --env prod
 ```
 
 ### Just Backing Up Before a Risky Change
@@ -213,42 +273,58 @@ ls backups/
 # Do your risky thing...
 
 # If it went wrong, restore
-./scripts/coop/coop.sh import backups/2026-02-25_143000
+./scripts/coop/coop.sh import backups/dev/2026-02-25_143000
 ```
 
 ## Files
 
 ```
 scripts/coop/
-  coop.sh              Controller — single entry point for all commands
-  config.sh            Shared constants (AWS IDs, table ordering) and helpers
-  infra-status.sh      Resource status checker
-  db-export.sh         Database export (pg_dump + per-table INSERTs)
-  db-import.sh         Database import (pg_restore or per-table)
-  infra-teardown.sh    EKS + RDS teardown
-  infra-rebuild.sh     Full infrastructure rebuild
+  coop.sh                  Controller — single entry point for all commands
+  config.sh                Shared constants, helpers, environment loading
+  environments/
+    dev.env                Dev environment resource names, sizing, domains
+    prod.env               Prod environment values
+  setup-dev-persistent.sh  One-time dev persistent resources (S3, Secrets, CloudFront, DNS)
+  infra-status.sh          Resource status checker
+  db-export.sh             Database export (pg_dump + per-table INSERTs)
+  db-import.sh             Database import (pg_restore or per-table)
+  infra-teardown.sh        EKS + RDS teardown
+  infra-rebuild.sh         Full infrastructure rebuild
 
-backups/               Created by export/teardown (git-ignored)
-  YYYY-MM-DD_HHMMSS/   Timestamped database backups
-  teardown_*.log        Teardown manifest logs
+infrastructure/
+  eks/cluster.yaml.template  EKS cluster config template (__PLACEHOLDER__ variables)
+  k8s/
+    namespace.yaml           Namespace manifest (templated)
+    deployment.yaml          API deployment + HPA (templated)
+    service.yaml             ClusterIP service (templated)
+    ingress.yaml             ALB ingress (templated)
+
+backups/                   Created by export/teardown (git-ignored)
+  dev/                     Dev environment backups
+    YYYY-MM-DD_HHMMSS/     Timestamped database backups
+    teardown_*.log          Teardown manifest logs
+  prod/                    Prod environment backups
+    YYYY-MM-DD_HHMMSS/
 ```
 
 ## Configuration
 
-All AWS resource identifiers are centralized in `scripts/coop/config.sh`. If any resource ID changes (e.g., after manually recreating an S3 bucket with a different name), update it there.
+Environment-specific values live in `scripts/coop/environments/{dev,prod}.env`. Shared constants (AWS account, region, ECR repo, Cloudflare zone, table ordering, helper functions) are in `scripts/coop/config.sh`.
 
-Key values:
+To add or change a resource name, edit the appropriate `.env` file. To change shared behavior or add a helper function, edit `config.sh`.
+
+Shared values (config.sh):
 - AWS Profile: `industrynight-admin`
 - Region: `us-east-1`
-- EKS Cluster: `industrynight-prod`
-- RDS Instance: `industrynight-db`
 - ECR Repo: `industrynight-api`
-- S3 Buckets: `industrynight-assets-prod`, `industrynight-web-admin`
+- Cloudflare Zone: shared across environments
+- ACM Cert: wildcard `*.industrynight.net` (covers both environments)
 
 ## Troubleshooting
 
 **`Port-forward failed to become ready`**
-The `db-proxy` pod may not be running. Check: `kubectl get pods -n industrynight`. If missing, the rebuild script creates it automatically.
+The `db-proxy` pod may not be running. Check: `kubectl get pods -n <namespace>` (use `industrynight-dev` for dev, `industrynight` for prod). If missing, the rebuild script creates it automatically.
 
 **`AWS credentials are not valid`**
 Run `aws configure --profile industrynight-admin` or check that your credentials haven't expired.
@@ -257,10 +333,13 @@ Run `aws configure --profile industrynight-admin` or check that your credentials
 `pg_restore` with `--clean --if-exists` may emit warnings about objects that don't exist yet. These are normal and non-fatal. Check the row counts printed after import to verify data integrity.
 
 **`ALB not yet provisioned after rebuild`**
-The ALB controller takes a few minutes to provision a new load balancer after the ingress is created. Wait 2-3 minutes and check: `kubectl get ingress -n industrynight`.
+The ALB controller takes a few minutes to provision a new load balancer after the ingress is created. Wait 2-3 minutes and check: `kubectl get ingress -n <namespace>`.
 
 **`Health check returned HTTP 000`**
-The ALB target group needs time to register and pass health checks. Wait 2-5 minutes and retry: `curl https://api.industrynight.net/health`.
+The ALB target group needs time to register and pass health checks. Wait 2-5 minutes and retry: `curl https://<api-domain>/health`.
+
+**Cross-environment import warning**
+If you see "Cross-environment import: backup is from 'prod' but target is 'dev'", this is informational — the import will still proceed after confirmation. Useful for seeding dev with production data.
 
 **RDS auto-restarts after 7 days**
 If you stop RDS instead of deleting it, AWS automatically restarts it after 7 days. The COOP teardown deletes RDS entirely (with a final snapshot) to avoid this.

@@ -29,7 +29,10 @@
       "Bash(git checkout -b post-mitosis-sanity-check)",
       "Bash(flutter devices)",
       "Bash(flutter run -d R9WT809K7NM)",
-      "Bash(tail:*)"
+      "Bash(tail:*)",
+      "Bash(gh issue list --state all --limit 50 --json number,title,state,labels,milestone,assignees,body)",
+      "Bash(gh project list --owner rhodiusjeff --format json)",
+      "Bash(gh issue:*)"
     ]
   }
 }
