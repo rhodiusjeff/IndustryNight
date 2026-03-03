@@ -73,6 +73,28 @@
 
 ---
 
+## Medium Priority (Design Decisions)
+
+### 9. IN Chatbot — Use Case TBD
+**Question:** What would an AI-powered chatbot do for Industry Night users?
+
+**Context:**
+- AWS Bedrock is the preferred service for a user-facing chatbot (VPC locality, native RAG via Knowledge Bases, Guardrails for content filtering, IAM auth)
+- No clarity yet on the actual use case — parking this to revisit when a real user need emerges
+
+**Possible directions (speculative):**
+- A) Event discovery: "What events are coming up near me?"
+- B) Networking recommendations: "Who should I connect with at tonight's event?"
+- C) Profile assistance: "Help me write my bio"
+- D) Post-event suggestions based on connection graph
+- E) Sponsor/vendor Q&A: "What perks are available tonight?"
+
+**Each implies very different architecture.** Don't build until use case solidifies.
+
+**Status:** Parked — revisit when real user need emerges
+
+---
+
 ## Low Priority (Future Considerations)
 
 ### 5. Verification Expiration
