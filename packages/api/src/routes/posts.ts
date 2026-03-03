@@ -32,12 +32,18 @@ router.get('/', optionalAuth, validate(getFeedSchema), async (req, res, next) =>
       params.push(type);
     }
 
+    let likeSubquery = 'false as is_liked_by_current_user';
+    if (userId) {
+      likeSubquery = `EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $${paramIndex++}) as is_liked_by_current_user`;
+      params.push(userId);
+    }
+
     params.push(limit, offset);
 
     const posts = await query(
       `SELECT p.*,
               u.name as author_name, u.profile_photo_url as author_photo,
-              ${userId ? `EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = '${userId}') as is_liked_by_current_user` : 'false as is_liked_by_current_user'}
+              ${likeSubquery}
        FROM posts p
        JOIN users u ON p.author_id = u.id
        ${whereClause}
@@ -56,15 +62,22 @@ router.get('/', optionalAuth, validate(getFeedSchema), async (req, res, next) =>
 router.get('/:id', optionalAuth, async (req, res, next) => {
   try {
     const userId = req.user?.userId;
+    const params: unknown[] = [req.params.id];
+
+    let likeSubquery = 'false as is_liked_by_current_user';
+    if (userId) {
+      likeSubquery = `EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $2) as is_liked_by_current_user`;
+      params.push(userId);
+    }
 
     const post = await queryOne(
       `SELECT p.*,
               u.name as author_name, u.profile_photo_url as author_photo,
-              ${userId ? `EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = '${userId}') as is_liked_by_current_user` : 'false as is_liked_by_current_user'}
+              ${likeSubquery}
        FROM posts p
        JOIN users u ON p.author_id = u.id
        WHERE p.id = $1`,
-      [req.params.id]
+      params
     );
 
     if (!post) {

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import multer from 'multer';
 import sharp from 'sharp';
-import { validate, paginationSchema } from '../middleware/validation';
+import { validate, paginationSchema, phoneSchema } from '../middleware/validation';
 import { authenticateAdmin } from '../middleware/admin-auth';
 import { query, queryOne } from '../config/database';
 import { generateActivationCode } from '../utils/jwt';
@@ -152,7 +152,7 @@ router.patch('/users/:id', validate(updateUserSchema), async (req, res, next): P
 
 const addUserSchema = z.object({
   body: z.object({
-    phone: z.string(),
+    phone: phoneSchema,
     name: z.string().optional(),
     email: z.string().email().optional(),
     role: z.enum(['user', 'venueStaff', 'platformAdmin']).default('user'),
@@ -514,11 +514,15 @@ router.delete('/events/:id/images/:imageId', async (req, res, next): Promise<voi
 // EVENTS — Sponsor associations
 // ================================================================
 
-router.post('/events/:id/sponsors', async (req, res, next): Promise<void> => {
+const addEventSponsorSchema = z.object({
+  body: z.object({
+    sponsorId: z.string().uuid(),
+  }),
+});
+
+router.post('/events/:id/sponsors', validate(addEventSponsorSchema), async (req, res, next): Promise<void> => {
   try {
     const { sponsorId } = req.body;
-
-    if (!sponsorId) throw new BadRequestError('sponsorId is required');
 
     // Verify event and sponsor both exist
     const [event, sponsor] = await Promise.all([
@@ -544,13 +548,18 @@ router.post('/events/:id/sponsors', async (req, res, next): Promise<void> => {
 
 router.delete('/events/:id/sponsors/:sponsorId', async (req, res, next): Promise<void> => {
   try {
-    const result = await query(
-      'DELETE FROM event_sponsors WHERE event_id = $1 AND sponsor_id = $2',
+    // Verify the association exists before deleting
+    const existing = await queryOne(
+      'SELECT event_id FROM event_sponsors WHERE event_id = $1 AND sponsor_id = $2',
       [req.params.id, req.params.sponsorId]
     );
 
-    // pg's query result has rowCount
-    if ((result as any).rowCount === 0) throw new NotFoundError('Association not found');
+    if (!existing) throw new NotFoundError('Association not found');
+
+    await query(
+      'DELETE FROM event_sponsors WHERE event_id = $1 AND sponsor_id = $2',
+      [req.params.id, req.params.sponsorId]
+    );
 
     res.json({ message: 'Sponsor removed from event' });
   } catch (error) {
@@ -859,13 +868,23 @@ router.get('/sponsors', async (_req, res, next) => {
   }
 });
 
-router.post('/sponsors', async (req, res, next) => {
+const createSponsorSchema = z.object({
+  body: z.object({
+    name: z.string().min(1),
+    description: z.string().optional(),
+    website: z.string().url().optional(),
+    logoUrl: z.string().url().optional(),
+    tier: z.enum(['bronze', 'silver', 'gold', 'platinum']).default('bronze'),
+  }),
+});
+
+router.post('/sponsors', validate(createSponsorSchema), async (req, res, next) => {
   try {
-    const { name, description, website, tier } = req.body;
+    const { name, description, website, logoUrl, tier } = req.body;
     const sponsor = await queryOne(
-      `INSERT INTO sponsors (name, description, website, tier)
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [name, description, website, tier || 'bronze']
+      `INSERT INTO sponsors (name, description, website, logo_url, tier)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [name, description ?? null, website ?? null, logoUrl ?? null, tier]
     );
     res.status(201).json({ sponsor });
   } catch (error) {
@@ -886,13 +905,24 @@ router.get('/vendors', async (_req, res, next) => {
   }
 });
 
-router.post('/vendors', async (req, res, next) => {
+const createVendorSchema = z.object({
+  body: z.object({
+    name: z.string().min(1),
+    description: z.string().optional(),
+    website: z.string().url().optional(),
+    contactEmail: z.string().email().optional(),
+    contactPhone: z.string().optional(),
+    category: z.string().default('other'),
+  }),
+});
+
+router.post('/vendors', validate(createVendorSchema), async (req, res, next) => {
   try {
-    const { name, description, website, contactEmail, category } = req.body;
+    const { name, description, website, contactEmail, contactPhone, category } = req.body;
     const vendor = await queryOne(
-      `INSERT INTO vendors (name, description, website, contact_email, category)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [name, description, website, contactEmail, category || 'other']
+      `INSERT INTO vendors (name, description, website, contact_email, contact_phone, category)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [name, description ?? null, website ?? null, contactEmail ?? null, contactPhone ?? null, category]
     );
     res.status(201).json({ vendor });
   } catch (error) {

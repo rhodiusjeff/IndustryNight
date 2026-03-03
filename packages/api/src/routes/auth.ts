@@ -132,8 +132,8 @@ router.post('/refresh', validate(refreshSchema), async (req, res, next) => {
     const { refreshToken } = req.body;
 
     const payload = verifyToken(refreshToken);
-    if (payload.type !== 'refresh') {
-      throw new UnauthorizedError('Invalid token type');
+    if (payload.type !== 'refresh' || payload.tokenFamily !== 'social') {
+      throw new UnauthorizedError('Invalid refresh token');
     }
 
     const user = await queryOne<{ id: string; role: string; banned: boolean }>(
