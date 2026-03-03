@@ -21,7 +21,7 @@ class AppState extends ChangeNotifier {
     ApiClient? apiClient,
     SecureStorage? storage,
   })  : _apiClient = apiClient ??
-            ApiClient(baseUrl: apiBaseUrl ?? 'https://api.industrynight.net'),
+            ApiClient(baseUrl: apiBaseUrl ?? AppConfig.apiBaseUrl),
         _storage = storage ?? SecureStorage() {
     // Wire up automatic token refresh on 401 responses
     _apiClient.onTokenExpired = _refreshAccessToken;
