@@ -396,8 +396,9 @@ IMAGE_COUNT=$(aws_cmd ecr list-images --repository-name "$ECR_REPO" \
   --query 'imageIds | length(@)' --output text 2>/dev/null || echo "0")
 
 if [[ "$IMAGE_COUNT" -gt 0 ]]; then
-  kube_cmd rollout restart deployment/"$K8S_DEPLOYMENT" -n "$K8S_NAMESPACE"
-  kube_cmd rollout status deployment/"$K8S_DEPLOYMENT" -n "$K8S_NAMESPACE" --timeout=120s
+  # Pods were just created in step 7 with the correct image.
+  # Only wait for them to become ready — no restart needed.
+  kube_cmd rollout status deployment/"$K8S_DEPLOYMENT" -n "$K8S_NAMESPACE" --timeout=180s
   log_success "  API deployed"
 else
   log_warn "  No ECR image found. Build and push first:"

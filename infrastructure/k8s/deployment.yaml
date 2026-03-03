@@ -6,7 +6,7 @@ metadata:
   labels:
     app: industrynight-api
 spec:
-  replicas: 2
+  replicas: __HPA_MIN__
   selector:
     matchLabels:
       app: industrynight-api
