@@ -70,7 +70,15 @@ class _EventsListScreenState extends State<EventsListScreen> {
         title: const Text('Events'),
         actions: [
           ElevatedButton.icon(
-            onPressed: () => context.push(AdminRoutes.createEvent),
+            onPressed: () async {
+              final createdId = await context.push<String>(AdminRoutes.createEvent);
+              if (!mounted) return;
+              if (createdId != null) {
+                await context.push('/events/$createdId');
+                if (!mounted) return;
+              }
+              _loadEvents();
+            },
             icon: const Icon(Icons.add),
             label: const Text('Create Event'),
           ),
@@ -148,6 +156,7 @@ class _EventsListScreenState extends State<EventsListScreen> {
           DataColumn(label: Text('Event')),
           DataColumn(label: Text('Date')),
           DataColumn(label: Text('Venue')),
+          DataColumn(label: Text('Market')),
           DataColumn(label: Text('Status')),
           DataColumn(label: Text('Attendees')),
           DataColumn(label: Text('Actions')),
@@ -162,10 +171,14 @@ class _EventsListScreenState extends State<EventsListScreen> {
                   decoration: TextDecoration.underline,
                 ),
               ),
-              onTap: () => context.push('/events/${event.id}'),
+              onTap: () async {
+                await context.push('/events/${event.id}');
+                _loadEvents();
+              },
             ),
             DataCell(Text(_dateFormat.format(event.startTime))),
             DataCell(Text(event.venueName ?? '—')),
+            DataCell(Text(event.marketName ?? '—')),
             DataCell(
               Chip(
                 label: Text(event.status.name),
@@ -176,7 +189,10 @@ class _EventsListScreenState extends State<EventsListScreen> {
             DataCell(
               IconButton(
                 icon: const Icon(Icons.visibility),
-                onPressed: () => context.push('/events/${event.id}', extra: event),
+                onPressed: () async {
+                  await context.push('/events/${event.id}');
+                  _loadEvents();
+                },
               ),
             ),
           ],

@@ -13,14 +13,16 @@ import '../features/events/screens/event_detail_screen.dart';
 import '../features/events/screens/image_catalog_screen.dart';
 import '../features/events/screens/event_tickets_screen.dart';
 import '../features/tickets/screens/tickets_list_screen.dart';
-import '../features/sponsors/screens/sponsors_list_screen.dart';
-import '../features/sponsors/screens/sponsor_form_screen.dart';
-import '../features/sponsors/screens/discounts_screen.dart';
-import '../features/vendors/screens/vendors_list_screen.dart';
-import '../features/vendors/screens/vendor_form_screen.dart';
+import '../features/customers/screens/customers_list_screen.dart';
+import '../features/customers/screens/customer_form_screen.dart';
+import '../features/customers/screens/customer_detail_screen.dart';
+import '../features/products/screens/product_catalog_screen.dart';
+import '../features/products/screens/product_form_screen.dart';
+import '../features/customers/screens/discounts_screen.dart';
 import '../features/moderation/screens/posts_list_screen.dart';
 import '../features/moderation/screens/announcements_screen.dart';
 import '../features/settings/screens/admin_settings_screen.dart';
+import '../features/settings/screens/markets_screen.dart';
 import '../shared/widgets/sidebar.dart';
 
 class AdminRoutes {
@@ -36,15 +38,17 @@ class AdminRoutes {
   static const String eventTickets = '/events/:id/tickets';
   static const String tickets = '/tickets';
   static const String images = '/images';
-  static const String sponsors = '/sponsors';
-  static const String addSponsor = '/sponsors/add';
-  static const String editSponsor = '/sponsors/:id/edit';
-  static const String discounts = '/sponsors/:id/discounts';
-  static const String vendors = '/vendors';
-  static const String addVendor = '/vendors/add';
-  static const String editVendor = '/vendors/:id/edit';
+  static const String customers = '/customers';
+  static const String addCustomer = '/customers/add';
+  static const String customerDetail = '/customers/:id';
+  static const String editCustomer = '/customers/:id/edit';
+  static const String customerDiscounts = '/customers/:id/discounts';
+  static const String products = '/products';
+  static const String addProduct = '/products/add';
+  static const String editProduct = '/products/:id/edit';
   static const String posts = '/moderation/posts';
   static const String announcements = '/moderation/announcements';
+  static const String markets = '/markets';
   static const String settings = '/settings';
 }
 
@@ -132,45 +136,57 @@ class AdminRouter {
               path: AdminRoutes.images,
               builder: (context, state) => const ImageCatalogScreen(),
             ),
+
+            // Customers
             GoRoute(
-              path: AdminRoutes.sponsors,
-              builder: (context, state) => const SponsorsListScreen(),
+              path: AdminRoutes.customers,
+              builder: (context, state) => const CustomersListScreen(),
             ),
             GoRoute(
-              path: AdminRoutes.addSponsor,
-              builder: (context, state) => const SponsorFormScreen(),
+              path: AdminRoutes.addCustomer,
+              builder: (context, state) => const CustomerFormScreen(),
             ),
             GoRoute(
-              path: '/sponsors/:id/edit',
+              path: '/customers/:id/edit',
               builder: (context, state) {
                 final id = state.pathParameters['id']!;
-                final sponsor = state.extra as Sponsor?;
-                return SponsorFormScreen(sponsorId: id, sponsor: sponsor);
+                final customer = state.extra as Customer?;
+                return CustomerFormScreen(customerId: id, customer: customer);
               },
             ),
             GoRoute(
-              path: '/sponsors/:id/discounts',
+              path: '/customers/:id/discounts',
               builder: (context, state) {
                 final id = state.pathParameters['id']!;
-                return DiscountsScreen(sponsorId: id);
+                return DiscountsScreen(customerId: id);
               },
             ),
             GoRoute(
-              path: AdminRoutes.vendors,
-              builder: (context, state) => const VendorsListScreen(),
-            ),
-            GoRoute(
-              path: AdminRoutes.addVendor,
-              builder: (context, state) => const VendorFormScreen(),
-            ),
-            GoRoute(
-              path: '/vendors/:id/edit',
+              path: '/customers/:id',
               builder: (context, state) {
                 final id = state.pathParameters['id']!;
-                final vendor = state.extra as Vendor?;
-                return VendorFormScreen(vendorId: id, vendor: vendor);
+                return CustomerDetailScreen(customerId: id);
               },
             ),
+
+            // Products
+            GoRoute(
+              path: AdminRoutes.products,
+              builder: (context, state) => const ProductCatalogScreen(),
+            ),
+            GoRoute(
+              path: AdminRoutes.addProduct,
+              builder: (context, state) => const ProductFormScreen(),
+            ),
+            GoRoute(
+              path: '/products/:id/edit',
+              builder: (context, state) {
+                final id = state.pathParameters['id']!;
+                final product = state.extra as Product?;
+                return ProductFormScreen(productId: id, product: product);
+              },
+            ),
+
             GoRoute(
               path: AdminRoutes.posts,
               builder: (context, state) => const PostsListScreen(),
@@ -178,6 +194,10 @@ class AdminRouter {
             GoRoute(
               path: AdminRoutes.announcements,
               builder: (context, state) => const AnnouncementsScreen(),
+            ),
+            GoRoute(
+              path: AdminRoutes.markets,
+              builder: (context, state) => const MarketsScreen(),
             ),
             GoRoute(
               path: AdminRoutes.settings,

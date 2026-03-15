@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Industry Night is a platform for discovering, promoting, and managing industry night events (hair stylists, makeup artists, photographers, videographers, producers, directors — creative workers). It consists of two apps with a shared backend:
 
 - **Social App** — for creative workers attending events, making QR-code connections, browsing the community feed. Mobile-first (iOS, Android), with web planned.
-- **Admin App** — for platform operators managing events, sponsors, vendors, users, and moderation. Web-first, with limited mobile (field ops) planned.
+- **Admin App** — for platform operators managing events, customers, products, users, and moderation. Web-first, with limited mobile (field ops) planned.
 
 ## Tech Stack
 
@@ -101,6 +101,11 @@ Future migrations start at `002_*.sql`. Archived originals are in `packages/data
 - `ticket_status`: `purchased`, `checkedIn`, `cancelled`, `refunded`
 - `post_type`: `general`, `collaboration`, `job`, `announcement`
 - `audit_action`: `create`, `update`, `delete`, `login`, `logout`, `verify`, `reject`, `ban`, `unban`, `checkin`
+- `product_type`: `sponsorship`, `vendor_space`, `data_product`
+- `customer_product_status`: `active`, `expired`, `cancelled`, `pending`
+- `sponsorship_tier`: `bronze`, `silver`, `gold`, `platinum`
+- `vendor_category`: `food`, `beverage`, `equipment`, `service`, `venue`, `other`
+- `redemption_method`: `self_reported`, `code_entry`, `qr_scan`
 
 ### Tables
 | Table | Purpose | User FK behavior |
@@ -112,7 +117,11 @@ Future migrations start at `002_*.sql`. Archived originals are in `packages/data
 | `venues` | Legacy venue records (new events use venue_name/venue_address text fields directly) | — |
 | `events` | Industry night events (venue_name + venue_address as text; no image_url — use event_images) | — |
 | `event_images` | Up to 5 images per event; sort_order 0 = hero image | CASCADE |
-| `event_sponsors` | Many-to-many junction: events ↔ sponsors | CASCADE |
+| `customers` | Businesses with commercial relationships (replaces sponsors + vendors) | — |
+| `products` | Catalog of what IN sells: sponsorships, vendor space, data products | — |
+| `customer_products` | Purchases / active relationships (customer + product + optional event) | customer: CASCADE, product: RESTRICT |
+| `discounts` | Perks offered by customers to app users | CASCADE |
+| `discount_redemptions` | Tracks when users claim perks ("I Used This") — Tier 2 revenue data | CASCADE |
 | `posh_orders` | Posh webhook purchases — the canonical ticket for Posh buyers | event: SET NULL, user: SET NULL |
 | `tickets` | Walk-in / manual check-in tickets (non-Posh) | CASCADE |
 | `connections` | QR-scan mutual connections | CASCADE |
@@ -161,9 +170,8 @@ Optional (with defaults):
 | `/events` | routes/events.ts | CRUD + attendee management |
 | `/connections` | routes/connections.ts | QR-scan connections |
 | `/posts` | routes/posts.ts | Community feed CRUD + comments/likes |
-| `/sponsors` | routes/sponsors.ts | Sponsor management |
-| `/vendors` | routes/vendors.ts | Vendor management |
-| `/discounts` | routes/discounts.ts | Discount/perk management |
+| `/sponsors` | routes/sponsors.ts | Social-facing: active customers with sponsorship products |
+| `/discounts` | routes/discounts.ts | Social-facing: active discounts with customer info + redemption |
 | `/webhooks` | routes/webhooks.ts | Posh webhook receiver (`POST /posh`) |
 | `/admin/auth` | routes/admin-auth.ts | `POST /login`, `POST /refresh`, `GET /me`, `POST /logout` |
 | `/admin` | routes/admin.ts | All admin dashboard endpoints (see below) |
@@ -175,8 +183,8 @@ Optional (with defaults):
 | `GET` | `/admin/users` | List users (filter by role, verificationStatus, query) |
 | `PATCH` | `/admin/users/:id` | Update role, banned, verificationStatus |
 | `POST` | `/admin/users` | Add user (phone, name, email, role) |
-| `GET` | `/admin/events` | List events with hero_image_url, image_count, sponsor_count |
-| `GET` | `/admin/events/:id` | Event detail with full images[] and sponsors[] arrays |
+| `GET` | `/admin/events` | List events with hero_image_url, image_count, partner_count |
+| `GET` | `/admin/events/:id` | Event detail with full images[] and partners[] arrays |
 | `POST` | `/admin/events` | Create event (name, startTime, endTime, venueName, venueAddress, description, capacity, poshEventId) |
 | `PATCH` | `/admin/events/:id` | Update event; enforces publish gate when status → published |
 | `DELETE` | `/admin/events/:id` | Delete event (draft status only) |
@@ -185,23 +193,33 @@ Optional (with defaults):
 | `DELETE` | `/admin/events/:id/images/:imageId` | Delete image (removes from S3 + DB; auto-promotes next hero) |
 | `GET` | `/admin/images` | Image catalog — all images across all events (with event_name) |
 | `DELETE` | `/admin/images/:imageId` | Delete image globally |
-| `POST` | `/admin/events/:id/sponsors` | Link sponsor to event |
-| `DELETE` | `/admin/events/:id/sponsors/:sponsorId` | Unlink sponsor from event |
-| `GET` | `/admin/sponsors` | List sponsors |
-| `POST` | `/admin/sponsors` | Create sponsor |
-| `PATCH` | `/admin/sponsors/:id` | Update sponsor |
-| `GET` | `/admin/sponsors/:id/discounts` | List discounts for sponsor |
-| `POST` | `/admin/sponsors/:id/discounts` | Create discount |
-| `GET` | `/admin/vendors` | List vendors |
-| `POST` | `/admin/vendors` | Create vendor |
-| `PATCH` | `/admin/vendors/:id` | Update vendor |
+| `POST` | `/admin/events/:id/partners` | Add customer+product to event |
+| `DELETE` | `/admin/events/:id/partners/:cpId` | Remove partner from event |
+| `GET` | `/admin/customers` | List customers (filter: `?q=`, `?hasProductType=`) |
+| `GET` | `/admin/customers/:id` | Customer detail with products[], discounts[], redemption stats |
+| `POST` | `/admin/customers` | Create customer |
+| `PATCH` | `/admin/customers/:id` | Update customer |
+| `DELETE` | `/admin/customers/:id` | Delete customer (CASCADE to products + discounts) |
+| `GET` | `/admin/products` | List product catalog (filter: `?type=`, `?isStandard=`) |
+| `POST` | `/admin/products` | Create product definition |
+| `PATCH` | `/admin/products/:id` | Update product definition |
+| `DELETE` | `/admin/products/:id` | Delete product (RESTRICT if referenced) |
+| `GET` | `/admin/customers/:id/products` | List customer purchases |
+| `POST` | `/admin/customers/:id/products` | Record a purchase |
+| `PATCH` | `/admin/customers/:id/products/:cpId` | Update purchase status/dates |
+| `DELETE` | `/admin/customers/:id/products/:cpId` | Remove purchase |
+| `GET` | `/admin/customers/:id/discounts` | List discounts for customer |
+| `POST` | `/admin/customers/:id/discounts` | Create discount |
+| `PATCH` | `/admin/customers/:id/discounts/:did` | Update discount |
+| `DELETE` | `/admin/customers/:id/discounts/:did` | Delete discount |
+| `GET` | `/admin/customers/:id/redemptions` | Redemption stats for customer |
 
 ### Middleware
 - `authenticateAdmin` (`middleware/admin-auth.ts`) — verifies JWT with `tokenFamily: 'admin'`, used on all `/admin` routes
 - `authenticate` (`middleware/auth.ts`) — verifies JWT, sets `req.user` with `{ userId, role, type }`
 - `requireAdmin` (`middleware/admin.ts`) — checks `role` is in `ADMIN_ROLES` (`['platformAdmin']`)
 - `requirePlatformAdmin` (`middleware/admin.ts`) — checks `role === 'platformAdmin'` exactly
-- `validate` (`middleware/validation.ts`) — Zod schema validation for req body/query/params
+- `validate` (`middleware/validation.ts`) — Zod schema validation for req body/query/params; applies parsed values (including defaults/transforms) back to req
 
 ### Services
 - `sms.ts` — Twilio SMS; exports `twilioAvailable`, `sendSms(phone, message)`. Gracefully degrades in dev (console.log only).
@@ -221,7 +239,7 @@ Optional (with defaults):
 | `community` | `community_feed_screen`, `create_post_screen`, `post_detail_screen` | Community feed |
 | `search` | `search_screen`, `user_profile_screen` | User discovery |
 | `profile` | `my_profile_screen`, `edit_profile_screen`, `settings_screen` | Profile management |
-| `perks` | `perks_screen`, `sponsor_detail_screen` | Sponsor perks/discounts |
+| `perks` | `perks_screen`, `sponsor_detail_screen` | Customer perks/discounts with redemption tracking |
 
 ### Key files
 - `lib/main.dart` — entry point, creates AppState + MaterialApp
@@ -233,7 +251,7 @@ Optional (with defaults):
 ### State management
 - `Provider` + `ChangeNotifier` pattern
 - `AppState` is the single global provider
-- API clients are `late final` on AppState: `authApi`, `usersApi`, `eventsApi`, `connectionsApi`, `postsApi`
+- API clients are `late final` on AppState: `authApi`, `usersApi`, `eventsApi`, `connectionsApi`, `postsApi`, `perksApi`
 
 ## Admin App (packages/admin-app)
 
@@ -246,14 +264,14 @@ Admin dashboard for platform operators. Authentication: email/password (separate
 | `dashboard` | `dashboard_screen` | Stats overview |
 | `users` | `users_list_screen`, `user_detail_screen`, `add_user_screen` | Full user management |
 | `events` | `events_list_screen`, `event_form_screen`, `event_detail_screen`, `image_catalog_screen` | Full event lifecycle |
-| `sponsors` | `sponsors_list_screen`, `sponsor_form_screen`, `discounts_screen` | Sponsor + discount management |
-| `vendors` | `vendors_list_screen`, `vendor_form_screen` | Vendor management |
+| `customers` | `customers_list_screen`, `customer_form_screen`, `customer_detail_screen`, `discounts_screen` | Customer CRM + discount management |
+| `products` | `product_catalog_screen`, `product_form_screen` | Product catalog management |
 | `moderation` | `posts_list_screen`, `announcements_screen` | Post moderation (stub) |
 | `settings` | `admin_settings_screen` | Admin settings |
 
 ### Event management screens
 - **`event_form_screen.dart`** — Unified create + edit form. Pass `Event? event` (null = create mode). After create: navigates to `/events/:id`. After edit: pops back.
-- **`event_detail_screen.dart`** — Full detail loaded from API on init (no `extra` needed). Inline image upload (dart:html FileReader), image preview modal, hero image selection (star icon), inline sponsor management (add via popup, remove via chip), status transition buttons, activation code display. Two-column layout.
+- **`event_detail_screen.dart`** — Full detail loaded from API on init (no `extra` needed). Inline image upload (dart:html FileReader), image preview modal, hero image selection (star icon), inline partner management (add customer+product via popup, remove via chip), status transition buttons, activation code display. Two-column layout.
 - **`image_catalog_screen.dart`** — Grid of all uploaded images across all events. Multi-select + bulk delete.
 
 ### Admin app routes (lib/config/routes.dart)
@@ -269,13 +287,14 @@ Admin dashboard for platform operators. Authentication: email/password (separate
 | `/events/:id` | EventDetailScreen(eventId) — loads from API |
 | `/events/:id/edit` | EventFormScreen(event: Event? via extra) |
 | `/images` | ImageCatalogScreen |
-| `/sponsors` | SponsorsListScreen |
-| `/sponsors/add` | SponsorFormScreen() |
-| `/sponsors/:id/edit` | SponsorFormScreen(sponsorId, sponsor: Sponsor? via extra) |
-| `/sponsors/:id/discounts` | DiscountsScreen(sponsorId) |
-| `/vendors` | VendorsListScreen |
-| `/vendors/add` | VendorFormScreen() |
-| `/vendors/:id/edit` | VendorFormScreen(vendorId, vendor: Vendor? via extra) |
+| `/customers` | CustomersListScreen |
+| `/customers/add` | CustomerFormScreen() |
+| `/customers/:id` | CustomerDetailScreen(customerId) — loads from API |
+| `/customers/:id/edit` | CustomerFormScreen(customer: Customer? via extra) |
+| `/customers/:id/discounts` | DiscountsScreen(customerId) |
+| `/products` | ProductCatalogScreen |
+| `/products/add` | ProductFormScreen() |
+| `/products/:id/edit` | ProductFormScreen(product: Product? via extra) |
 | `/moderation/posts` | PostsListScreen |
 | `/moderation/announcements` | AnnouncementsScreen |
 | `/settings` | AdminSettingsScreen |
@@ -291,15 +310,17 @@ Admin dashboard for platform operators. Authentication: email/password (separate
 ### Models (lib/models/) — use `@JsonSerializable(fieldRename: FieldRename.snake)` except where noted
 - `AdminUser` (admin_user.dart) — admin dashboard user (email/password auth). Uses `@JsonSerializable()` (camelCase) because the admin-auth API returns camelCase keys.
 - `User`, `SocialLinks` (user.dart) — social app user (phone OTP auth)
-- `Event` (event.dart) — includes `venueName`, `venueAddress`, `poshEventId`, `heroImageUrl`, `imageCount`, `sponsorCount`, `images List<EventImage>?` (detail only), `sponsors List<EventSponsor>?` (detail only), `copyWith`. No `imageUrl` or `venueId` dependency.
+- `Event` (event.dart) — includes `venueName`, `venueAddress`, `poshEventId`, `heroImageUrl`, `imageCount`, `partnerCount`, `images List<EventImage>?` (detail only), `partners List<EventPartner>?` (detail only), `copyWith`. No `imageUrl` or `venueId` dependency.
 - `EventImage` (event_image.dart) — `id`, `eventId`, `url`, `sortOrder`, `uploadedAt`, `eventName?` (catalog only)
-- `EventSponsor` — lightweight sponsor summary embedded in Event; manual fromJson, not build_runner
+- `EventPartner` — lightweight partner summary embedded in Event (customerId, name, logoUrl, productType, tier, vendorCategory); manual fromJson
 - `Connection` (connection.dart)
 - `Ticket` (ticket.dart)
 - `Post`, `PostComment` (post.dart)
-- `Sponsor` (sponsor.dart)
-- `Vendor` (vendor.dart)
-- `Discount` (discount.dart)
+- `Customer` (customer.dart) — unified business entity (replaces Sponsor + Vendor)
+- `Product` (product.dart) — catalog item (sponsorship, vendor_space, data_product)
+- `CustomerProduct` (customer_product.dart) — purchase record (customer + product + optional event)
+- `Discount` (discount.dart) — `customerId` (was sponsorId), with `customerName`, `customerLogo` for social display
+- `DiscountRedemption` (discount_redemption.dart) — tracks perk usage
 
 After modifying any model, regenerate `.g.dart` files:
 ```bash
@@ -314,7 +335,8 @@ cd packages/shared && dart run build_runner build --delete-conflicting-outputs
 - `EventsApi` — event listing and details (social app)
 - `ConnectionsApi` — connection management
 - `PostsApi` — community feed
-- `AdminApi` — all admin dashboard endpoints including event CRUD, image upload/delete/hero, sponsor link/unlink, image catalog
+- `AdminApi` — all admin dashboard endpoints including event CRUD, image management, customer/product/discount CRUD, event partner management
+- `PerksApi` — social-side endpoints: sponsors, discounts, redemptions
 
 ### Constants (lib/constants/)
 - `verification_status.dart` — `VerificationStatus` enum, `UserRole` enum, `UserSource` enum
@@ -530,7 +552,7 @@ When `TWILIO_VERIFY_SERVICE_SID` is set (production):
 
 6. **build_runner:** After changing any model in `packages/shared/lib/models/`, run: `cd packages/shared && dart run build_runner build --delete-conflicting-outputs`
 
-7. **Event detail screen:** `EventDetailScreen` takes only `eventId` — it loads the full event (with images + sponsors) from the API on init. Do NOT pass `event` as a `GoRouter` extra; the detail route was intentionally redesigned to always fetch fresh data.
+7. **Event detail screen:** `EventDetailScreen` takes only `eventId` — it loads the full event (with images + partners) from the API on init. Do NOT pass `event` as a `GoRouter` extra; the detail route was intentionally redesigned to always fetch fresh data.
 
 8. **S3 image uploads:** `storage.ts` gracefully degrades when `S3_BUCKET` is not set — it returns a placeholder URL. In production, ensure `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `S3_BUCKET` are all set in the K8s secrets. The S3 bucket must have Object Ownership = `BucketOwnerPreferred` and public ACLs unblocked for `ACL: 'public-read'` to work.
 
@@ -574,6 +596,8 @@ When `TWILIO_VERIFY_SERVICE_SID` is set (production):
 - **Publish gate:** Events require Posh event ID + venue name + at least 1 image before they can be published. Enforced at the API layer in `PATCH /admin/events/:id`.
 - **Image catalog:** All event images are queryable globally (`GET /admin/images`) for reuse and cleanup, in addition to per-event access.
 - **Hero image:** `sort_order = 0` in `event_images` designates the hero (first image shown in social app). Admins can swap hero via star icon. Deleting the hero auto-promotes the next image.
+- **Unified customer model:** Sponsors and vendors are both "customers" who buy different "products." The `customers` table replaces separate `sponsors` and `vendors` tables. A product catalog (`products`) defines what IN sells (sponsorships, vendor space, data products). `customer_products` tracks purchases. This supports the three revenue tiers: logo placement ($500-2K), audience access ($2-5K), data partnerships ($5-20K/quarter).
+- **Discount redemption tracking:** The "I Used This" button in the social app records self-reported redemptions in `discount_redemptions`. This conversion data transforms logo placements (Tier 1) into provable audience access (Tier 2). Unique constraint prevents duplicate redemptions per user per discount.
 
 ## Documentation
 
@@ -606,28 +630,30 @@ The `docs/` directory is the project memory, organized into subfolders:
 
 4. **Known technical debt / future work:**
    - CI/CD: Wire `scripts/migrate.js` into `api.yml` as a pre-deploy K8s Job (runner script exists, just not wired into CI yet)
-   - CI/CD: Write API tests (Jest is configured but no tests exist)
+   - CI/CD: Add more API test coverage (Jest tests exist for health, auth/middleware, customers; need auth flow, user cascade, event publish gate, Posh webhook)
    - CI/CD: Add DB connectivity check to `/health` endpoint
    - CI/CD: Add post-deploy smoke tests
    - Migrations: Create down-migration files for rollback capability
    - Admin app: Posh orders view (see who bought tickets, reconcile with IN accounts)
    - Admin app: Event check-in management (scan activation codes, view checked-in attendees)
-   - Social app: Event detail needs to consume new multi-image + sponsors data from the updated API
 
 ## Testing Plan
 
 **Trigger phrase:** "tell me about Flutter app testing" or "let's build the test suite"
 
-### API Tests (Jest) — Priority: build after admin app event flow is verified working
-Start with the flows where a silent regression would corrupt data or lock users out:
+### API Tests (Jest) — uses testcontainers (PostgreSQL in Docker)
+Tests run against a real PostgreSQL container (not mocks) with the full migration applied. Run with `cd packages/api && npx jest`.
+
+**Existing test suites (70 tests, all passing):**
+- `health.test.ts` — health endpoint + specialties
+- `middleware.test.ts` — token family separation, auth header validation, admin auth login
+- `customers.test.ts` — 30 tests: customer CRUD, product catalog, customer products, discounts, discount redemptions, event partners, social sponsor/discount endpoints, redemption analytics
+
+**Still needed:**
 1. **Auth flow:** request-code → verify-code → token issued → refresh → logout
 2. **User deletion cascade:** delete user → verify all FK tables cleaned, audit_log preserved (SET NULL), verification_codes cleaned separately
-3. **Admin auth:** login → JWT with `tokenFamily: 'admin'` → admin routes accessible → social token rejected on admin routes
-4. **Role-based access:** user token can't hit admin routes, admin token can't hit social routes
-5. **Event publish gate:** PATCH status=published fails without poshEventId, venueName, and at least 1 image
-6. **Posh webhook:** POST /webhooks/posh with real payload structure → posh_orders row created → invite sent
-
-Jest is already configured in `packages/api` — no test files exist yet. Tests should run against a real test database (not mocks) to verify actual SQL behavior including CASCADE deletes.
+3. **Event publish gate:** PATCH status=published fails without poshEventId, venueName, and at least 1 image
+4. **Posh webhook:** POST /webhooks/posh with real payload structure → posh_orders row created → invite sent
 
 ### Flutter Widget Tests — Priority: build alongside API tests
 Per-screen tests for form validation, state transitions, and navigation. Focus on:

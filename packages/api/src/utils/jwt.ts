@@ -1,6 +1,7 @@
+import crypto from 'crypto';
 
 export function generateVerificationCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return crypto.randomInt(100000, 1000000).toString();
 }
 
 export function generateQrData(userId: string): string {
@@ -14,5 +15,5 @@ export function parseQrData(qrData: string): string | null {
 }
 
 export function generateActivationCode(): string {
-  return String(Math.floor(1000 + Math.random() * 9000));
+  return crypto.randomInt(1000, 10000).toString();
 }

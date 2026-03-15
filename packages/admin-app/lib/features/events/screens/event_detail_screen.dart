@@ -22,7 +22,8 @@ class EventDetailScreen extends StatefulWidget {
 
 class _EventDetailScreenState extends State<EventDetailScreen> {
   Event? _event;
-  List<Sponsor> _allSponsors = [];
+  List<Customer> _allCustomers = [];
+  List<Product> _allProducts = [];
   bool _isLoading = true;
   String? _error;
   bool _isUploadingImage = false;
@@ -47,12 +48,14 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     try {
       final results = await Future.wait([
         adminApi.getEvent(widget.eventId),
-        adminApi.getSponsors(limit: 200),
+        adminApi.getCustomers(),
+        adminApi.getProducts(),
       ]);
       if (!mounted) return;
       setState(() {
         _event = results[0] as Event;
-        _allSponsors = results[1] as List<Sponsor>;
+        _allCustomers = results[1] as List<Customer>;
+        _allProducts = results[2] as List<Product>;
         _isLoading = false;
       });
     } catch (e) {
@@ -181,40 +184,49 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     }
   }
 
-  Future<void> _addSponsor(String sponsorId) async {
+  Future<void> _addPartner({
+    required String customerId,
+    required String productId,
+    int? pricePaidCents,
+  }) async {
     final adminApi = context.read<AdminState>().adminApi;
     try {
-      await adminApi.addEventSponsor(widget.eventId, sponsorId);
+      await adminApi.addEventPartner(
+        widget.eventId,
+        customerId: customerId,
+        productId: productId,
+        pricePaidCents: pricePaidCents,
+      );
       if (!mounted) return;
       await _reloadEvent();
     } catch (e) {
       if (!mounted) return;
-      _showError(e is ApiException ? e.message : 'Failed to add sponsor');
+      _showError(e is ApiException ? e.message : 'Failed to add partner');
     }
   }
 
-  Future<void> _removeSponsor(String sponsorId) async {
+  Future<void> _removePartner(String customerProductId) async {
     final adminApi = context.read<AdminState>().adminApi;
     try {
-      await adminApi.removeEventSponsor(widget.eventId, sponsorId);
+      await adminApi.removeEventPartner(widget.eventId, customerProductId);
       if (!mounted) return;
       await _reloadEvent();
     } catch (e) {
       if (!mounted) return;
-      _showError(e is ApiException ? e.message : 'Failed to remove sponsor');
+      _showError(e is ApiException ? e.message : 'Failed to remove partner');
     }
   }
 
   Future<void> _deleteEvent() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Event'),
         content: const Text('Permanently delete this draft event? This cannot be undone.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
           ),
@@ -227,7 +239,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     try {
       await adminApi.deleteEvent(widget.eventId);
       if (!mounted) return;
-      context.go('/events');
+      context.pop();
     } catch (e) {
       if (!mounted) return;
       _showError(e is ApiException ? e.message : 'Failed to delete event');
@@ -270,10 +282,6 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     }
 
     final e = _event!;
-    final addedSponsorIds = (e.sponsors ?? []).map((s) => s.id).toSet();
-    final availableSponsors = _allSponsors
-        .where((s) => !addedSponsorIds.contains(s.id))
-        .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -302,7 +310,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Left column — info, images, sponsors, activation code
+            // Left column — info, images, partners, activation code
             Expanded(
               flex: 2,
               child: Column(
@@ -322,11 +330,12 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                     onSetHero: _setHeroImage,
                   ),
                   const SizedBox(height: 16),
-                  _SponsorsCard(
-                    sponsors: e.sponsors ?? [],
-                    availableSponsors: availableSponsors,
-                    onAdd: _addSponsor,
-                    onRemove: _removeSponsor,
+                  _PartnersCard(
+                    partners: e.partners ?? [],
+                    allCustomers: _allCustomers,
+                    allProducts: _allProducts,
+                    onAdd: _addPartner,
+                    onRemove: _removePartner,
                   ),
                   if (e.activationCode != null) ...[
                     const SizedBox(height: 16),
@@ -402,6 +411,10 @@ class _InfoCard extends StatelessWidget {
                 Icons.location_on,
                 [e.venueName, e.venueAddress].whereType<String>().join(', '),
               ),
+            _InfoRow(
+              Icons.map,
+              'Market: ${e.marketName ?? 'Not assigned'}',
+            ),
             if (e.capacity != null)
               _InfoRow(Icons.people, 'Capacity: ${e.capacity}'),
             if (e.poshEventId != null)
@@ -657,21 +670,114 @@ class _ImageTileState extends State<_ImageTile> {
 }
 
 // ────────────────────────────────────────────────────────────
-// Sponsors card
+// Partners card (sponsors + vendors for this event)
 // ────────────────────────────────────────────────────────────
 
-class _SponsorsCard extends StatelessWidget {
-  final List<EventSponsor> sponsors;
-  final List<Sponsor> availableSponsors;
-  final void Function(String sponsorId) onAdd;
-  final void Function(String sponsorId) onRemove;
+class _PartnersCard extends StatelessWidget {
+  final List<EventPartner> partners;
+  final List<Customer> allCustomers;
+  final List<Product> allProducts;
+  final void Function({
+    required String customerId,
+    required String productId,
+    int? pricePaidCents,
+  }) onAdd;
+  final void Function(String customerProductId) onRemove;
 
-  const _SponsorsCard({
-    required this.sponsors,
-    required this.availableSponsors,
+  const _PartnersCard({
+    required this.partners,
+    required this.allCustomers,
+    required this.allProducts,
     required this.onAdd,
     required this.onRemove,
   });
+
+  void _showAddPartnerDialog(BuildContext context) {
+    String? selectedCustomerId;
+    String? selectedProductId;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          final activeProducts = allProducts.where((p) => p.isActive).toList();
+
+          return AlertDialog(
+            title: const Text('Add Partner'),
+            content: SizedBox(
+              width: 400,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(labelText: 'Customer *'),
+                    items: allCustomers
+                        .where((c) => c.isActive)
+                        .map((c) => DropdownMenuItem(
+                              value: c.id,
+                              child: Text(c.name),
+                            ))
+                        .toList(),
+                    onChanged: (value) =>
+                        setDialogState(() => selectedCustomerId = value),
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(labelText: 'Product *'),
+                    items: activeProducts
+                        .map((p) => DropdownMenuItem(
+                              value: p.id,
+                              child: Text('${p.name} (${p.productType.name})'),
+                            ))
+                        .toList(),
+                    onChanged: (value) =>
+                        setDialogState(() => selectedProductId = value),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: selectedCustomerId != null &&
+                        selectedProductId != null
+                    ? () {
+                        Navigator.pop(dialogContext);
+                        onAdd(
+                          customerId: selectedCustomerId!,
+                          productId: selectedProductId!,
+                        );
+                      }
+                    : null,
+                child: const Text('Add'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Color _typeColor(String? productType) {
+    return switch (productType) {
+      'sponsorship' => Colors.purple.shade100,
+      'vendor_space' => Colors.blue.shade100,
+      'data_product' => Colors.green.shade100,
+      _ => Colors.grey.shade200,
+    };
+  }
+
+  String _typeLabel(String? productType) {
+    return switch (productType) {
+      'sponsorship' => 'Sponsor',
+      'vendor_space' => 'Vendor',
+      'data_product' => 'Data',
+      _ => productType ?? '',
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -683,37 +789,39 @@ class _SponsorsCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text('Sponsors', style: Theme.of(context).textTheme.titleMedium),
+                Text('Partners', style: Theme.of(context).textTheme.titleMedium),
                 const Spacer(),
-                if (availableSponsors.isNotEmpty)
-                  PopupMenuButton<String>(
-                    tooltip: 'Add sponsor',
-                    icon: const Icon(Icons.add),
-                    itemBuilder: (_) => availableSponsors
-                        .map((s) => PopupMenuItem(
-                              value: s.id,
-                              child: Text(s.name),
-                            ))
-                        .toList(),
-                    onSelected: onAdd,
-                  ),
+                IconButton(
+                  tooltip: 'Add partner',
+                  icon: const Icon(Icons.add),
+                  onPressed: () => _showAddPartnerDialog(context),
+                ),
               ],
             ),
             const SizedBox(height: 12),
-            if (sponsors.isEmpty)
+            if (partners.isEmpty)
               Text(
-                'No sponsors linked yet',
+                'No partners linked yet',
                 style: TextStyle(color: Theme.of(context).hintColor),
               )
             else
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: sponsors
-                    .map((s) => Chip(
-                          label: Text(s.name),
+                children: partners
+                    .map((p) => Chip(
+                          avatar: CircleAvatar(
+                            backgroundColor: _typeColor(p.productType),
+                            radius: 12,
+                            child: Text(
+                              _typeLabel(p.productType).substring(0, 1),
+                              style: const TextStyle(fontSize: 10),
+                            ),
+                          ),
+                          label: Text('${p.name} — ${_typeLabel(p.productType)}'
+                              '${p.tier != null ? ' (${p.tier})' : ''}'),
                           deleteIcon: const Icon(Icons.close, size: 16),
-                          onDeleted: () => onRemove(s.id),
+                          onDeleted: () => onRemove(p.id),
                         ))
                     .toList(),
               ),

@@ -82,6 +82,7 @@ class AppState extends ChangeNotifier {
   late final EventsApi eventsApi = EventsApi(_apiClient);
   late final ConnectionsApi connectionsApi = ConnectionsApi(_apiClient);
   late final PostsApi postsApi = PostsApi(_apiClient);
+  late final PerksApi perksApi = PerksApi(_apiClient);
 
   /// Initialize app state on startup
   Future<void> initialize() async {

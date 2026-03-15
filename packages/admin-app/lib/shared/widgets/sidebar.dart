@@ -68,17 +68,29 @@ class AdminSidebar extends StatelessWidget {
                   route: AdminRoutes.images,
                   isSelected: location.startsWith('/images'),
                 ),
-                _NavItem(
-                  icon: Icons.business,
-                  label: 'Sponsors',
-                  route: AdminRoutes.sponsors,
-                  isSelected: location.startsWith('/sponsors'),
+
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Text(
+                    'REVENUE',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey,
+                    ),
+                  ),
                 ),
                 _NavItem(
-                  icon: Icons.store,
-                  label: 'Vendors',
-                  route: AdminRoutes.vendors,
-                  isSelected: location.startsWith('/vendors'),
+                  icon: Icons.business,
+                  label: 'Customers',
+                  route: AdminRoutes.customers,
+                  isSelected: location.startsWith('/customers'),
+                ),
+                _NavItem(
+                  icon: Icons.inventory_2,
+                  label: 'Products',
+                  route: AdminRoutes.products,
+                  isSelected: location.startsWith('/products'),
                 ),
 
                 const Padding(
@@ -115,6 +127,12 @@ class AdminSidebar extends StatelessWidget {
                       color: Colors.grey,
                     ),
                   ),
+                ),
+                _NavItem(
+                  icon: Icons.map,
+                  label: 'Markets',
+                  route: AdminRoutes.markets,
+                  isSelected: location == AdminRoutes.markets,
                 ),
                 _NavItem(
                   icon: Icons.settings,

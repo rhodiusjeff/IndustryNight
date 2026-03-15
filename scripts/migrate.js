@@ -127,21 +127,20 @@ function getMigrationFiles() {
 }
 
 async function ensureMigrationsTable(client) {
-  // Schema matches db-reset.js so both tools share the same tracking table
+  // Schema matches baseline and db-reset.js — uses filename as PK
   await client.query(`
     CREATE TABLE IF NOT EXISTS _migrations (
-      id         SERIAL PRIMARY KEY,
-      name       VARCHAR(255) NOT NULL UNIQUE,
-      applied_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      filename   VARCHAR(255) PRIMARY KEY,
+      applied_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
     )
   `);
 }
 
 async function getAppliedMigrations(client) {
   const result = await client.query(
-    'SELECT name FROM _migrations ORDER BY name'
+    'SELECT filename FROM _migrations ORDER BY filename'
   );
-  return new Set(result.rows.map(r => r.name));
+  return new Set(result.rows.map(r => r.filename));
 }
 
 async function applyMigration(client, filename, sql) {
@@ -150,7 +149,7 @@ async function applyMigration(client, filename, sql) {
     await client.query('BEGIN');
     await client.query(sql);
     await client.query(
-      'INSERT INTO _migrations (name) VALUES ($1) ON CONFLICT DO NOTHING',
+      'INSERT INTO _migrations (filename) VALUES ($1) ON CONFLICT DO NOTHING',
       [filename]
     );
     await client.query('COMMIT');

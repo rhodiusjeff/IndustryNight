@@ -3,9 +3,14 @@ import '../models/user.dart';
 import '../models/event.dart';
 import '../models/event_image.dart';
 import '../models/ticket.dart';
-import '../models/sponsor.dart';
-import '../models/vendor.dart';
+import '../models/market.dart';
+import '../models/customer.dart';
+import '../models/customer_contact.dart';
+import '../models/customer_media_item.dart';
+import '../models/product.dart';
+import '../models/customer_product.dart';
 import '../models/discount.dart';
+import '../models/discount_redemption.dart';
 import '../constants/verification_status.dart';
 
 /// Dashboard statistics
@@ -51,6 +56,56 @@ class AdminApi {
   Future<DashboardStats> getDashboardStats() async {
     final response = await _client.get<Map<String, dynamic>>('/admin/dashboard');
     return DashboardStats.fromJson(response['stats'] as Map<String, dynamic>);
+  }
+
+  // ----------------------------------------------------------------
+  // Markets
+  // ----------------------------------------------------------------
+
+  Future<List<Market>> getMarkets() async {
+    final response = await _client.get<Map<String, dynamic>>('/admin/markets');
+    return (response['markets'] as List)
+        .map((e) => Market.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<Market> createMarket({
+    required String name,
+    String? description,
+    String? timezone,
+    int sortOrder = 0,
+  }) async {
+    final response = await _client.post<Map<String, dynamic>>(
+      '/admin/markets',
+      body: {
+        'name': name,
+        if (description != null) 'description': description,
+        if (timezone != null) 'timezone': timezone,
+        'sortOrder': sortOrder,
+      },
+    );
+    return Market.fromJson(response['market'] as Map<String, dynamic>);
+  }
+
+  Future<Market> updateMarket(
+    String id, {
+    String? name,
+    String? description,
+    String? timezone,
+    bool? isActive,
+    int? sortOrder,
+  }) async {
+    final response = await _client.patch<Map<String, dynamic>>(
+      '/admin/markets/$id',
+      body: {
+        if (name != null) 'name': name,
+        if (description != null) 'description': description,
+        if (timezone != null) 'timezone': timezone,
+        if (isActive != null) 'isActive': isActive,
+        if (sortOrder != null) 'sortOrder': sortOrder,
+      },
+    );
+    return Market.fromJson(response['market'] as Map<String, dynamic>);
   }
 
   // ----------------------------------------------------------------
@@ -146,7 +201,7 @@ class AdminApi {
         .toList();
   }
 
-  /// Fetch a single event with full images[] and sponsors[] arrays
+  /// Fetch a single event with full images[] and partners[] arrays
   Future<Event> getEvent(String id) async {
     final response = await _client.get<Map<String, dynamic>>('/admin/events/$id');
     return Event.fromJson(response['event'] as Map<String, dynamic>);
@@ -161,6 +216,7 @@ class AdminApi {
     String? description,
     int? capacity,
     String? poshEventId,
+    String? marketId,
   }) async {
     final response = await _client.post<Map<String, dynamic>>(
       '/admin/events',
@@ -173,6 +229,7 @@ class AdminApi {
         if (description != null) 'description': description,
         if (capacity != null) 'capacity': capacity,
         if (poshEventId != null) 'poshEventId': poshEventId,
+        if (marketId != null) 'marketId': marketId,
       },
     );
     return Event.fromJson(response['event'] as Map<String, dynamic>);
@@ -188,6 +245,7 @@ class AdminApi {
     String? poshEventId,
     EventStatus? status,
     int? capacity,
+    String? marketId,
   }) async {
     final body = <String, dynamic>{};
     if (name != null)         body['name'] = name;
@@ -199,6 +257,7 @@ class AdminApi {
     if (poshEventId != null)  body['poshEventId'] = poshEventId;
     if (status != null)       body['status'] = status.name;
     if (capacity != null)     body['capacity'] = capacity;
+    if (marketId != null)     body['marketId'] = marketId;
 
     final response = await _client.patch<Map<String, dynamic>>(
       '/admin/events/$id',
@@ -207,8 +266,6 @@ class AdminApi {
     return Event.fromJson(response['event'] as Map<String, dynamic>);
   }
 
-  /// Permanently deletes a draft event. Throws [ApiException] if the event
-  /// is not in draft status.
   Future<void> deleteEvent(String id) async {
     await _client.delete('/admin/events/$id');
   }
@@ -217,8 +274,6 @@ class AdminApi {
   // Event Images
   // ----------------------------------------------------------------
 
-  /// Upload an image for an event. [fileBytes] is the raw file data,
-  /// [filename] is used for content-type detection (e.g. "photo.jpg").
   Future<EventImage> uploadEventImage(
     String eventId, {
     required List<int> fileBytes,
@@ -267,109 +322,420 @@ class AdminApi {
   }
 
   // ----------------------------------------------------------------
-  // Event Sponsors
+  // Event Partners (customer-products linked to events)
   // ----------------------------------------------------------------
 
-  Future<void> addEventSponsor(String eventId, String sponsorId) async {
+  Future<void> addEventPartner(String eventId, {
+    required String customerId,
+    required String productId,
+    int? pricePaidCents,
+    String? notes,
+  }) async {
     await _client.post<Map<String, dynamic>>(
-      '/admin/events/$eventId/sponsors',
-      body: {'sponsorId': sponsorId},
-    );
-  }
-
-  Future<void> removeEventSponsor(String eventId, String sponsorId) async {
-    await _client.delete('/admin/events/$eventId/sponsors/$sponsorId');
-  }
-
-  // ----------------------------------------------------------------
-  // Sponsor Management
-  // ----------------------------------------------------------------
-
-  Future<List<Sponsor>> getSponsors({int limit = 50, int offset = 0}) async {
-    final response = await _client.get<Map<String, dynamic>>(
-      '/admin/sponsors',
-      queryParams: {
-        'limit': limit.toString(),
-        'offset': offset.toString(),
+      '/admin/events/$eventId/partners',
+      body: {
+        'customerId': customerId,
+        'productId': productId,
+        if (pricePaidCents != null) 'pricePaidCents': pricePaidCents,
+        if (notes != null) 'notes': notes,
       },
     );
+  }
 
-    return (response['sponsors'] as List)
-        .map((s) => Sponsor.fromJson(s as Map<String, dynamic>))
+  Future<void> removeEventPartner(String eventId, String customerProductId) async {
+    await _client.delete('/admin/events/$eventId/partners/$customerProductId');
+  }
+
+  // ----------------------------------------------------------------
+  // Customer Management
+  // ----------------------------------------------------------------
+
+  Future<List<Customer>> getCustomers({
+    String? query,
+    String? hasProductType,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final queryParams = <String, String>{
+      'limit': limit.toString(),
+      'offset': offset.toString(),
+    };
+    if (query != null) queryParams['q'] = query;
+    if (hasProductType != null) queryParams['hasProductType'] = hasProductType;
+
+    final response = await _client.get<Map<String, dynamic>>(
+      '/admin/customers',
+      queryParams: queryParams,
+    );
+    return (response['customers'] as List)
+        .map((c) => Customer.fromJson(c as Map<String, dynamic>))
         .toList();
   }
 
-  Future<Sponsor> createSponsor({
+  Future<Customer> getCustomer(String id) async {
+    final response = await _client.get<Map<String, dynamic>>('/admin/customers/$id');
+    return Customer.fromJson(response['customer'] as Map<String, dynamic>);
+  }
+
+  Future<Customer> createCustomer({
     required String name,
     String? description,
+    String? logoUrl,
     String? website,
-    SponsorTier tier = SponsorTier.bronze,
+    String? contactEmail,
+    String? contactPhone,
+    String? notes,
+    List<String>? marketIds,
   }) async {
     final response = await _client.post<Map<String, dynamic>>(
-      '/admin/sponsors',
+      '/admin/customers',
       body: {
         'name': name,
         if (description != null) 'description': description,
+        if (logoUrl != null) 'logoUrl': logoUrl,
         if (website != null) 'website': website,
-        'tier': tier.name,
+        if (contactEmail != null) 'contactEmail': contactEmail,
+        if (contactPhone != null) 'contactPhone': contactPhone,
+        if (notes != null) 'notes': notes,
+        if (marketIds != null) 'marketIds': marketIds,
       },
     );
-    return Sponsor.fromJson(response['sponsor'] as Map<String, dynamic>);
+    return Customer.fromJson(response['customer'] as Map<String, dynamic>);
   }
 
-  Future<Sponsor> updateSponsor(String id, {
+  Future<Customer> updateCustomer(String id, {
     String? name,
     String? description,
+    String? logoUrl,
     String? website,
-    SponsorTier? tier,
+    String? contactEmail,
+    String? contactPhone,
+    String? notes,
+    bool? isActive,
+    List<String>? marketIds,
+  }) async {
+    final body = <String, dynamic>{};
+    if (name != null) body['name'] = name;
+    if (description != null) body['description'] = description;
+    if (logoUrl != null) body['logoUrl'] = logoUrl;
+    if (website != null) body['website'] = website;
+    if (contactEmail != null) body['contactEmail'] = contactEmail;
+    if (contactPhone != null) body['contactPhone'] = contactPhone;
+    if (notes != null) body['notes'] = notes;
+    if (isActive != null) body['isActive'] = isActive;
+    if (marketIds != null) body['marketIds'] = marketIds;
+
+    final response = await _client.patch<Map<String, dynamic>>(
+      '/admin/customers/$id',
+      body: body,
+    );
+    return Customer.fromJson(response['customer'] as Map<String, dynamic>);
+  }
+
+  Future<void> deleteCustomer(String id) async {
+    await _client.delete('/admin/customers/$id');
+  }
+
+  // ----------------------------------------------------------------
+  // Customer Contacts
+  // ----------------------------------------------------------------
+
+  Future<List<CustomerContact>> getContacts(String customerId) async {
+    final response = await _client.get<Map<String, dynamic>>(
+      '/admin/customers/$customerId/contacts',
+    );
+    return (response['contacts'] as List)
+        .map((c) => CustomerContact.fromJson(c as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<CustomerContact> addContact(String customerId, {
+    required String name,
+    String? email,
+    String? phone,
+    ContactRole role = ContactRole.other,
+    String? title,
+    bool isPrimary = false,
+    String? notes,
+  }) async {
+    final roleStr = switch (role) {
+      ContactRole.primary => 'primary',
+      ContactRole.billing => 'billing',
+      ContactRole.decisionMaker => 'decision_maker',
+      ContactRole.other => 'other',
+    };
+    final response = await _client.post<Map<String, dynamic>>(
+      '/admin/customers/$customerId/contacts',
+      body: {
+        'name': name,
+        if (email != null) 'email': email,
+        if (phone != null) 'phone': phone,
+        'role': roleStr,
+        if (title != null) 'title': title,
+        'isPrimary': isPrimary,
+        if (notes != null) 'notes': notes,
+      },
+    );
+    return CustomerContact.fromJson(response['contact'] as Map<String, dynamic>);
+  }
+
+  Future<CustomerContact> updateContact(
+    String customerId,
+    String contactId, {
+    String? name,
+    String? email,
+    String? phone,
+    ContactRole? role,
+    String? title,
+    bool? isPrimary,
+    String? notes,
+  }) async {
+    final body = <String, dynamic>{};
+    if (name != null) body['name'] = name;
+    if (email != null) body['email'] = email;
+    if (phone != null) body['phone'] = phone;
+    if (role != null) {
+      body['role'] = switch (role) {
+        ContactRole.primary => 'primary',
+        ContactRole.billing => 'billing',
+        ContactRole.decisionMaker => 'decision_maker',
+        ContactRole.other => 'other',
+      };
+    }
+    if (title != null) body['title'] = title;
+    if (isPrimary != null) body['isPrimary'] = isPrimary;
+    if (notes != null) body['notes'] = notes;
+
+    final response = await _client.patch<Map<String, dynamic>>(
+      '/admin/customers/$customerId/contacts/$contactId',
+      body: body,
+    );
+    return CustomerContact.fromJson(response['contact'] as Map<String, dynamic>);
+  }
+
+  Future<void> deleteContact(String customerId, String contactId) async {
+    await _client.delete('/admin/customers/$customerId/contacts/$contactId');
+  }
+
+  // ----------------------------------------------------------------
+  // Customer Media (brand assets)
+  // ----------------------------------------------------------------
+
+  Future<CustomerMediaItem> uploadCustomerMedia(
+    String customerId, {
+    required List<int> fileBytes,
+    required String filename,
+    String? mimeType,
+    String placement = 'other',
+  }) async {
+    final response = await _client.uploadFile<Map<String, dynamic>>(
+      '/admin/customers/$customerId/media',
+      fieldName: 'image',
+      fileBytes: fileBytes,
+      filename: filename,
+      mimeType: mimeType,
+      additionalFields: {'placement': placement},
+    );
+    return CustomerMediaItem.fromJson(response['media'] as Map<String, dynamic>);
+  }
+
+  Future<void> deleteCustomerMedia(String customerId, String mediaId) async {
+    await _client.delete('/admin/customers/$customerId/media/$mediaId');
+  }
+
+  // ----------------------------------------------------------------
+  // Product Catalog
+  // ----------------------------------------------------------------
+
+  Future<List<Product>> getProducts({
+    ProductType? type,
+    bool? isStandard,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final queryParams = <String, String>{
+      'limit': limit.toString(),
+      'offset': offset.toString(),
+    };
+    if (type != null) {
+      switch (type) {
+        case ProductType.vendorSpace:
+          queryParams['type'] = 'vendor_space';
+          break;
+        case ProductType.dataProduct:
+          queryParams['type'] = 'data_product';
+          break;
+        case ProductType.sponsorship:
+          queryParams['type'] = 'sponsorship';
+          break;
+      }
+    }
+    if (isStandard != null) queryParams['isStandard'] = isStandard.toString();
+
+    final response = await _client.get<Map<String, dynamic>>(
+      '/admin/products',
+      queryParams: queryParams,
+    );
+    return (response['products'] as List)
+        .map((p) => Product.fromJson(p as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<Product> createProduct({
+    required ProductType productType,
+    required String name,
+    String? description,
+    int? basePriceCents,
+    bool isStandard = true,
+    Map<String, dynamic> config = const {},
+  }) async {
+    String typeStr;
+    switch (productType) {
+      case ProductType.vendorSpace:
+        typeStr = 'vendor_space';
+        break;
+      case ProductType.dataProduct:
+        typeStr = 'data_product';
+        break;
+      case ProductType.sponsorship:
+        typeStr = 'sponsorship';
+        break;
+    }
+
+    final response = await _client.post<Map<String, dynamic>>(
+      '/admin/products',
+      body: {
+        'productType': typeStr,
+        'name': name,
+        if (description != null) 'description': description,
+        if (basePriceCents != null) 'basePriceCents': basePriceCents,
+        'isStandard': isStandard,
+        'config': config,
+      },
+    );
+    return Product.fromJson(response['product'] as Map<String, dynamic>);
+  }
+
+  Future<Product> updateProduct(String id, {
+    String? name,
+    String? description,
+    int? basePriceCents,
+    bool? isStandard,
+    Map<String, dynamic>? config,
     bool? isActive,
   }) async {
     final body = <String, dynamic>{};
     if (name != null) body['name'] = name;
     if (description != null) body['description'] = description;
-    if (website != null) body['website'] = website;
-    if (tier != null) body['tier'] = tier.name;
+    if (basePriceCents != null) body['basePriceCents'] = basePriceCents;
+    if (isStandard != null) body['isStandard'] = isStandard;
+    if (config != null) body['config'] = config;
     if (isActive != null) body['isActive'] = isActive;
 
     final response = await _client.patch<Map<String, dynamic>>(
-      '/admin/sponsors/$id',
+      '/admin/products/$id',
       body: body,
     );
-    return Sponsor.fromJson(response['sponsor'] as Map<String, dynamic>);
+    return Product.fromJson(response['product'] as Map<String, dynamic>);
+  }
+
+  Future<void> deleteProduct(String id) async {
+    await _client.delete('/admin/products/$id');
+  }
+
+  // ----------------------------------------------------------------
+  // Customer Products (purchases)
+  // ----------------------------------------------------------------
+
+  Future<List<CustomerProduct>> getCustomerProducts(String customerId) async {
+    final response = await _client.get<Map<String, dynamic>>(
+      '/admin/customers/$customerId/products',
+    );
+    return (response['products'] as List)
+        .map((p) => CustomerProduct.fromJson(p as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<CustomerProduct> addCustomerProduct(String customerId, {
+    required String productId,
+    String? eventId,
+    int? pricePaidCents,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? notes,
+  }) async {
+    final response = await _client.post<Map<String, dynamic>>(
+      '/admin/customers/$customerId/products',
+      body: {
+        'productId': productId,
+        if (eventId != null) 'eventId': eventId,
+        if (pricePaidCents != null) 'pricePaidCents': pricePaidCents,
+        if (startDate != null) 'startDate': startDate.toIso8601String(),
+        if (endDate != null) 'endDate': endDate.toIso8601String(),
+        if (notes != null) 'notes': notes,
+      },
+    );
+    return CustomerProduct.fromJson(response['customerProduct'] as Map<String, dynamic>);
+  }
+
+  Future<CustomerProduct> updateCustomerProduct(
+    String customerId,
+    String customerProductId, {
+    CustomerProductStatus? status,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? notes,
+  }) async {
+    final body = <String, dynamic>{};
+    if (status != null) body['status'] = status.name;
+    if (startDate != null) body['startDate'] = startDate.toIso8601String();
+    if (endDate != null) body['endDate'] = endDate.toIso8601String();
+    if (notes != null) body['notes'] = notes;
+
+    final response = await _client.patch<Map<String, dynamic>>(
+      '/admin/customers/$customerId/products/$customerProductId',
+      body: body,
+    );
+    return CustomerProduct.fromJson(response['customerProduct'] as Map<String, dynamic>);
+  }
+
+  Future<void> removeCustomerProduct(String customerId, String customerProductId) async {
+    await _client.delete('/admin/customers/$customerId/products/$customerProductId');
   }
 
   // ----------------------------------------------------------------
   // Discount Management
   // ----------------------------------------------------------------
 
-  Future<List<Discount>> getDiscounts(String sponsorId) async {
+  Future<List<Discount>> getDiscounts(String customerId) async {
     final response = await _client.get<Map<String, dynamic>>(
-      '/admin/sponsors/$sponsorId/discounts',
+      '/admin/customers/$customerId/discounts',
     );
-
     return (response['discounts'] as List)
         .map((d) => Discount.fromJson(d as Map<String, dynamic>))
         .toList();
   }
 
   Future<Discount> createDiscount({
-    required String sponsorId,
+    required String customerId,
     required String title,
     String? description,
     DiscountType type = DiscountType.percentage,
     double? value,
     String? code,
+    String? terms,
     DateTime? startDate,
     DateTime? endDate,
   }) async {
     final response = await _client.post<Map<String, dynamic>>(
-      '/admin/sponsors/$sponsorId/discounts',
+      '/admin/customers/$customerId/discounts',
       body: {
         'title': title,
         if (description != null) 'description': description,
         'type': type.name,
         if (value != null) 'value': value,
         if (code != null) 'code': code,
+        if (terms != null) 'terms': terms,
         if (startDate != null) 'startDate': startDate.toIso8601String(),
         if (endDate != null) 'endDate': endDate.toIso8601String(),
       },
@@ -377,72 +743,65 @@ class AdminApi {
     return Discount.fromJson(response['discount'] as Map<String, dynamic>);
   }
 
-  // ----------------------------------------------------------------
-  // Vendor Management
-  // ----------------------------------------------------------------
-
-  Future<List<Vendor>> getVendors({int limit = 50, int offset = 0}) async {
-    final response = await _client.get<Map<String, dynamic>>(
-      '/admin/vendors',
-      queryParams: {
-        'limit': limit.toString(),
-        'offset': offset.toString(),
-      },
-    );
-
-    return (response['vendors'] as List)
-        .map((v) => Vendor.fromJson(v as Map<String, dynamic>))
-        .toList();
-  }
-
-  Future<Vendor> createVendor({
-    required String name,
+  Future<Discount> updateDiscount(
+    String customerId,
+    String discountId, {
+    String? title,
     String? description,
-    String? website,
-    String? contactEmail,
-    VendorCategory category = VendorCategory.other,
-  }) async {
-    final response = await _client.post<Map<String, dynamic>>(
-      '/admin/vendors',
-      body: {
-        'name': name,
-        if (description != null) 'description': description,
-        if (website != null) 'website': website,
-        if (contactEmail != null) 'contactEmail': contactEmail,
-        'category': category.name,
-      },
-    );
-    return Vendor.fromJson(response['vendor'] as Map<String, dynamic>);
-  }
-
-  Future<Vendor> updateVendor(String id, {
-    String? name,
-    String? description,
-    String? website,
-    String? contactEmail,
-    VendorCategory? category,
+    DiscountType? type,
+    double? value,
+    String? code,
+    String? terms,
     bool? isActive,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     final body = <String, dynamic>{};
-    if (name != null) body['name'] = name;
+    if (title != null) body['title'] = title;
     if (description != null) body['description'] = description;
-    if (website != null) body['website'] = website;
-    if (contactEmail != null) body['contactEmail'] = contactEmail;
-    if (category != null) body['category'] = category.name;
+    if (type != null) body['type'] = type.name;
+    if (value != null) body['value'] = value;
+    if (code != null) body['code'] = code;
+    if (terms != null) body['terms'] = terms;
     if (isActive != null) body['isActive'] = isActive;
+    if (startDate != null) body['startDate'] = startDate.toIso8601String();
+    if (endDate != null) body['endDate'] = endDate.toIso8601String();
 
     final response = await _client.patch<Map<String, dynamic>>(
-      '/admin/vendors/$id',
+      '/admin/customers/$customerId/discounts/$discountId',
       body: body,
     );
-    return Vendor.fromJson(response['vendor'] as Map<String, dynamic>);
+    return Discount.fromJson(response['discount'] as Map<String, dynamic>);
+  }
+
+  Future<void> deleteDiscount(String customerId, String discountId) async {
+    await _client.delete('/admin/customers/$customerId/discounts/$discountId');
+  }
+
+  // ----------------------------------------------------------------
+  // Discount Redemptions (admin analytics)
+  // ----------------------------------------------------------------
+
+  Future<List<Map<String, dynamic>>> getCustomerRedemptions(String customerId) async {
+    final response = await _client.get<Map<String, dynamic>>(
+      '/admin/customers/$customerId/redemptions',
+    );
+    return (response['redemptions'] as List).cast<Map<String, dynamic>>();
+  }
+
+  Future<List<DiscountRedemption>> getDiscountRedemptions(String discountId) async {
+    final response = await _client.get<Map<String, dynamic>>(
+      '/admin/discounts/$discountId/redemptions',
+    );
+    return (response['redemptions'] as List)
+        .map((r) => DiscountRedemption.fromJson(r as Map<String, dynamic>))
+        .toList();
   }
 
   // ----------------------------------------------------------------
   // Ticket Management
   // ----------------------------------------------------------------
 
-  /// Get all tickets across all events with optional filters.
   Future<List<Ticket>> getAllTickets({
     TicketStatus? status,
     String? eventId,

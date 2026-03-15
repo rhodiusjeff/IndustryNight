@@ -231,16 +231,15 @@ async function main() {
         await pool.query(sql);
       }
 
-      // Create and populate migrations tracking table
+      // Record applied migrations (table created by baseline schema)
       await pool.query(`
         CREATE TABLE IF NOT EXISTS _migrations (
-          id SERIAL PRIMARY KEY,
-          name VARCHAR(255) NOT NULL UNIQUE,
-          applied_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+          filename VARCHAR(255) PRIMARY KEY,
+          applied_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
         )
       `);
       for (const file of migrationFiles) {
-        await pool.query('INSERT INTO _migrations (name) VALUES ($1) ON CONFLICT DO NOTHING', [file]);
+        await pool.query('INSERT INTO _migrations (filename) VALUES ($1) ON CONFLICT DO NOTHING', [file]);
       }
       console.log(`  Applied ${migrationFiles.length} migrations`);
     }

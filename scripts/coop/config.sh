@@ -60,10 +60,10 @@ BACKUPS_DIR="backups"
 # Tier 2: References tier 0 + 1
 # Tier 3: References tier 2
 # Tier 4: Audit + analytics (can reference anything)
-TIER_0_TABLES="specialties venues users verification_codes admin_users"
-TIER_1_TABLES="events sponsors"
-TIER_2_TABLES="tickets connections posts vendors discounts event_images event_sponsors posh_orders"
-TIER_3_TABLES="post_comments post_likes event_vendors"
+TIER_0_TABLES="specialties users verification_codes admin_users customers products markets"
+TIER_1_TABLES="events"
+TIER_2_TABLES="orders customer_products customer_contacts customer_markets customer_media tickets connections posts discounts event_images posh_orders"
+TIER_3_TABLES="order_items partner_media post_comments post_likes discount_redemptions"
 TIER_4_TABLES="audit_log data_export_requests analytics_connections_daily analytics_users_daily analytics_events analytics_influence"
 ALL_TABLES_ORDERED="$TIER_0_TABLES $TIER_1_TABLES $TIER_2_TABLES $TIER_3_TABLES $TIER_4_TABLES"
 

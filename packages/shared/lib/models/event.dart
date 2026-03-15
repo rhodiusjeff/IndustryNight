@@ -13,27 +13,40 @@ enum EventStatus {
   completed,
 }
 
-/// Lightweight sponsor summary embedded in event detail responses.
+/// Lightweight partner summary embedded in event detail responses.
+/// A partner is a customer linked to the event via a customer_product.
 /// Uses manual fromJson — no build_runner needed for this type.
-class EventSponsor {
-  final String id;
+class EventPartner {
+  final String id; // customer_product ID
+  final String customerId;
   final String name;
-  final String tier;
   final String? logoUrl;
+  final String productType; // sponsorship, vendor_space, data_product
+  final String? tier;
+  final String? vendorCategory;
 
-  const EventSponsor({
+  const EventPartner({
     required this.id,
+    required this.customerId,
     required this.name,
-    required this.tier,
     this.logoUrl,
+    required this.productType,
+    this.tier,
+    this.vendorCategory,
   });
 
-  factory EventSponsor.fromJson(Map<String, dynamic> json) => EventSponsor(
+  factory EventPartner.fromJson(Map<String, dynamic> json) => EventPartner(
         id: json['id'] as String,
+        customerId: json['customer_id'] as String,
         name: json['name'] as String,
-        tier: json['tier'] as String,
         logoUrl: json['logo_url'] as String?,
+        productType: json['product_type'] as String? ?? 'sponsorship',
+        tier: json['tier'] as String?,
+        vendorCategory: json['vendor_category'] as String?,
       );
+
+  bool get isSponsor => productType == 'sponsorship';
+  bool get isVendor => productType == 'vendor_space';
 }
 
 /// Event model representing an Industry Night event
@@ -43,10 +56,12 @@ class Event extends Equatable {
   final String name;
   final String? description;
 
-  /// Legacy FK — nullable, not populated for new events (venue_name/address used instead)
-  final String? venueId;
   final String? venueName;
   final String? venueAddress;
+
+  /// Market association — set via admin, required before publishing
+  final String? marketId;
+  final String? marketName;
 
   final DateTime startTime;
   final DateTime endTime;
@@ -66,16 +81,16 @@ class Event extends Equatable {
   /// Image count — populated on list endpoints
   final int imageCount;
 
-  /// Sponsor count — populated on list endpoints
-  final int sponsorCount;
+  /// Partner count — populated on list endpoints (was sponsorCount)
+  final int partnerCount;
 
   /// Full image list — only populated on detail endpoint (GET /admin/events/:id)
   @JsonKey(fromJson: _imagesFromJson, toJson: _imagesToJson)
   final List<EventImage>? images;
 
-  /// Sponsor summaries — only populated on detail endpoint (GET /admin/events/:id)
-  @JsonKey(fromJson: _sponsorsFromJson, toJson: _sponsorsToJson)
-  final List<EventSponsor>? sponsors;
+  /// Partner summaries — only populated on detail endpoint (GET /admin/events/:id)
+  @JsonKey(fromJson: _partnersFromJson, toJson: _partnersToJson)
+  final List<EventPartner>? partners;
 
   /// Ticket counts — only populated on admin detail endpoint
   final int? ticketCount;
@@ -89,9 +104,10 @@ class Event extends Equatable {
     required this.id,
     required this.name,
     this.description,
-    this.venueId,
     this.venueName,
     this.venueAddress,
+    this.marketId,
+    this.marketName,
     required this.startTime,
     required this.endTime,
     this.activationCode,
@@ -101,9 +117,9 @@ class Event extends Equatable {
     this.attendeeCount = 0,
     this.heroImageUrl,
     this.imageCount = 0,
-    this.sponsorCount = 0,
+    this.partnerCount = 0,
     this.images,
-    this.sponsors,
+    this.partners,
     this.ticketCount,
     this.ticketsPurchased,
     this.ticketsCheckedIn,
@@ -119,9 +135,10 @@ class Event extends Equatable {
     String? id,
     String? name,
     String? description,
-    String? venueId,
     String? venueName,
     String? venueAddress,
+    String? marketId,
+    String? marketName,
     DateTime? startTime,
     DateTime? endTime,
     String? activationCode,
@@ -131,9 +148,9 @@ class Event extends Equatable {
     int? attendeeCount,
     String? heroImageUrl,
     int? imageCount,
-    int? sponsorCount,
+    int? partnerCount,
     List<EventImage>? images,
-    List<EventSponsor>? sponsors,
+    List<EventPartner>? partners,
     int? ticketCount,
     int? ticketsPurchased,
     int? ticketsCheckedIn,
@@ -144,9 +161,10 @@ class Event extends Equatable {
       id: id ?? this.id,
       name: name ?? this.name,
       description: description ?? this.description,
-      venueId: venueId ?? this.venueId,
       venueName: venueName ?? this.venueName,
       venueAddress: venueAddress ?? this.venueAddress,
+      marketId: marketId ?? this.marketId,
+      marketName: marketName ?? this.marketName,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
       activationCode: activationCode ?? this.activationCode,
@@ -156,9 +174,9 @@ class Event extends Equatable {
       attendeeCount: attendeeCount ?? this.attendeeCount,
       heroImageUrl: heroImageUrl ?? this.heroImageUrl,
       imageCount: imageCount ?? this.imageCount,
-      sponsorCount: sponsorCount ?? this.sponsorCount,
+      partnerCount: partnerCount ?? this.partnerCount,
       images: images ?? this.images,
-      sponsors: sponsors ?? this.sponsors,
+      partners: partners ?? this.partners,
       ticketCount: ticketCount ?? this.ticketCount,
       ticketsPurchased: ticketsPurchased ?? this.ticketsPurchased,
       ticketsCheckedIn: ticketsCheckedIn ?? this.ticketsCheckedIn,
@@ -180,15 +198,24 @@ class Event extends Equatable {
   /// Hero image URL from list endpoints, or first image from detail endpoint
   String? get primaryImageUrl => heroImageUrl ?? images?.firstOrNull?.url;
 
+  /// Convenience: sponsors among partners
+  List<EventPartner> get sponsors =>
+      partners?.where((p) => p.isSponsor).toList() ?? [];
+
+  /// Convenience: vendors among partners
+  List<EventPartner> get vendors =>
+      partners?.where((p) => p.isVendor).toList() ?? [];
+
   @override
   List<Object?> get props => [
         id, name, description,
-        venueId, venueName, venueAddress,
+        venueName, venueAddress,
+        marketId, marketName,
         startTime, endTime,
         activationCode, poshEventId,
         status, capacity, attendeeCount,
-        heroImageUrl, imageCount, sponsorCount,
-        images, sponsors,
+        heroImageUrl, imageCount, partnerCount,
+        images, partners,
         ticketCount, ticketsPurchased, ticketsCheckedIn,
         createdAt, updatedAt,
       ];
@@ -219,18 +246,21 @@ List<EventImage>? _imagesFromJson(dynamic value) {
 dynamic _imagesToJson(List<EventImage>? images) =>
     images?.map((e) => e.toJson()).toList();
 
-List<EventSponsor>? _sponsorsFromJson(dynamic value) {
+List<EventPartner>? _partnersFromJson(dynamic value) {
   if (value == null) return null;
   return (value as List)
-      .map((e) => EventSponsor.fromJson(e as Map<String, dynamic>))
+      .map((e) => EventPartner.fromJson(e as Map<String, dynamic>))
       .toList();
 }
 
-dynamic _sponsorsToJson(List<EventSponsor>? sponsors) => sponsors
-    ?.map((s) => {
-          'id': s.id,
-          'name': s.name,
-          'tier': s.tier,
-          'logo_url': s.logoUrl,
+dynamic _partnersToJson(List<EventPartner>? partners) => partners
+    ?.map((p) => {
+          'id': p.id,
+          'customer_id': p.customerId,
+          'name': p.name,
+          'logo_url': p.logoUrl,
+          'product_type': p.productType,
+          'tier': p.tier,
+          'vendor_category': p.vendorCategory,
         })
     .toList();
