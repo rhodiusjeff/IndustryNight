@@ -33,9 +33,14 @@ class _EventFormScreenState extends State<EventFormScreen> {
   TimeOfDay? _endTime;
   bool _isSubmitting = false;
 
+  String? _selectedMarketId;
+  List<Market> _markets = [];
+  bool _isLoadingMarkets = true;
+
   @override
   void initState() {
     super.initState();
+    _loadMarkets();
     final e = widget.event;
     if (e != null) {
       _nameController.text         = e.name;
@@ -47,6 +52,22 @@ class _EventFormScreenState extends State<EventFormScreen> {
       _startDate = e.startTime;
       _startTime = TimeOfDay.fromDateTime(e.startTime);
       _endTime   = TimeOfDay.fromDateTime(e.endTime);
+      _selectedMarketId = e.marketId;
+    }
+  }
+
+  Future<void> _loadMarkets() async {
+    final adminApi = context.read<AdminState>().adminApi;
+    try {
+      final markets = await adminApi.getMarkets();
+      if (!mounted) return;
+      setState(() {
+        _markets = markets.where((m) => m.isActive).toList();
+        _isLoadingMarkets = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoadingMarkets = false);
     }
   }
 
@@ -96,6 +117,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
           poshEventId:  _poshEventIdController.text.trim().isNotEmpty ? _poshEventIdController.text.trim() : null,
           startTime:    startDateTime,
           endTime:      endDateTime,
+          marketId:     _selectedMarketId,
         );
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -112,12 +134,13 @@ class _EventFormScreenState extends State<EventFormScreen> {
           description:  _descriptionController.text.trim().isNotEmpty ? _descriptionController.text.trim() : null,
           capacity:     _capacityController.text.trim().isNotEmpty ? int.tryParse(_capacityController.text.trim()) : null,
           poshEventId:  _poshEventIdController.text.trim().isNotEmpty ? _poshEventIdController.text.trim() : null,
+          marketId:     _selectedMarketId,
         );
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Event created — add images and publish when ready')),
         );
-        context.go('/events/${created.id}');
+        context.pop(created.id);
       }
     } catch (e) {
       if (!mounted) return;
@@ -172,6 +195,30 @@ class _EventFormScreenState extends State<EventFormScreen> {
                       controller: _venueAddressController,
                       decoration: const InputDecoration(labelText: 'Venue Address'),
                     ),
+                    const SizedBox(height: 16),
+
+                    // Market
+                    if (_isLoadingMarkets)
+                      const LinearProgressIndicator()
+                    else
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedMarketId,
+                        decoration: const InputDecoration(
+                          labelText: 'Market',
+                          helperText: 'Required before publishing',
+                        ),
+                        items: [
+                          const DropdownMenuItem<String>(
+                            value: null,
+                            child: Text('— Not assigned —'),
+                          ),
+                          ..._markets.map((m) => DropdownMenuItem(
+                                value: m.id,
+                                child: Text(m.name),
+                              )),
+                        ],
+                        onChanged: (value) => setState(() => _selectedMarketId = value),
+                      ),
                     const SizedBox(height: 16),
 
                     // Description

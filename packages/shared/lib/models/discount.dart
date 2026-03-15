@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
-import 'sponsor.dart';
+
+import 'customer.dart';
 
 part 'discount.g.dart';
 
@@ -13,11 +14,11 @@ enum DiscountType {
   other,
 }
 
-/// Discount model representing a perk/discount from a sponsor
+/// Discount model representing a perk/discount offered by a customer
 @JsonSerializable(fieldRename: FieldRename.snake)
 class Discount extends Equatable {
   final String id;
-  final String sponsorId;
+  final String customerId;
   final String title;
   final String? description;
 
@@ -39,12 +40,19 @@ class Discount extends Equatable {
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  /// Populated when fetching discount details
-  final Sponsor? sponsor;
+  /// Populated when fetching discount details (admin views)
+  final Customer? customer;
+
+  /// Populated on list endpoints (from social API)
+  final String? customerName;
+  final String? customerLogo;
+
+  /// Redemption count — populated in admin views
+  final int? redemptionCount;
 
   const Discount({
     required this.id,
-    required this.sponsorId,
+    required this.customerId,
     required this.title,
     this.description,
     this.type = DiscountType.percentage,
@@ -56,7 +64,10 @@ class Discount extends Equatable {
     this.endDate,
     required this.createdAt,
     required this.updatedAt,
-    this.sponsor,
+    this.customer,
+    this.customerName,
+    this.customerLogo,
+    this.redemptionCount,
   });
 
   factory Discount.fromJson(Map<String, dynamic> json) =>
@@ -66,7 +77,7 @@ class Discount extends Equatable {
 
   Discount copyWith({
     String? id,
-    String? sponsorId,
+    String? customerId,
     String? title,
     String? description,
     DiscountType? type,
@@ -78,11 +89,14 @@ class Discount extends Equatable {
     DateTime? endDate,
     DateTime? createdAt,
     DateTime? updatedAt,
-    Sponsor? sponsor,
+    Customer? customer,
+    String? customerName,
+    String? customerLogo,
+    int? redemptionCount,
   }) {
     return Discount(
       id: id ?? this.id,
-      sponsorId: sponsorId ?? this.sponsorId,
+      customerId: customerId ?? this.customerId,
       title: title ?? this.title,
       description: description ?? this.description,
       type: type ?? this.type,
@@ -94,7 +108,10 @@ class Discount extends Equatable {
       endDate: endDate ?? this.endDate,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      sponsor: sponsor ?? this.sponsor,
+      customer: customer ?? this.customer,
+      customerName: customerName ?? this.customerName,
+      customerLogo: customerLogo ?? this.customerLogo,
+      redemptionCount: redemptionCount ?? this.redemptionCount,
     );
   }
 
@@ -123,20 +140,12 @@ class Discount extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        sponsorId,
-        title,
-        description,
-        type,
-        value,
-        code,
-        terms,
-        isActive,
-        startDate,
-        endDate,
-        createdAt,
-        updatedAt,
-        sponsor,
+        id, customerId, title, description,
+        type, value, code, terms,
+        isActive, startDate, endDate,
+        createdAt, updatedAt,
+        customer, customerName, customerLogo,
+        redemptionCount,
       ];
 }
 

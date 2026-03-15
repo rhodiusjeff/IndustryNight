@@ -4,14 +4,20 @@ import { query } from '../config/database';
 
 const router = Router();
 
-// List active sponsors (public)
+// List active sponsors (customers with sponsorship products)
 router.get('/', authenticate, async (_req, res, next) => {
   try {
     const sponsors = await query(
-      `SELECT id, name, description, logo_url, website, tier
-       FROM sponsors
-       WHERE is_active = true
-       ORDER BY tier DESC, name ASC`
+      `SELECT DISTINCT c.id, c.name, c.description, c.logo_url, c.website,
+              MAX(p.config->>'tier') as tier
+       FROM customers c
+       JOIN customer_products cp ON cp.customer_id = c.id
+       JOIN products p ON p.id = cp.product_id
+       WHERE c.is_active = true
+         AND cp.status = 'active'
+         AND p.product_type = 'sponsorship'
+       GROUP BY c.id
+       ORDER BY tier DESC NULLS LAST, c.name ASC`
     );
 
     res.json({ sponsors });
@@ -20,23 +26,37 @@ router.get('/', authenticate, async (_req, res, next) => {
   }
 });
 
-// Get sponsor with discounts
+// Get sponsor detail with discounts
 router.get('/:id', authenticate, async (req, res, next) => {
   try {
-    const sponsor = await query(
-      `SELECT * FROM sponsors WHERE id = $1 AND is_active = true`,
+    const customers = await query(
+      `SELECT c.id, c.name, c.description, c.logo_url, c.website
+       FROM customers c
+       JOIN customer_products cp ON cp.customer_id = c.id
+       JOIN products p ON p.id = cp.product_id
+       WHERE c.id = $1 AND c.is_active = true
+         AND cp.status = 'active'
+         AND p.product_type = 'sponsorship'
+       LIMIT 1`,
       [req.params.id]
     );
 
+    if (customers.length === 0) {
+      res.status(404).json({ error: 'Sponsor not found' });
+      return;
+    }
+
     const discounts = await query(
-      `SELECT * FROM discounts
-       WHERE sponsor_id = $1 AND is_active = true
+      `SELECT id, customer_id, title, description, type, value, code, terms,
+              start_date, end_date, created_at
+       FROM discounts
+       WHERE customer_id = $1 AND is_active = true
        AND (start_date IS NULL OR start_date <= NOW())
        AND (end_date IS NULL OR end_date >= NOW())`,
       [req.params.id]
     );
 
-    res.json({ sponsor: sponsor[0], discounts });
+    res.json({ sponsor: customers[0], discounts });
   } catch (error) {
     next(error);
   }

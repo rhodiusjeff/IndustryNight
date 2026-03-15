@@ -71,7 +71,10 @@ class _UsersListScreenState extends State<UsersListScreen> {
         title: const Text('Users'),
         actions: [
           ElevatedButton.icon(
-            onPressed: () => context.push(AdminRoutes.addUser),
+            onPressed: () async {
+              await context.push(AdminRoutes.addUser);
+              _loadUsers();
+            },
             icon: const Icon(Icons.add),
             label: const Text('Add User'),
           ),
@@ -191,7 +194,10 @@ class _UsersListScreenState extends State<UsersListScreen> {
                   ),
                 ],
               ),
-              onTap: () => context.push('/users/${user.id}', extra: user),
+              onTap: () async {
+                await context.push('/users/${user.id}', extra: user);
+                _loadUsers();
+              },
             ),
             DataCell(Text(user.phone)),
             DataCell(Text(
@@ -209,7 +215,10 @@ class _UsersListScreenState extends State<UsersListScreen> {
             DataCell(
               IconButton(
                 icon: const Icon(Icons.visibility),
-                onPressed: () => context.push('/users/${user.id}', extra: user),
+                onPressed: () async {
+                  await context.push('/users/${user.id}', extra: user);
+                  _loadUsers();
+                },
               ),
             ),
           ],

@@ -81,6 +81,20 @@ app.get('/specialties', async (_req, res, next) => {
   }
 });
 
+app.get('/markets', async (_req, res, next) => {
+  try {
+    const markets = await query(
+      `SELECT id, name, slug, timezone
+       FROM markets
+       WHERE is_active = true
+       ORDER BY sort_order ASC, name ASC`
+    );
+    res.json({ markets });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // API routes
 app.use('/auth', authLimiter, authRoutes);
 app.use('/users', usersRoutes);

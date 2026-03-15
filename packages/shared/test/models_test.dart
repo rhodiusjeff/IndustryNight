@@ -50,7 +50,7 @@ void main() {
       final event = Event(
         id: '1',
         name: 'Test Event',
-        venueId: 'v1',
+        venueName: 'Test Venue',
         startTime: DateTime.now().add(const Duration(days: 1)),
         endTime: DateTime.now().add(const Duration(days: 1, hours: 4)),
         createdAt: DateTime.now(),
@@ -65,7 +65,7 @@ void main() {
       final event = Event(
         id: '1',
         name: 'Test Event',
-        venueId: 'v1',
+        venueName: 'Test Venue',
         startTime: DateTime.now().subtract(const Duration(days: 2)),
         endTime: DateTime.now().subtract(const Duration(days: 1)),
         createdAt: DateTime.now(),

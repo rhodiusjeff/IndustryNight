@@ -11,9 +11,14 @@ export 'models/event.dart';
 export 'models/event_image.dart';
 export 'models/connection.dart';
 export 'models/post.dart';
-export 'models/sponsor.dart';
-export 'models/vendor.dart';
+export 'models/market.dart';
+export 'models/customer.dart';
+export 'models/customer_contact.dart';
+export 'models/customer_media_item.dart';
+export 'models/product.dart';
+export 'models/customer_product.dart';
 export 'models/discount.dart';
+export 'models/discount_redemption.dart';
 export 'models/ticket.dart';
 
 // API
@@ -25,6 +30,7 @@ export 'api/events_api.dart';
 export 'api/connections_api.dart';
 export 'api/posts_api.dart';
 export 'api/admin_api.dart';
+export 'api/perks_api.dart';
 
 // Constants
 export 'constants/specialties.dart';

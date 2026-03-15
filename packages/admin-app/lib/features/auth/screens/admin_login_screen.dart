@@ -106,10 +106,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.nightlife,
-                    size: 48,
-                    color: Theme.of(context).colorScheme.primary,
+                  Image.asset(
+                    'assets/logo.png',
+                    height: 128,
                   ),
                   const SizedBox(height: 16),
                   Text(

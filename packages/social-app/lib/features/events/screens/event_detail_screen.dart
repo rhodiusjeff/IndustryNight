@@ -109,7 +109,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
     final event = _event!;
     final images = event.images ?? [];
-    final sponsors = event.sponsors ?? [];
+    final partners = event.partners ?? [];
 
     return Scaffold(
       body: CustomScrollView(
@@ -172,14 +172,14 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   const SizedBox(height: 24),
                 ],
 
-                // Sponsors
-                if (sponsors.isNotEmpty) ...[
-                  const Text('Sponsors', style: AppTypography.titleLarge),
+                // Partners (sponsors + vendors)
+                if (partners.isNotEmpty) ...[
+                  const Text('Partners', style: AppTypography.titleLarge),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 12,
                     runSpacing: 12,
-                    children: sponsors.map((s) => _SponsorChip(sponsor: s)).toList(),
+                    children: partners.map((p) => _PartnerChip(partner: p)).toList(),
                   ),
                   const SizedBox(height: 24),
                 ],
@@ -508,11 +508,11 @@ class _ImageCarouselState extends State<_ImageCarousel> {
   }
 }
 
-/// Sponsor chip showing logo + name.
-class _SponsorChip extends StatelessWidget {
-  final EventSponsor sponsor;
+/// Partner chip showing logo + name + type badge.
+class _PartnerChip extends StatelessWidget {
+  final EventPartner partner;
 
-  const _SponsorChip({required this.sponsor});
+  const _PartnerChip({required this.partner});
 
   @override
   Widget build(BuildContext context) {
@@ -525,11 +525,11 @@ class _SponsorChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (sponsor.logoUrl != null) ...[
+          if (partner.logoUrl != null) ...[
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Image.network(
-                sponsor.logoUrl!,
+                partner.logoUrl!,
                 width: 24,
                 height: 24,
                 fit: BoxFit.cover,
@@ -538,7 +538,7 @@ class _SponsorChip extends StatelessWidget {
             ),
             const SizedBox(width: 8),
           ],
-          Text(sponsor.name, style: AppTypography.labelMedium.copyWith(color: AppColors.chipText)),
+          Text(partner.name, style: AppTypography.labelMedium.copyWith(color: AppColors.chipText)),
         ],
       ),
     );
