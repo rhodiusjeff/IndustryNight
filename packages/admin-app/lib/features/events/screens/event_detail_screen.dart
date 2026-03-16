@@ -46,16 +46,19 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
     final adminApi = context.read<AdminState>().adminApi;
     try {
-      final results = await Future.wait([
-        adminApi.getEvent(widget.eventId),
-        adminApi.getCustomers(),
-        adminApi.getProducts(),
-      ]);
+      // Event data is required. Partner pick-list data is best-effort and
+      // should not block loading the detail/edit experience.
+      final event = await adminApi.getEvent(widget.eventId);
+
+      final customersFuture = adminApi.getCustomers().catchError((_) => <Customer>[]);
+      final productsFuture = adminApi.getProducts().catchError((_) => <Product>[]);
+      final results = await Future.wait([customersFuture, productsFuture]);
+
       if (!mounted) return;
       setState(() {
-        _event = results[0] as Event;
-        _allCustomers = results[1] as List<Customer>;
-        _allProducts = results[2] as List<Product>;
+        _event = event;
+        _allCustomers = results[0] as List<Customer>;
+        _allProducts = results[1] as List<Product>;
         _isLoading = false;
       });
     } catch (e) {

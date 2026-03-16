@@ -1,0 +1,43 @@
+name: API Smoke Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target API environment
+        required: true
+        type: choice
+        default: dev
+        options:
+          - dev
+          - prod
+      require_twilio_verify:
+        description: Fail if /auth/request-code returns devCode
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  smoke:
+    name: Run API smoke checks
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Make smoke script executable
+        run: chmod +x scripts/api-smoke.sh
+
+      - name: Run smoke tests
+        env:
+          SMOKE_TEST_PHONE: ${{ secrets.SMOKE_TEST_PHONE }}
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
+        run: |
+          args=(--env "${{ inputs.environment }}")
+          if [[ "${{ inputs.require_twilio_verify }}" == "true" ]]; then
+            args+=(--require-twilio-verify)
+          fi
+          ./scripts/api-smoke.sh "${args[@]}"

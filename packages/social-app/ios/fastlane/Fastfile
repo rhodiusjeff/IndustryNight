@@ -1,0 +1,49 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Sanity check version/build/name/bundle id without codesigning"
+  lane :preflight do
+    app_root = File.expand_path("../..", __dir__)
+    sh("cd '#{app_root}' && flutter pub get")
+    sh("cd '#{app_root}' && flutter build ipa --release --no-codesign")
+  end
+
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    key_id = ENV.fetch("APP_STORE_CONNECT_KEY_ID")
+    issuer_id = ENV.fetch("APP_STORE_CONNECT_ISSUER_ID")
+
+    key_path = ENV.fetch("APP_STORE_CONNECT_KEY_FILEPATH")
+    key_path = File.expand_path(key_path)
+    if File.directory?(key_path)
+      key_path = File.join(key_path, "AuthKey_#{key_id}.p8")
+    end
+    UI.user_error!(
+      "App Store Connect API key file not found at: #{key_path}\n" \
+      "Set APP_STORE_CONNECT_KEY_FILEPATH to the full path of AuthKey_<KEYID>.p8 " \
+      "or to the directory that contains it."
+    ) unless File.exist?(key_path)
+
+    api_key = app_store_connect_api_key(
+      key_id: key_id,
+      issuer_id: issuer_id,
+      key_filepath: key_path,
+      duration: 1200,
+      in_house: false
+    )
+
+    build_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      configuration: "Release",
+      export_method: "app-store",
+      clean: true
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      changelog: ENV["FL_CHANGELOG"],
+      skip_waiting_for_build_processing: true
+    )
+  end
+end

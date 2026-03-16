@@ -87,6 +87,14 @@ class _EventFormScreenState extends State<EventFormScreen> {
     return DateTime(date.year, date.month, date.day, time.hour, time.minute);
   }
 
+  DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
+
+  DateTime _clampDate(DateTime date, DateTime min, DateTime max) {
+    if (date.isBefore(min)) return min;
+    if (date.isAfter(max)) return max;
+    return date;
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -238,11 +246,22 @@ class _EventFormScreenState extends State<EventFormScreen> {
                               ? DateFormat('MMM d, yyyy').format(_startDate!)
                               : null,
                           onTap: () async {
+                            final now = DateTime.now();
+                            final fallbackFirstDate = _dateOnly(now).subtract(const Duration(days: 1));
+                            final lastDate = _dateOnly(now).add(const Duration(days: 730));
+                            final firstDate = _startDate != null && _dateOnly(_startDate!).isBefore(fallbackFirstDate)
+                                ? _dateOnly(_startDate!)
+                                : fallbackFirstDate;
+                            final initialDate = _clampDate(
+                              _dateOnly(_startDate ?? now.add(const Duration(days: 7))),
+                              firstDate,
+                              lastDate,
+                            );
                             final d = await showDatePicker(
                               context: context,
-                              initialDate: _startDate ?? DateTime.now().add(const Duration(days: 7)),
-                              firstDate: DateTime.now().subtract(const Duration(days: 1)),
-                              lastDate: DateTime.now().add(const Duration(days: 730)),
+                              initialDate: initialDate,
+                              firstDate: firstDate,
+                              lastDate: lastDate,
                             );
                             if (d != null) setState(() => _startDate = d);
                           },

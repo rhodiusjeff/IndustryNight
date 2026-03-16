@@ -23,7 +23,7 @@
  */
 
 const path = require('path');
-const { execSync, spawn } = require('child_process');
+const { spawn } = require('child_process');
 const net = require('net');
 
 const { Pool } = require(require.resolve('pg', { paths: [path.resolve(__dirname, '../packages/api')] }));
@@ -32,18 +32,49 @@ const { Pool } = require(require.resolve('pg', { paths: [path.resolve(__dirname,
 // Parse arguments (before config so usage shows without DB_PASSWORD)
 // ---------------------------------------------------------------------------
 const rawArgs = process.argv.slice(2);
-const flags = rawArgs.filter(a => a.startsWith('--'));
-const phoneArgs = rawArgs.filter(a => !a.startsWith('--'));
+const phoneArgs = [];
+let SKIP_K8S = false;
+let AUTO_YES = false;
+let TARGET_ENV = process.env.IN_ENV || 'dev';
 
-const SKIP_K8S = flags.includes('--skip-k8s');
-const AUTO_YES = flags.includes('--yes');
+for (let i = 0; i < rawArgs.length; i++) {
+  const arg = rawArgs[i];
+  if (arg === '--skip-k8s') {
+    SKIP_K8S = true;
+    continue;
+  }
+  if (arg === '--yes') {
+    AUTO_YES = true;
+    continue;
+  }
+  if (arg === '--env') {
+    const envValue = rawArgs[i + 1];
+    if (!envValue || envValue.startsWith('--')) {
+      console.error('ERROR: --env requires a value: dev or prod');
+      process.exit(1);
+    }
+    if (envValue !== 'dev' && envValue !== 'prod') {
+      console.error(`ERROR: invalid --env value: ${envValue} (expected dev or prod)`);
+      process.exit(1);
+    }
+    TARGET_ENV = envValue;
+    i += 1;
+    continue;
+  }
+  if (arg.startsWith('--')) {
+    console.error(`ERROR: unknown flag: ${arg}`);
+    process.exit(1);
+  }
+  phoneArgs.push(arg);
+}
 
 if (phoneArgs.length === 0) {
-  console.error('Usage: node scripts/db-scrub-user.js [--yes] [--skip-k8s] <phone> [<phone> ...]');
+  console.error('Usage: node scripts/db-scrub-user.js [--yes] [--skip-k8s] [--env dev|prod] <phone> [<phone> ...]');
   console.error('');
   console.error('Examples:');
   console.error('  node scripts/db-scrub-user.js +15555550199');
   console.error('  node scripts/db-scrub-user.js --yes +15555550199 +15555550200');
+  console.error('  node scripts/db-scrub-user.js --env dev --yes +15555550199');
   process.exit(1);
 }
 
@@ -65,7 +96,8 @@ const DB_CONFIG = {
   ssl: { rejectUnauthorized: false },
 };
 
-const NAMESPACE = process.env.IN_NAMESPACE || 'industrynight';
+const NAMESPACE = process.env.IN_NAMESPACE || (TARGET_ENV === 'prod' ? 'industrynight' : 'industrynight-dev');
+const AWS_PROFILE = process.env.IN_AWS_PROFILE || process.env.AWS_PROFILE || 'industrynight-admin';
 
 // Normalize phone numbers to E.164
 function normalizePhone(phone) {
@@ -80,6 +112,14 @@ function normalizePhone(phone) {
 // Port-forward helpers (same as db-reset.js)
 // ---------------------------------------------------------------------------
 let portForwardProc = null;
+
+function isPortOpen(port, host) {
+  return new Promise(resolve => {
+    const sock = net.connect(port, host);
+    sock.once('connect', () => { sock.destroy(); resolve(true); });
+    sock.once('error', () => { sock.destroy(); resolve(false); });
+  });
+}
 
 function waitForPort(port, host, timeoutMs) {
   return new Promise((resolve, reject) => {
@@ -97,14 +137,19 @@ function waitForPort(port, host, timeoutMs) {
   });
 }
 
-function startPortForward() {
-  try { execSync(`lsof -ti :${DB_CONFIG.port} | xargs kill 2>/dev/null`, { stdio: 'ignore' }); } catch (e) { /* none running */ }
+async function startPortForward() {
+  if (await isPortOpen(DB_CONFIG.port, DB_CONFIG.host)) {
+    console.log('  Port-forward already open, using existing tunnel.');
+    return;
+  }
 
   console.log('  Starting kubectl port-forward to db-proxy...');
   portForwardProc = spawn('kubectl', [
     'port-forward', 'pod/db-proxy', `${DB_CONFIG.port}:5432`, '-n', NAMESPACE
-  ], { stdio: 'ignore', detached: true });
-  portForwardProc.unref();
+  ], {
+    stdio: 'ignore',
+    env: { ...process.env, AWS_PROFILE },
+  });
 }
 
 function stopPortForward() {
@@ -121,13 +166,14 @@ async function main() {
   const phones = phoneArgs.map(normalizePhone);
 
   console.log('=== Industry Night: Scrub Users ===');
-  console.log(`Database: ${DB_CONFIG.host}:${DB_CONFIG.port}/${DB_CONFIG.database}`);
+  console.log(`Environment: ${TARGET_ENV} (namespace: ${NAMESPACE})`);
+  console.log(`Database:    ${DB_CONFIG.host}:${DB_CONFIG.port}/${DB_CONFIG.database}`);
   console.log(`Phones:   ${phones.join(', ')}`);
   console.log('');
 
   // Set up port-forward if needed
   if (!SKIP_K8S) {
-    startPortForward();
+    await startPortForward();
     console.log('  Waiting for port-forward to be ready...');
     await waitForPort(DB_CONFIG.port, DB_CONFIG.host, 15000);
     console.log('  Port-forward ready.');
