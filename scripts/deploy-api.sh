@@ -7,6 +7,7 @@ set -euo pipefail
 #   ./scripts/deploy-api.sh [--env dev|prod]              # Build, push, rolling restart
 #   ./scripts/deploy-api.sh [--env dev|prod] --skip-build # Push existing image and restart only
 #   ./scripts/deploy-api.sh [--env dev|prod] --status     # Just check rollout status
+#   ./scripts/deploy-api.sh [--env dev|prod] --smoke-only # Run smoke tests only
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/coop/config.sh"
@@ -16,17 +17,51 @@ set -- "${PASSTHROUGH_ARGS[@]+"${PASSTHROUGH_ARGS[@]}"}"
 load_environment "$IN_ENV"
 
 API_DIR="$PROJECT_ROOT/packages/api"
+SMOKE_SCRIPT="$PROJECT_ROOT/scripts/api-smoke.sh"
 
 SKIP_BUILD=false
 STATUS_ONLY=false
+SKIP_SMOKE=false
+SMOKE_ONLY=false
+
+print_usage() {
+  cat <<'EOF'
+Usage:
+  ./scripts/deploy-api.sh [--env dev|prod]
+  ./scripts/deploy-api.sh [--env dev|prod] --skip-build
+  ./scripts/deploy-api.sh [--env dev|prod] --status
+  ./scripts/deploy-api.sh [--env dev|prod] --smoke-only
+
+Options:
+  --env dev|prod   Target environment (defaults to dev)
+  --skip-build     Skip Docker build, push existing image, restart deployment
+  --status         Show rollout status and current pods, then exit
+  --skip-smoke     Skip post-rollout API smoke tests
+  --smoke-only     Run API smoke tests without building/deploying
+  --help, -h, -?   Show this help message
+EOF
+}
 
 for arg in "$@"; do
   case $arg in
     --skip-build) SKIP_BUILD=true ;;
     --status) STATUS_ONLY=true ;;
+    --skip-smoke) SKIP_SMOKE=true ;;
+    --smoke-only) SMOKE_ONLY=true ;;
+    --help|-h|-?) print_usage; exit 0 ;;
     *) log_error "Unknown option: $arg"; exit 1 ;;
   esac
 done
+
+if [ "$STATUS_ONLY" = true ] && [ "$SMOKE_ONLY" = true ]; then
+  log_error "Cannot combine --status and --smoke-only"
+  exit 1
+fi
+
+if [ "$SMOKE_ONLY" = true ] && [ "$SKIP_BUILD" = true ]; then
+  log_error "Cannot combine --smoke-only and --skip-build"
+  exit 1
+fi
 
 # Status check only
 if [ "$STATUS_ONLY" = true ]; then
@@ -34,6 +69,17 @@ if [ "$STATUS_ONLY" = true ]; then
   kube_cmd rollout status deployment/$K8S_DEPLOYMENT -n $K8S_NAMESPACE
   echo ""
   kube_cmd get pods -n $K8S_NAMESPACE -l app=$K8S_DEPLOYMENT
+  exit 0
+fi
+
+# Smoke only mode
+if [ "$SMOKE_ONLY" = true ]; then
+  if [ ! -x "$SMOKE_SCRIPT" ]; then
+    log_error "Smoke script not found or not executable: $SMOKE_SCRIPT"
+    exit 1
+  fi
+  echo "=== API Smoke Tests ($ENV_NAME) ==="
+  "$SMOKE_SCRIPT" --env "$ENV_NAME"
   exit 0
 fi
 
@@ -58,6 +104,7 @@ ENV_UPPER=$(echo "$ENV_NAME" | tr '[:lower:]' '[:upper:]')
 echo -e "  Environment: ${env_color}${ENV_UPPER}${NC} ($ENV_LABEL)"
 echo "  Image:       $ECR_IMAGE"
 echo "  Namespace:   $K8S_NAMESPACE"
+echo "  Smoke tests: $([ "$SKIP_SMOKE" = true ] && echo "disabled" || echo "enabled")"
 echo ""
 
 # Step 1: ECR login
@@ -90,3 +137,16 @@ echo ""
 # Verify
 echo "=== Deploy complete ==="
 kube_cmd get pods -n $K8S_NAMESPACE -l app=$K8S_DEPLOYMENT
+
+if [ "$SKIP_SMOKE" = false ]; then
+  echo ""
+  echo "[5/5] Running API smoke tests..."
+  if [ ! -x "$SMOKE_SCRIPT" ]; then
+    log_error "Smoke script not found or not executable: $SMOKE_SCRIPT"
+    exit 1
+  fi
+  "$SMOKE_SCRIPT" --env "$ENV_NAME"
+else
+  echo ""
+  log_warn "Skipping API smoke tests (--skip-smoke)"
+fi

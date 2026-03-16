@@ -44,7 +44,7 @@ router.get('/', authenticate, validate(listEventsSchema), async (req, res, next)
          e.*,
          (SELECT url FROM event_images WHERE event_id = e.id ORDER BY sort_order ASC LIMIT 1) AS hero_image_url,
          (SELECT COUNT(*)::int FROM event_images WHERE event_id = e.id) AS image_count,
-         (SELECT COUNT(*)::int FROM event_sponsors WHERE event_id = e.id) AS sponsor_count
+         (SELECT COUNT(*)::int FROM customer_products WHERE event_id = e.id AND status = 'active') AS partner_count
        FROM events e
        ${whereClause}
        ORDER BY e.start_time ASC
@@ -91,13 +91,16 @@ router.get('/:id', authenticate, async (req, res, next) => {
          ) AS images,
          COALESCE(
            (SELECT json_agg(json_build_object(
-             'id', s.id, 'name', s.name, 'tier', s.tier, 'logo_url', s.logo_url
+             'id', cp.id, 'customer_id', c.id, 'name', c.name, 'logo_url', c.logo_url,
+             'product_type', p.product_type,
+             'tier', p.config->>'tier', 'vendor_category', p.config->>'category'
            ))
-            FROM event_sponsors es
-            JOIN sponsors s ON s.id = es.sponsor_id
-            WHERE es.event_id = e.id),
+            FROM customer_products cp
+            JOIN customers c ON c.id = cp.customer_id
+            JOIN products p ON p.id = cp.product_id
+            WHERE cp.event_id = e.id AND cp.status = 'active'),
            '[]'::json
-         ) AS sponsors
+         ) AS partners
        FROM events e
        WHERE e.id = $1`,
       [req.params.id]

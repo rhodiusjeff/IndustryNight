@@ -201,9 +201,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   backgroundColor: AppColors.primary,
                                   child: IconButton(
                                     icon: const Icon(Icons.camera_alt, size: 16),
-                                    onPressed: () {
-                                      // TODO: Implement photo picker
-                                    },
+                                    onPressed: null, // photo upload deferred to v1.0
                                     padding: EdgeInsets.zero,
                                   ),
                                 ),
