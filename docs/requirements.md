@@ -743,15 +743,15 @@ Verified User → Arrives at Event → Doorperson gives event code
 **See also:** [Open Questions](open_questions.md) for unresolved product decisions requiring discussion.
 
 ### Technical Open Items
-- [ ] Finalize database choice (RDS vs DynamoDB vs Aurora)
-- [ ] Define app navigation structure
+- [x] Finalize database choice (RDS vs DynamoDB vs Aurora)
+- [x] Define app navigation structure
 - [ ] Design wireframes/mockups
 - [ ] Determine push notification strategy
-- [ ] Define sponsor integration for verified perks
+- [x] Define sponsor integration for verified perks
 
 ### Product Open Items (see open_questions.md)
 - [ ] Verified users connecting outside events
-- [ ] Admin-added user testing workflow
+- [x] Admin-added user testing workflow
 - [ ] Phone number change process
 
 ### Future Considerations
