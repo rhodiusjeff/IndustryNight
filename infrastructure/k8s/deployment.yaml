@@ -28,6 +28,8 @@ spec:
           env:
             - name: NODE_ENV
               value: "production"
+            - name: AUDIT_ENVIRONMENT
+              value: "__ENVIRONMENT__"
             - name: PORT
               value: "3000"
             - name: AWS_REGION

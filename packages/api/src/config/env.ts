@@ -36,6 +36,11 @@ const envSchema = z.object({
   // Posh
   POSH_WEBHOOK_SECRET: z.string().optional(),
 
+  // Audit
+  AUDIT_ENABLED: z.string().default('true'),
+  AUDIT_METADATA_VERSION: z.string().default('1'),
+  AUDIT_ENVIRONMENT: z.enum(['development', 'production', 'test']).optional(),
+
   // CORS
   CORS_ORIGINS: z.string().default('http://localhost:3000,http://localhost:8080'),
 });
@@ -83,6 +88,12 @@ export const config = {
 
   posh: {
     webhookSecret: env.data.POSH_WEBHOOK_SECRET,
+  },
+
+  audit: {
+    enabled: env.data.AUDIT_ENABLED === 'true',
+    metadataVersion: parseInt(env.data.AUDIT_METADATA_VERSION, 10),
+    environment: env.data.AUDIT_ENVIRONMENT ?? env.data.NODE_ENV,
   },
 
   corsOrigins: env.data.CORS_ORIGINS.split(','),

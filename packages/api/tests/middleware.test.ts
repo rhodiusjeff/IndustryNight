@@ -42,11 +42,8 @@ describe('Token Family Separation', () => {
       .get('/auth/me')
       .set('Authorization', `Bearer ${token}`);
 
-    // The authenticate middleware checks type === 'access' but does NOT check
-    // tokenFamily. This is intentional — social routes accept any valid access
-    // token. The separation is enforced at the admin end.
-    // If this behavior changes in the future, update this test.
-    expect(res.status).toBe(200);
+    // authenticate now enforces tokenFamily === 'social'.
+    expect(res.status).toBe(401);
   });
 
   it('social token CANNOT access admin routes (GET /admin/dashboard)', async () => {

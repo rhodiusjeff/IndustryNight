@@ -7,6 +7,7 @@ import { query, queryOne } from '../config/database';
 import { verifyAvailable, sendVerification, checkVerification } from '../services/sms';
 import { generateVerificationCode } from '../utils/jwt';
 import { BadRequestError, NotFoundError, UnauthorizedError } from '../utils/errors';
+import { tryLogSecurityEventFromRequest } from '../services/audit';
 
 const router = Router();
 
@@ -66,7 +67,7 @@ async function reconcilePoshOrdersForUser(userId: string, phone: string): Promis
 
   if (linkedOrders > 0 || createdTickets > 0) {
     console.log(
-      `[AUTH] Reconciled Posh orders for ${phone}: linked=${linkedOrders}, tickets=${createdTickets}, durationMs=${elapsedMs}`
+      `[AUTH] Reconciled Posh orders for ****${phone.slice(-4)}: linked=${linkedOrders}, tickets=${createdTickets}, durationMs=${elapsedMs}`
     );
   }
 
@@ -100,10 +101,33 @@ router.post('/request-code', validate(requestCodeSchema), async (req, res, next)
         [phone, code, expiresAt]
       );
 
-      console.log(`[SMS-DEV] Verification code for ${phone}: ${code}`);
+      console.log(`[SMS-DEV] Verification code generated for ****${phone.slice(-4)}`);
       res.json({ message: 'Verification code sent', devCode: code });
     }
+
+    await tryLogSecurityEventFromRequest(req, {
+      action: 'login',
+      entityType: 'auth',
+      actorType: 'system',
+      result: 'success',
+      statusCode: 200,
+      metadata: {
+        flow: 'request_code',
+        provider: verifyAvailable ? 'twilio_verify' : 'local_dev',
+      },
+    });
   } catch (error) {
+    await tryLogSecurityEventFromRequest(req, {
+      action: 'login',
+      entityType: 'auth',
+      actorType: 'system',
+      result: 'failure',
+      failureReason: 'request_code_failed',
+      statusCode: 400,
+      metadata: {
+        flow: 'request_code',
+      },
+    });
     next(error);
   }
 });
@@ -181,12 +205,46 @@ router.post('/verify-code', validate(verifyCodeSchema), async (req, res, next) =
       [user!.id]
     );
 
+    await tryLogSecurityEventFromRequest(req, {
+      action: 'login',
+      entityType: 'auth',
+      actorType: 'user',
+      actorId: user!.id,
+      result: 'success',
+      statusCode: 200,
+      metadata: {
+        flow: 'verify_code',
+        isNewUser,
+      },
+    });
+
     res.json({
       ...tokens,
       user: fullUser,
       isNewUser,
     });
   } catch (error) {
+    let failureReason = 'verify_code_failed';
+    if (error instanceof BadRequestError) {
+      const message = error.message.toLowerCase();
+      if (message.includes('expired')) {
+        failureReason = 'verification_code_expired';
+      } else if (message.includes('invalid')) {
+        failureReason = 'invalid_verification_code';
+      }
+    }
+
+    await tryLogSecurityEventFromRequest(req, {
+      action: 'login',
+      entityType: 'auth',
+      actorType: 'system',
+      result: 'failure',
+      failureReason,
+      statusCode: 400,
+      metadata: {
+        flow: 'verify_code',
+      },
+    });
     next(error);
   }
 });
@@ -204,6 +262,17 @@ router.post('/refresh', validate(refreshSchema), async (req, res, next) => {
 
     const payload = verifyToken(refreshToken);
     if (payload.type !== 'refresh' || payload.tokenFamily !== 'social') {
+      await tryLogSecurityEventFromRequest(req, {
+        action: 'login',
+        entityType: 'auth',
+        actorType: 'system',
+        result: 'failure',
+        failureReason: 'invalid_refresh_token',
+        statusCode: 401,
+        metadata: {
+          flow: 'refresh',
+        },
+      });
       throw new UnauthorizedError('Invalid refresh token');
     }
 
@@ -213,23 +282,66 @@ router.post('/refresh', validate(refreshSchema), async (req, res, next) => {
     );
 
     if (!user || user.banned) {
+      await tryLogSecurityEventFromRequest(req, {
+        action: 'login',
+        entityType: 'auth',
+        actorType: 'system',
+        result: 'failure',
+        failureReason: !user ? 'user_not_found' : 'user_banned',
+        statusCode: 401,
+        metadata: {
+          flow: 'refresh',
+        },
+      });
       throw new UnauthorizedError('User not found or banned');
     }
 
     const tokens = generateTokenPair(user.id, user.role);
     const fullUser = await queryOne('SELECT * FROM users WHERE id = $1', [user.id]);
 
+    await tryLogSecurityEventFromRequest(req, {
+      action: 'login',
+      entityType: 'auth',
+      actorType: 'user',
+      actorId: user.id,
+      result: 'success',
+      statusCode: 200,
+      metadata: {
+        flow: 'refresh',
+      },
+    });
+
     res.json({
       ...tokens,
       user: fullUser,
     });
   } catch (error) {
+    await tryLogSecurityEventFromRequest(req, {
+      action: 'login',
+      entityType: 'auth',
+      actorType: 'system',
+      result: 'failure',
+      failureReason: 'refresh_failed',
+      statusCode: 401,
+      metadata: {
+        flow: 'refresh',
+      },
+    });
     next(error);
   }
 });
 
 // Logout (client-side token deletion, but could add to blacklist)
-router.post('/logout', authenticate, async (_req, res) => {
+router.post('/logout', authenticate, async (req, res) => {
+  await tryLogSecurityEventFromRequest(req, {
+    action: 'logout',
+    entityType: 'auth',
+    actorType: 'user',
+    actorId: req.user!.userId,
+    result: 'success',
+    statusCode: 200,
+  });
+
   res.json({ message: 'Logged out' });
 });
 
@@ -256,10 +368,33 @@ router.delete('/me', authenticate, async (req, res, next) => {
 
     // Clean up verification codes, then delete user (CASCADE handles the rest)
     await query('DELETE FROM verification_codes WHERE phone = $1', [user.phone]);
+
+    await tryLogSecurityEventFromRequest(req, {
+      action: 'delete',
+      entityType: 'user',
+      entityId: userId,
+      actorType: 'user',
+      actorId: userId,
+      result: 'success',
+      statusCode: 200,
+      oldValues: {
+        phoneMasked: `****${user.phone.slice(-4)}`,
+      },
+    });
+
     await query('DELETE FROM users WHERE id = $1', [userId]);
 
     res.json({ message: 'Account deleted' });
   } catch (error) {
+    await tryLogSecurityEventFromRequest(req, {
+      action: 'delete',
+      entityType: 'user',
+      actorType: req.user ? 'user' : 'system',
+      actorId: req.user?.userId,
+      result: 'failure',
+      failureReason: 'account_delete_failed',
+      statusCode: 400,
+    });
     next(error);
   }
 });

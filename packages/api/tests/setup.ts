@@ -45,17 +45,22 @@ export default async function setup() {
     password: 'test',
   }));
 
-  // Apply the baseline migration
-  console.log('📦 Applying baseline migration...');
+  // Apply all migrations in filename order.
+  console.log('📦 Applying migrations...');
 
   const client = new Client({ connectionString });
   await client.connect();
 
-  const migrationPath = path.resolve(
-    __dirname, '..', '..', 'database', 'migrations', '001_baseline_schema.sql'
-  );
-  const migrationSql = fs.readFileSync(migrationPath, 'utf-8');
-  await client.query(migrationSql);
+  const migrationsDir = path.resolve(__dirname, '..', '..', 'database', 'migrations');
+  const migrationFiles = fs.readdirSync(migrationsDir)
+    .filter((file) => file.endsWith('.sql'))
+    .sort();
+
+  for (const migrationFile of migrationFiles) {
+    const migrationPath = path.join(migrationsDir, migrationFile);
+    const migrationSql = fs.readFileSync(migrationPath, 'utf-8');
+    await client.query(migrationSql);
+  }
 
   await client.end();
 
