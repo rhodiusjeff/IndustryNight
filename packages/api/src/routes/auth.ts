@@ -10,6 +10,69 @@ import { BadRequestError, NotFoundError, UnauthorizedError } from '../utils/erro
 
 const router = Router();
 
+function phoneDigits(phone: string): string {
+  return phone.replace(/\D/g, '');
+}
+
+async function reconcilePoshOrdersForUser(userId: string, phone: string): Promise<{ linkedOrders: number; createdTickets: number }> {
+  const fullDigits = phoneDigits(phone);
+  const localDigits = fullDigits.length > 10 ? fullDigits.slice(-10) : fullDigits;
+
+  const startedAt = Date.now();
+
+  const result = await queryOne<{ linked_orders: number; created_tickets: number }>(
+    `WITH linked_orders AS (
+       UPDATE posh_orders
+       SET user_id = $1
+       WHERE user_id IS NULL
+         AND account_phone IS NOT NULL
+         AND (
+           regexp_replace(account_phone, '[^0-9]', '', 'g') = $2
+           OR regexp_replace(account_phone, '[^0-9]', '', 'g') = $3
+           OR regexp_replace(account_phone, '[^0-9]', '', 'g') = ('1' || $3)
+         )
+       RETURNING event_id, order_number, total, date_purchased
+     ),
+     inserted_tickets AS (
+       INSERT INTO tickets (user_id, event_id, posh_order_id, ticket_type, price, status, purchased_at)
+       SELECT
+         $1,
+         lo.event_id,
+         lo.order_number,
+         'Posh',
+         COALESCE(lo.total::numeric, 0),
+         'purchased',
+         COALESCE(lo.date_purchased, NOW())
+       FROM linked_orders lo
+       WHERE lo.event_id IS NOT NULL
+         AND NOT EXISTS (
+           SELECT 1
+           FROM tickets t
+           WHERE t.event_id = lo.event_id
+             AND t.user_id = $1
+             AND t.status NOT IN ('cancelled', 'refunded')
+         )
+       RETURNING id
+     )
+     SELECT
+       (SELECT COUNT(*)::int FROM linked_orders) AS linked_orders,
+       (SELECT COUNT(*)::int FROM inserted_tickets) AS created_tickets`,
+    [userId, fullDigits, localDigits]
+  );
+
+  const linkedOrders = result?.linked_orders ?? 0;
+  const createdTickets = result?.created_tickets ?? 0;
+  const elapsedMs = Date.now() - startedAt;
+
+  if (linkedOrders > 0 || createdTickets > 0) {
+    console.log(
+      `[AUTH] Reconciled Posh orders for ${phone}: linked=${linkedOrders}, tickets=${createdTickets}, durationMs=${elapsedMs}`
+    );
+  }
+
+  return { linkedOrders, createdTickets };
+}
+
 // Request verification code
 const requestCodeSchema = z.object({
   body: z.object({
@@ -100,6 +163,14 @@ router.post('/verify-code', validate(verifyCodeSchema), async (req, res, next) =
 
     // Update last login
     await query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user!.id]);
+
+    // Reconcile any pre-existing Posh orders for this phone number.
+    const reconciliation = await reconcilePoshOrdersForUser(user!.id, phone);
+    if (reconciliation.linkedOrders > 0 || reconciliation.createdTickets > 0) {
+      console.log(
+        `[AUTH] verify-code reconciliation for user=${user!.id}: linked=${reconciliation.linkedOrders}, tickets=${reconciliation.createdTickets}`
+      );
+    }
 
     // Generate tokens
     const tokens = generateTokenPair(user!.id, user!.role);
