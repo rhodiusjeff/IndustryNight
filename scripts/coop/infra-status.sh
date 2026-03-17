@@ -186,9 +186,9 @@ echo ""
 echo -e "${BOLD}Estimated Cost (${ENV_NAME})${NC}"
 if [[ "$EKS_STATUS" == "ACTIVE" && "$RDS_STATUS" == "available" ]]; then
   if [[ "$ENV_NAME" == "dev" ]]; then
-    echo -e "  ${RED}RUNNING${NC} — EKS + RDS are active. Estimated ~\$110/month (dev)."
+    echo -e "  ${RED}RUNNING${NC} — EKS + RDS are active. Estimated ~\$85/month (dev)."
   else
-    echo -e "  ${RED}RUNNING${NC} — EKS + RDS are active. Estimated ~\$160/month (prod)."
+    echo -e "  ${RED}RUNNING${NC} — EKS + RDS are active. Estimated ~\$130/month (prod)."
   fi
   echo "  To save costs: ./scripts/coop/coop.sh --env $ENV_NAME teardown"
 elif [[ "$EKS_STATUS" == "NOT_FOUND" && "$RDS_STATUS" == "NOT_FOUND" ]]; then

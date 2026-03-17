@@ -8,6 +8,7 @@ set -euo pipefail
 # Commands:
 #   teardown   Export data, then tear down EKS + RDS (keeps S3, ECR, R53, ACM, Secrets)
 #   rebuild    Recreate EKS + RDS, run migrations, optionally import data
+#   upgrade    In-place sequential EKS Kubernetes version upgrade (no teardown)
 #   status     Show status of all AWS resources
 #   export     Export database to local backups/
 #   import     Import database from a backup directory
@@ -15,6 +16,7 @@ set -euo pipefail
 # Usage:
 #   ./scripts/coop/coop.sh [--env dev|prod] teardown [--yes]
 #   ./scripts/coop/coop.sh [--env dev|prod] rebuild [--import backups/...] [--yes]
+#   ./scripts/coop/coop.sh [--env dev|prod] upgrade [--dry-run] [--yes]
 #   ./scripts/coop/coop.sh [--env dev|prod] status
 #   ./scripts/coop/coop.sh [--env dev|prod] export [--yes]
 #   ./scripts/coop/coop.sh [--env dev|prod] import <backup-dir> [--full|--tables] [--yes]
@@ -51,6 +53,7 @@ print_usage() {
   echo "Commands:"
   echo "  teardown              Export data, then tear down EKS cluster + RDS database"
   echo "  rebuild               Recreate EKS + RDS infrastructure and deploy API"
+  echo "  upgrade               In-place sequential EKS Kubernetes version upgrade (no teardown)"
   echo "  status                Show status of all AWS resources"
   echo "  export                Export database to backups/"
   echo "  import <dir>          Import database from backup directory"
@@ -63,12 +66,15 @@ print_usage() {
   echo "  --tables              (import) Use per-table INSERT scripts"
   echo "  --run-migrations      (import) Run migrations before importing"
   echo "  --skip-rds-snapshot   (teardown) Skip creating RDS final snapshot"
+  echo "  --dry-run             (upgrade) Show what would be done without making changes"
   echo ""
   echo "Examples:"
   echo "  $0 teardown                                    # Teardown dev (default)"
   echo "  $0 --env prod teardown --yes                   # Teardown production"
-  echo "  $0 rebuild                                     # Rebuild dev"
+  echo "  $0 rebuild                                     # Rebuild dev (creates cluster at K8s 1.35)"
   echo "  $0 rebuild --import backups/dev/2026-03-01_120000"
+  echo "  $0 upgrade                                     # Upgrade dev cluster in-place to K8s 1.35"
+  echo "  $0 --env prod upgrade --dry-run                # Preview prod upgrade path"
   echo "  $0 status                                      # Dev status"
   echo "  $0 --env prod status                           # Production status"
 }
@@ -136,6 +142,12 @@ case "$COMMAND" in
   status)
     print_banner
     "$SCRIPT_DIR/infra-status.sh" --env "$IN_ENV"
+    ;;
+
+  upgrade)
+    print_banner
+    shift
+    "$SCRIPT_DIR/eks-upgrade.sh" --env "$IN_ENV" "$@"
     ;;
 
   export)

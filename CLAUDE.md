@@ -445,7 +445,8 @@ Infrastructure lifecycle management — tear down AWS to save costs, rebuild fro
 | `scripts/coop/db-export.sh` | Database backup (pg_dump + per-table) | `./scripts/coop/coop.sh export` |
 | `scripts/coop/db-import.sh` | Database restore (full or selective) | `./scripts/coop/coop.sh import <dir>` |
 | `scripts/coop/infra-teardown.sh` | Tear down EKS + RDS | `./scripts/coop/coop.sh teardown` |
-| `scripts/coop/infra-rebuild.sh` | Rebuild all infra from scratch | `./scripts/coop/coop.sh rebuild` |
+| `scripts/coop/infra-rebuild.sh` | Rebuild all infra from scratch (creates cluster at K8s 1.35) | `./scripts/coop/coop.sh rebuild` |
+| `scripts/coop/eks-upgrade.sh` | In-place sequential K8s version upgrade (no teardown) | `./scripts/coop/coop.sh upgrade` |
 
 Key commands:
 ```bash
@@ -453,6 +454,8 @@ Key commands:
 ./scripts/coop/coop.sh --env prod status                                  # Prod status
 ./scripts/coop/coop.sh teardown                                           # Tear down dev
 ./scripts/coop/coop.sh rebuild --import backups/dev/YYYY-MM-DD_HHMMSS    # Rebuild dev + restore
+./scripts/coop/coop.sh upgrade                                            # Upgrade dev cluster in-place to K8s 1.35
+./scripts/coop/coop.sh --env prod upgrade --dry-run                       # Preview prod upgrade path
 ```
 
 ## Git Workflow

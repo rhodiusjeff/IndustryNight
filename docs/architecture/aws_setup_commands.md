@@ -68,7 +68,7 @@ eksctl create cluster -f infrastructure/eks/cluster.yaml --profile industrynight
 - OIDC provider for IAM Roles for Service Accounts (IRSA)
 
 The cluster.yaml config specifies:
-- Kubernetes version 1.31
+- Kubernetes version 1.35
 - Node group: 2x t3.micro instances
 - Addons: vpc-cni, coredns, kube-proxy
 - CloudWatch logging enabled
@@ -430,7 +430,7 @@ aws iam list-roles --profile industrynight-admin --query "Roles[?contains(RoleNa
 
 | Resource | Identifier | Notes |
 |----------|------------|-------|
-| EKS Cluster | industrynight-prod | Kubernetes 1.31 |
+| EKS Cluster | industrynight-prod | Kubernetes 1.35 |
 | Node Group | standard-workers | 2x t3.micro |
 | VPC | vpc-0193bb08b55ebce00 | Created by eksctl |
 | Private Subnets | subnet-07226c8d9feec5ce3, subnet-0e67a45e9969738f0 | us-east-1a, us-east-1f |
@@ -632,7 +632,7 @@ kubectl delete pod db-proxy -n industrynight
 
 | Resource | Identifier | Notes |
 |----------|------------|-------|
-| EKS Cluster | industrynight-prod | Kubernetes 1.31 |
+| EKS Cluster | industrynight-prod | Kubernetes 1.35 |
 | Node Group | standard-workers | 2x t3.micro |
 | VPC | vpc-0193bb08b55ebce00 | Created by eksctl |
 | Private Subnets | subnet-07226c8d9feec5ce3, subnet-0e67a45e9969738f0 | us-east-1a, us-east-1f |
