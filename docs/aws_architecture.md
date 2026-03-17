@@ -381,49 +381,49 @@
 ### Phase 0: AWS Account Prep (You do manually)
 
 - [ ] Enable MFA on root account
-- [ ] Create `industrynight-admin` IAM user (your admin user)
+- [x] Create `industrynight-admin` IAM user (your admin user)
 - [ ] Create `industrynight-cli` IAM user (for CLI work)
-- [ ] Set up AWS CLI profiles locally
+- [x] Set up AWS CLI profiles locally
 - [ ] Set up billing alerts ($50, $100, $200 thresholds)
-- [ ] Verify region (us-east-1)
+- [x] Verify region (us-east-1)
 
 ### Phase 1: Networking Foundation
 
-- [ ] Create VPC with public/private subnets
-- [ ] Create Internet Gateway
-- [ ] Create NAT Gateway(s)
-- [ ] Configure route tables
-- [ ] Create security groups
+- [x] Create VPC with public/private subnets
+- [x] Create Internet Gateway
+- [x] Create NAT Gateway(s)
+- [x] Configure route tables
+- [x] Create security groups
 
 ### Phase 2: Database
 
-- [ ] Create RDS subnet group
-- [ ] Create RDS PostgreSQL instance
-- [ ] Store credentials in Secrets Manager
-- [ ] Test connectivity
+- [x] Create RDS subnet group
+- [x] Create RDS PostgreSQL instance
+- [x] Store credentials in Secrets Manager
+- [x] Test connectivity
 
 ### Phase 3: Container Infrastructure
 
-- [ ] Create ECR repository
-- [ ] Build and push initial API image
-- [ ] Create EKS cluster
-- [ ] Create EKS node group
-- [ ] Configure kubectl access
+- [x] Create ECR repository
+- [x] Build and push initial API image
+- [x] Create EKS cluster
+- [x] Create EKS node group
+- [x] Configure kubectl access
 
 ### Phase 4: Application Deployment
 
-- [ ] Deploy API to EKS
-- [ ] Create ALB Ingress
-- [ ] Configure SSL certificate (ACM)
-- [ ] Set up DNS (Route 53)
-- [ ] Verify end-to-end connectivity
+- [x] Deploy API to EKS
+- [x] Create ALB Ingress
+- [x] Configure SSL certificate (ACM)
+- [x] Set up DNS (Route 53)
+- [x] Verify end-to-end connectivity
 
 ### Phase 5: Supporting Services
 
-- [ ] Create S3 bucket for assets
+- [x] Create S3 bucket for assets
 - [ ] Set up CloudFront distribution
-- [ ] Configure Twilio integration
-- [ ] Set up SES for emails
+- [x] Configure Twilio integration
+- [x] Set up SES for emails
 - [ ] Configure CloudWatch logging
 
 ---

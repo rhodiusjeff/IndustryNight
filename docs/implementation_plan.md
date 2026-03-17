@@ -55,14 +55,14 @@ This document outlines the implementation plan for the Industry Night platform, 
 **Goal:** Core infrastructure and authentication working
 
 **Backend:**
-- [ ] AWS EKS cluster setup
-- [ ] Node.js API scaffold (Express or Fastify)
-- [ ] Database setup (PostgreSQL on RDS)
-- [ ] JWT authentication implementation
-- [ ] SMS verification flow (Twilio or SNS)
-- [ ] Posh webhook endpoint (receive + validate)
-- [ ] User CRUD operations
-- [ ] Basic logging and monitoring
+- [x] AWS EKS cluster setup
+- [x] Node.js API scaffold (Express or Fastify)
+- [x] Database setup (PostgreSQL on RDS)
+- [x] JWT authentication implementation
+- [x] SMS verification flow (Twilio or SNS)
+- [x] Posh webhook endpoint (receive + validate)
+- [x] User CRUD operations
+- [x] Basic logging and monitoring
 
 **Deliverable:** Users can be created via Posh webhook or admin, and can authenticate via SMS
 
@@ -72,20 +72,20 @@ This document outlines the implementation plan for the Industry Night platform, 
 **Goal:** Users can log in, set up profile, browse events
 
 **Mobile Screens:**
-- [ ] Splash / Loading
-- [ ] Phone Entry (login)
-- [ ] SMS Code Verification
+- [x] Splash / Loading
+- [x] Phone Entry (login)
+- [x] SMS Code Verification
 - [ ] "Not Registered" screen (link to Posh)
-- [ ] Profile Setup (name, bio, specialty, socials, photo)
-- [ ] Home (events list)
-- [ ] Event Detail (basic - no social features yet)
-- [ ] Profile View (own profile)
-- [ ] Settings
+- [x] Profile Setup (name, bio, specialty, socials, photo)
+- [x] Home (events list)
+- [x] Event Detail (basic - no social features yet)
+- [x] Profile View (own profile)
+- [x] Settings
 
 **Backend Additions:**
-- [ ] Event CRUD endpoints
-- [ ] Profile update endpoints
-- [ ] Specialty list endpoint
+- [x] Event CRUD endpoints
+- [x] Profile update endpoints
+- [x] Specialty list endpoint
 
 **Deliverable:** Registered users can log in and set up profiles. Events are visible.
 
@@ -95,19 +95,19 @@ This document outlines the implementation plan for the Industry Night platform, 
 **Goal:** Full verification flow and connection-making at events
 
 **Mobile Screens:**
-- [ ] Activation Code Entry
-- [ ] My QR Code display
-- [ ] QR Scanner
-- [ ] Connection Success modal
-- [ ] My Connections list
-- [ ] Connection Profile View
+- [x] Activation Code Entry
+- [x] My QR Code display
+- [x] QR Scanner
+- [x] Connection Success modal
+- [x] My Connections list
+- [x] Connection Profile View
 
 **Backend Additions:**
-- [ ] Activation code validation endpoint
-- [ ] Event check-in endpoint
-- [ ] Connection creation endpoint
-- [ ] Connections list endpoint
-- [ ] User verification status updates
+- [x] Activation code validation endpoint
+- [x] Event check-in endpoint
+- [x] Connection creation endpoint
+- [x] Connections list endpoint
+- [x] User verification status updates
 
 **Deliverable:** Users can check in at events, scan QR codes, make connections, become verified
 
@@ -134,15 +134,15 @@ This document outlines the implementation plan for the Industry Night platform, 
 **Goal:** Verified users can post and view community content
 
 **Mobile Screens:**
-- [ ] Community Board feed
-- [ ] Create Post screen
-- [ ] Post Detail view
+- [x] Community Board feed
+- [x] Create Post screen
+- [x] Post Detail view
 - [ ] "Verify to access" gate (for unverified users)
 
 **Backend Additions:**
-- [ ] Post CRUD endpoints
-- [ ] Post feed endpoint (with pagination)
-- [ ] Announcement flag support
+- [x] Post CRUD endpoints
+- [x] Post feed endpoint (with pagination)
+- [x] Announcement flag support
 
 **Deliverable:** Verified users can view and create posts
 
@@ -152,14 +152,14 @@ This document outlines the implementation plan for the Industry Night platform, 
 **Goal:** Users can find other creatives by specialty
 
 **Mobile Screens:**
-- [ ] Search screen
-- [ ] Filter by specialty
-- [ ] Search results list
-- [ ] Profile view (other users)
+- [x] Search screen
+- [x] Filter by specialty
+- [x] Search results list
+- [x] Profile view (other users)
 
 **Backend Additions:**
-- [ ] User search endpoint (with filters)
-- [ ] Public profile endpoint
+- [x] User search endpoint (with filters)
+- [x] Public profile endpoint
 
 **Deliverable:** Users can search and discover other creatives
 
@@ -169,16 +169,16 @@ This document outlines the implementation plan for the Industry Night platform, 
 **Goal:** Basic admin dashboard functional
 
 **Web Screens:**
-- [ ] Admin Login
-- [ ] Dashboard (overview stats)
-- [ ] User List (search, filter, view)
-- [ ] User Detail (view profile, verification status, ban)
-- [ ] Add User (manual entry)
+- [x] Admin Login
+- [x] Dashboard (overview stats)
+- [x] User List (search, filter, view)
+- [x] User Detail (view profile, verification status, ban)
+- [x] Add User (manual entry)
 
 **Backend Additions:**
-- [ ] Admin-only endpoints (role-based access)
-- [ ] User management endpoints (list, search, ban)
-- [ ] Basic analytics queries
+- [x] Admin-only endpoints (role-based access)
+- [x] User management endpoints (list, search, ban)
+- [x] Basic analytics queries
 
 **Deliverable:** Admins can view and manage users
 
@@ -188,21 +188,21 @@ This document outlines the implementation plan for the Industry Night platform, 
 **Goal:** Full event management capability
 
 **Web Screens:**
-- [ ] Event List
-- [ ] Create Event
+- [x] Event List
+- [x] Create Event
   - Basic info (title, description, venue, date/time)
   - Activation code generation
   - Code validity window
 - [ ] Edit Event
-- [ ] Event Detail
+- [x] Event Detail
   - Attendee list (who has tickets)
   - Check-in list (who entered code)
   - Connection activity
 - [ ] Duplicate Event (for recurring)
 
 **Backend Additions:**
-- [ ] Admin event endpoints
-- [ ] Activation code management
+- [x] Admin event endpoints
+- [x] Activation code management
 - [ ] Event analytics endpoints
 
 **Deliverable:** Admins can create and manage events with activation codes
@@ -213,26 +213,26 @@ This document outlines the implementation plan for the Industry Night platform, 
 **Goal:** Full sponsor and discount management
 
 **Web Screens:**
-- [ ] Sponsor List (by tier: title, app, event)
-- [ ] Create/Edit Sponsor
+- [x] Sponsor List (by tier: title, app, event)
+- [x] Create/Edit Sponsor
   - Name, logo, description
   - Tier assignment
   - Social links
 - [ ] Sponsor Detail
   - Associated events
   - Discount codes
-- [ ] Discount Management
+- [x] Discount Management
   - Create discount code
   - Set expiration
   - View redemption stats (future)
 
 **Mobile Additions:**
-- [ ] Perks/Discounts screen (verified users)
-- [ ] Sponsor detail view
+- [x] Perks/Discounts screen (verified users)
+- [x] Sponsor detail view
 
 **Backend Additions:**
-- [ ] Sponsor CRUD endpoints
-- [ ] Discount CRUD endpoints
+- [x] Sponsor CRUD endpoints
+- [x] Discount CRUD endpoints
 - [ ] Event-sponsor association
 
 **Deliverable:** Admins can manage sponsors and discounts. Users see perks.
@@ -243,8 +243,8 @@ This document outlines the implementation plan for the Industry Night platform, 
 **Goal:** Event vendor management
 
 **Web Screens:**
-- [ ] Vendor List
-- [ ] Create/Edit Vendor
+- [x] Vendor List
+- [x] Create/Edit Vendor
   - Name, logo, description
   - What they offer
 - [ ] Assign Vendors to Events
@@ -253,7 +253,7 @@ This document outlines the implementation plan for the Industry Night platform, 
 - [ ] Vendors section on Event Detail
 
 **Backend Additions:**
-- [ ] Vendor CRUD endpoints
+- [x] Vendor CRUD endpoints
 - [ ] Event-vendor association
 
 **Deliverable:** Admins can manage vendors per event
@@ -264,15 +264,15 @@ This document outlines the implementation plan for the Industry Night platform, 
 **Goal:** Community board moderation tools
 
 **Web Screens:**
-- [ ] Post List (with filters: reported, recent, by user)
+- [x] Post List (with filters: reported, recent, by user)
 - [ ] Post Detail (view, delete)
-- [ ] User ban management
-- [ ] Announcement creation
+- [x] User ban management
+- [x] Announcement creation
 
 **Backend Additions:**
 - [ ] Report post endpoint
-- [ ] Admin post deletion
-- [ ] Announcement creation endpoint
+- [x] Admin post deletion
+- [x] Announcement creation endpoint
 
 **Deliverable:** Admins can moderate community content
 
@@ -533,12 +533,12 @@ Phase 1A: Backend Foundation
 
 ## Technical Decisions Needed
 
-- [ ] Database: PostgreSQL (RDS) vs DynamoDB vs Aurora
-- [ ] SMS Provider: Twilio vs AWS SNS
-- [ ] Image Storage: S3 + CloudFront
-- [ ] API Framework: Express vs Fastify vs NestJS
-- [ ] Web Admin Framework: Flutter Web vs React vs Vue
-- [ ] CI/CD: GitHub Actions vs AWS CodePipeline
+- [x] Database: PostgreSQL (RDS) vs DynamoDB vs Aurora
+- [x] SMS Provider: Twilio vs AWS SNS
+- [x] Image Storage: S3 + CloudFront
+- [x] API Framework: Express vs Fastify vs NestJS
+- [x] Web Admin Framework: Flutter Web vs React vs Vue
+- [x] CI/CD: GitHub Actions vs AWS CodePipeline
 
 ---
 
