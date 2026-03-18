@@ -8,6 +8,7 @@ import { query, queryOne } from '../config/database';
 import { generateActivationCode } from '../utils/jwt';
 import { NotFoundError, BadRequestError } from '../utils/errors';
 import { uploadImage, deleteImage } from '../services/storage';
+import { tryLogSecurityEventFromRequest } from '../services/audit';
 
 const router = Router();
 
@@ -246,6 +247,17 @@ const updateUserSchema = z.object({
 router.patch('/users/:id', validate(updateUserSchema), async (req, res, next): Promise<void> => {
   try {
     const { role, banned, verificationStatus } = req.body;
+    const existingUser = await queryOne<{
+      id: string;
+      role: string;
+      banned: boolean;
+      verification_status: string;
+    }>(
+      'SELECT id, role, banned, verification_status FROM users WHERE id = $1',
+      [req.params.id]
+    );
+
+    if (!existingUser) throw new NotFoundError('User not found');
 
     const updates: string[] = [];
     const params: unknown[] = [];
@@ -267,12 +279,66 @@ router.patch('/users/:id', validate(updateUserSchema), async (req, res, next): P
     updates.push('updated_at = NOW()');
     params.push(req.params.id);
 
-    const user = await queryOne(
+    const user = await queryOne<any>(
       `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
       params
     );
 
     if (!user) throw new NotFoundError('User not found');
+
+    const adminActorId = req.user!.userId;
+
+    if (existingUser.role !== user.role) {
+      await tryLogSecurityEventFromRequest(req, {
+        action: 'update',
+        entityType: 'user',
+        entityId: user.id,
+        actorType: 'admin',
+        adminActorId,
+        result: 'success',
+        statusCode: 200,
+        oldValues: { role: existingUser.role },
+        newValues: { role: user.role },
+        metadata: { field: 'role' },
+      });
+    }
+
+    if (existingUser.banned !== user.banned) {
+      await tryLogSecurityEventFromRequest(req, {
+        action: user.banned ? 'ban' : 'unban',
+        entityType: 'user',
+        entityId: user.id,
+        actorType: 'admin',
+        adminActorId,
+        result: 'success',
+        statusCode: 200,
+        oldValues: { banned: existingUser.banned },
+        newValues: { banned: user.banned },
+        metadata: { field: 'banned' },
+      });
+    }
+
+    if (existingUser.verification_status !== user.verification_status) {
+      const verificationAction =
+        user.verification_status === 'verified'
+          ? 'verify'
+          : user.verification_status === 'rejected'
+            ? 'reject'
+            : 'update';
+
+      await tryLogSecurityEventFromRequest(req, {
+        action: verificationAction,
+        entityType: 'user',
+        entityId: user.id,
+        actorType: 'admin',
+        adminActorId,
+        result: 'success',
+        statusCode: 200,
+        oldValues: { verificationStatus: existingUser.verification_status },
+        newValues: { verificationStatus: user.verification_status },
+        metadata: { field: 'verification_status' },
+      });
+    }
 
     res.json({ user });
   } catch (error) {
@@ -550,11 +616,23 @@ router.patch('/events/:id', validate(updateEventSchema), async (req, res, next):
 
 router.delete('/events/:id', async (req, res, next): Promise<void> => {
   try {
-    const rows = await query('SELECT status FROM events WHERE id = $1', [req.params.id]);
+    const rows = await query<{ status: string }>('SELECT status FROM events WHERE id = $1', [req.params.id]);
     if (rows.length === 0) throw new NotFoundError('Event not found');
-    if ((rows[0] as any).status !== 'draft') {
+    if (rows[0].status !== 'draft') {
       throw new BadRequestError('Only draft events can be deleted');
     }
+
+    await tryLogSecurityEventFromRequest(req, {
+      action: 'delete',
+      entityType: 'event',
+      entityId: req.params.id,
+      actorType: 'admin',
+      adminActorId: req.user!.userId,
+      result: 'success',
+      statusCode: 200,
+      oldValues: { status: rows[0].status },
+    });
+
     await query('DELETE FROM events WHERE id = $1', [req.params.id]);
     res.json({ message: 'Event deleted' });
   } catch (error) {
@@ -654,6 +732,23 @@ router.delete('/events/:id/images/:imageId', async (req, res, next): Promise<voi
 
     if (!image) throw new NotFoundError('Image not found');
     if (image.event_id !== req.params.id) throw new NotFoundError('Image not found');
+
+    await tryLogSecurityEventFromRequest(req, {
+      action: 'delete',
+      entityType: 'event_image',
+      entityId: image.id,
+      actorType: 'admin',
+      adminActorId: req.user!.userId,
+      result: 'success',
+      statusCode: 200,
+      oldValues: {
+        eventId: image.event_id,
+        sortOrder: image.sort_order,
+      },
+      metadata: {
+        imageUrl: image.url,
+      },
+    });
 
     await deleteImage(image.url);
     await query('DELETE FROM event_images WHERE id = $1', [req.params.imageId]);
@@ -1285,6 +1380,16 @@ router.delete('/customers/:id', async (req, res, next): Promise<void> => {
   try {
     const customer = await queryOne('SELECT id FROM customers WHERE id = $1', [req.params.id]);
     if (!customer) throw new NotFoundError('Customer not found');
+
+    await tryLogSecurityEventFromRequest(req, {
+      action: 'delete',
+      entityType: 'customer',
+      entityId: req.params.id,
+      actorType: 'admin',
+      adminActorId: req.user!.userId,
+      result: 'success',
+      statusCode: 200,
+    });
 
     await query('DELETE FROM customers WHERE id = $1', [req.params.id]);
     res.json({ message: 'Customer deleted' });

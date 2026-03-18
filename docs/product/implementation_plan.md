@@ -306,6 +306,16 @@ This document outlines the implementation plan for the Industry Night platform, 
 - [ ] Posh API sync (automatic event import)
 - [ ] Android release
 
+### Phase 4: Infrastructure Scaling (Post-Revenue)
+- [ ] **Migrate prod RDS PostgreSQL → Aurora Serverless v2 (PostgreSQL-compatible)**
+  - Production only — dev stays on RDS PostgreSQL (simpler, cheaper at dev scale)
+  - Aurora Serverless v2 scales instantly between min/max ACUs based on load, eliminating idle cost during off-hours
+  - Continuous backup to S3 at 1-second granularity (vs daily snapshots on RDS)
+  - ~30s failover vs 1-2 min on RDS; up to 15 read replicas if needed
+  - Migration path: snapshot RDS → restore into Aurora cluster → update connection string → verify
+  - Defer until real load patterns exist to right-size min/max ACU settings
+- [ ] Upgrade EKS node group if API load warrants it (currently t3.small)
+
 ---
 
 ## Mobile App Screen Inventory

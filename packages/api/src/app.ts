@@ -41,6 +41,10 @@ app.use(cors({
 }));
 app.use(compression());
 app.use(requestContext);
+
+// Webhooks must receive the raw body for signature verification.
+app.use('/webhooks', webhooksRoutes);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -115,7 +119,6 @@ app.use('/posts', postsRoutes);
 app.use('/sponsors', sponsorsRoutes);
 app.use('/vendors', vendorsRoutes);
 app.use('/discounts', discountsRoutes);
-app.use('/webhooks', webhooksRoutes);
 app.use('/admin/auth', adminAuthLimiter, adminAuthRoutes);
 app.use('/admin', adminRoutes);
 

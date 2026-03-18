@@ -6,44 +6,77 @@ import { tryLogSecurityEventFromRequest } from '../services/audit';
 
 const router = Router();
 
+function safeEquals(a: string, b: string): boolean {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  return left.length === right.length && crypto.timingSafeEqual(left, right);
+}
+
 // Posh webhook endpoint
+// Posh sends the shared secret as a plain header value in `Posh-Secret`.
+// We also support the legacy `x-posh-signature` HMAC approach for backwards
+// compatibility — if neither header is present the request is rejected.
 router.post('/posh', raw({ type: 'application/json' }), async (req, res, next): Promise<void> => {
   try {
-    // Verify webhook signature
-    const signature = req.headers['x-posh-signature'] as string;
+    const rawBody = Buffer.isBuffer(req.body)
+      ? req.body
+      : Buffer.from(
+          typeof req.body === 'string'
+            ? req.body
+            : req.body
+              ? JSON.stringify(req.body)
+              : ''
+        );
 
-    if (!signature || !config.posh.webhookSecret) {
+    // --- Authenticate the request ---
+    const poshSecretHeader = req.headers['posh-secret'];
+    const hmacSignatureHeader = req.headers['x-posh-signature'];
+    const poshSecret = Array.isArray(poshSecretHeader)
+      ? poshSecretHeader[0]
+      : poshSecretHeader;
+    const hmacSignature = Array.isArray(hmacSignatureHeader)
+      ? hmacSignatureHeader[0]
+      : hmacSignatureHeader;
+
+    if (!config.posh.webhookSecret) {
       await tryLogSecurityEventFromRequest(req, {
         action: 'reject',
         entityType: 'webhook',
         actorType: 'system',
         result: 'failure',
-        failureReason: !signature ? 'missing_signature' : 'missing_webhook_secret',
+        failureReason: 'missing_webhook_secret',
         statusCode: 401,
-        metadata: {
-          source: 'posh',
-        },
+        metadata: { source: 'posh' },
       });
       res.status(401).json({ message: 'Unauthorized' });
       return;
     }
 
-    const expectedSignature = crypto
-      .createHmac('sha256', config.posh.webhookSecret)
-      .update(req.body)
-      .digest('hex');
+    let authenticated = false;
 
-    if (signature !== expectedSignature) {
+    // Method 1: Plain shared-secret header (Posh-Secret)
+    if (poshSecret) {
+      authenticated = safeEquals(poshSecret, config.posh.webhookSecret);
+    }
+
+    // Method 2: HMAC signature header (x-posh-signature) — legacy/fallback
+    if (!authenticated && hmacSignature) {
+      const expectedSignature = crypto
+        .createHmac('sha256', config.posh.webhookSecret)
+        .update(rawBody)
+        .digest('hex');
+      authenticated = safeEquals(hmacSignature, expectedSignature);
+    }
+
+    if (!authenticated) {
       await tryLogSecurityEventFromRequest(req, {
         action: 'reject',
         entityType: 'webhook',
         actorType: 'system',
         result: 'failure',
-        failureReason: 'invalid_signature',
+        failureReason: !poshSecret && !hmacSignature ? 'missing_signature' : 'invalid_signature',
         statusCode: 401,
-        metadata: {
-          source: 'posh',
-        },
+        metadata: { source: 'posh' },
       });
       res.status(401).json({ message: 'Invalid signature' });
       return;
@@ -51,7 +84,7 @@ router.post('/posh', raw({ type: 'application/json' }), async (req, res, next): 
 
     let payload: { type: string; [key: string]: unknown };
     try {
-      payload = JSON.parse(req.body.toString()) as { type: string; [key: string]: unknown };
+      payload = JSON.parse(rawBody.toString()) as { type: string; [key: string]: unknown };
     } catch {
       await tryLogSecurityEventFromRequest(req, {
         action: 'reject',
