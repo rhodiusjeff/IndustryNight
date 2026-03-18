@@ -476,21 +476,22 @@ const createEventSchema = z.object({
     description: z.string().optional(),
     capacity: z.number().positive().optional(),
     poshEventId: z.string().optional(),
+    poshEventUrl: z.string().optional(),
     marketId: z.string().uuid().optional(),
   }),
 });
 
 router.post('/events', validate(createEventSchema), async (req, res, next) => {
   try {
-    const { name, venueName, venueAddress, startTime, endTime, description, capacity, poshEventId, marketId } = req.body;
+    const { name, venueName, venueAddress, startTime, endTime, description, capacity, poshEventId, poshEventUrl, marketId } = req.body;
     const activationCode = generateActivationCode();
 
     const row = await queryOne(
       `INSERT INTO events
-         (name, venue_name, venue_address, start_time, end_time, description, capacity, activation_code, posh_event_id, market_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         (name, venue_name, venue_address, start_time, end_time, description, capacity, activation_code, posh_event_id, posh_event_url, market_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
-      [name, venueName ?? null, venueAddress ?? null, startTime, endTime, description ?? null, capacity ?? null, activationCode, poshEventId ?? null, marketId ?? null]
+      [name, venueName ?? null, venueAddress ?? null, startTime, endTime, description ?? null, capacity ?? null, activationCode, poshEventId ?? null, poshEventUrl ?? null, marketId ?? null]
     );
 
     // Join market name for the response
@@ -520,6 +521,7 @@ const updateEventSchema = z.object({
     startTime: z.string().min(1).optional(),
     endTime: z.string().min(1).optional(),
     poshEventId: z.string().nullable().optional(),
+    poshEventUrl: z.string().nullable().optional(),
     status: z.enum(['draft', 'published', 'cancelled', 'completed']).optional(),
     capacity: z.number().positive().nullable().optional(),
     marketId: z.string().uuid().nullable().optional(),
@@ -528,7 +530,7 @@ const updateEventSchema = z.object({
 
 router.patch('/events/:id', validate(updateEventSchema), async (req, res, next): Promise<void> => {
   try {
-    const { name, description, venueName, venueAddress, startTime, endTime, poshEventId, status, capacity, marketId } = req.body;
+    const { name, description, venueName, venueAddress, startTime, endTime, poshEventId, poshEventUrl, status, capacity, marketId } = req.body;
 
     // Publish gate: verify all requirements before allowing status → published
     if (status === 'published') {
@@ -575,6 +577,7 @@ router.patch('/events/:id', validate(updateEventSchema), async (req, res, next):
     if (startTime    !== undefined) { updates.push(`start_time = $${paramIndex++}`);    params.push(startTime); }
     if (endTime      !== undefined) { updates.push(`end_time = $${paramIndex++}`);      params.push(endTime); }
     if (poshEventId  !== undefined) { updates.push(`posh_event_id = $${paramIndex++}`); params.push(poshEventId); }
+    if (poshEventUrl !== undefined) { updates.push(`posh_event_url = $${paramIndex++}`); params.push(poshEventUrl); }
     if (status       !== undefined) { updates.push(`status = $${paramIndex++}`);        params.push(status); }
     if (capacity     !== undefined) { updates.push(`capacity = $${paramIndex++}`);      params.push(capacity); }
     if (marketId     !== undefined) { updates.push(`market_id = $${paramIndex++}`);     params.push(marketId); }

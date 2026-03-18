@@ -216,6 +216,7 @@ class AdminApi {
     String? description,
     int? capacity,
     String? poshEventId,
+    String? poshEventUrl,
     String? marketId,
   }) async {
     final response = await _client.post<Map<String, dynamic>>(
@@ -229,6 +230,7 @@ class AdminApi {
         if (description != null) 'description': description,
         if (capacity != null) 'capacity': capacity,
         if (poshEventId != null) 'poshEventId': poshEventId,
+        if (poshEventUrl != null) 'poshEventUrl': poshEventUrl,
         if (marketId != null) 'marketId': marketId,
       },
     );
@@ -243,6 +245,7 @@ class AdminApi {
     DateTime? startTime,
     DateTime? endTime,
     String? poshEventId,
+    String? poshEventUrl,
     EventStatus? status,
     int? capacity,
     String? marketId,
@@ -255,6 +258,7 @@ class AdminApi {
     if (startTime != null)    body['startTime'] = startTime.toIso8601String();
     if (endTime != null)      body['endTime'] = endTime.toIso8601String();
     if (poshEventId != null)  body['poshEventId'] = poshEventId;
+    if (poshEventUrl != null) body['poshEventUrl'] = poshEventUrl;
     if (status != null)       body['status'] = status.name;
     if (capacity != null)     body['capacity'] = capacity;
     if (marketId != null)     body['marketId'] = marketId;

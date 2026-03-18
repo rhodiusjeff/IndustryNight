@@ -296,6 +296,7 @@ DB_HOST_VAL="$NEW_RDS_ENDPOINT"
 DB_USER_VAL=$(echo "$SECRET_JSON" | python3 -c "import sys, json; print(json.load(sys.stdin).get('username', '$RDS_MASTER_USER'))")
 DB_PASS_VAL=$(echo "$SECRET_JSON" | python3 -c "import sys, json; print(json.load(sys.stdin)['password'])")
 POSH_WEBHOOK_SECRET_VAL=$(echo "$SECRET_JSON" | python3 -c "import sys, json; print(json.load(sys.stdin).get('POSH_WEBHOOK_SECRET', ''))")
+POSH_WEBHOOK_COMPAT_MODE_VAL=$(echo "$SECRET_JSON" | python3 -c "import sys, json; print(json.load(sys.stdin).get('POSH_WEBHOOK_COMPAT_MODE', 'false'))")
 
 # Step 7: Apply Kubernetes manifests
 log_step $((++CURRENT_STEP)) $TOTAL_STEPS "Applying Kubernetes manifests..."
@@ -323,6 +324,10 @@ if [[ -n "$POSH_WEBHOOK_SECRET_VAL" ]]; then
 else
   log_warn "  POSH_WEBHOOK_SECRET missing in Secrets Manager; webhook signature validation will reject requests"
 fi
+
+kube_cmd patch secret industrynight-secrets -n "$K8S_NAMESPACE" --type merge \
+  -p "{\"stringData\":{\"POSH_WEBHOOK_COMPAT_MODE\":\"$POSH_WEBHOOK_COMPAT_MODE_VAL\"}}" >/dev/null
+log_info "  Added POSH_WEBHOOK_COMPAT_MODE=$POSH_WEBHOOK_COMPAT_MODE_VAL to K8s secret"
 
 log_info "  K8s secrets created"
 

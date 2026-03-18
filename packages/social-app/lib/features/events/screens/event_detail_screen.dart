@@ -23,9 +23,13 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   String? _error;
   int _currentImageIndex = 0;
 
+  late final WidgetsBindingObserver _lifecycleObserver =
+      _EventDetailLifecycleObserver(onResumed: _handleAppResumed);
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(_lifecycleObserver);
     _loadEvent();
   }
 
@@ -78,6 +82,20 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         _isLoadingTicket = false;
       });
     }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(_lifecycleObserver);
+    super.dispose();
+  }
+
+  Future<void> _handleAppResumed() async {
+    if (!mounted || _isLoading) return;
+
+    // Pull fresh event + ticket state when returning from external apps (e.g. Posh)
+    // so ticket UI transitions without requiring logout/login.
+    await _loadEvent();
   }
 
   @override
@@ -390,6 +408,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   }
 
   Widget _buildGetTicketsCard(Event event) {
+    final hasPoshLink =
+      event.poshEventUrl != null && event.poshEventUrl!.trim().isNotEmpty;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -406,16 +427,21 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
-            if (event.poshEventId != null) ...[
+            if (hasPoshLink) ...[
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: () async {
-                    final url = Uri.parse('https://posh.vip/e/${event.poshEventId}');
-                    if (await canLaunchUrl(url)) {
-                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                    final url = _poshUriForEvent(event);
+                    if (url == null) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('No valid Posh ticket link is configured for this event.')),
+                      );
+                      return;
                     }
+                    await _openTicketUrl(url);
                   },
                   icon: const Icon(Icons.open_in_new),
                   label: const Text('Get Tickets on Posh'),
@@ -426,6 +452,51 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         ),
       ),
     );
+  }
+
+  Uri? _poshUriForEvent(Event event) {
+    final rawUrl = (event.poshEventUrl != null && event.poshEventUrl!.trim().isNotEmpty)
+      ? event.poshEventUrl!.trim()
+      : null;
+
+    if (rawUrl == null) return null;
+
+    final withScheme = rawUrl.contains('://') ? rawUrl : 'https://$rawUrl';
+    return Uri.tryParse(withScheme);
+  }
+
+  Future<void> _openTicketUrl(Uri url) async {
+    try {
+      final launched = await launchUrl(url, mode: LaunchMode.externalApplication);
+      if (launched) return;
+    } catch (_) {
+      // Fall through to platform-default attempt.
+    }
+
+    try {
+      final launched = await launchUrl(url, mode: LaunchMode.platformDefault);
+      if (launched) return;
+    } catch (_) {
+      // Fall through to snackbar.
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Could not open ticket link: $url')),
+    );
+  }
+}
+
+class _EventDetailLifecycleObserver with WidgetsBindingObserver {
+  final Future<void> Function() onResumed;
+
+  _EventDetailLifecycleObserver({required this.onResumed});
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      onResumed();
+    }
   }
 }
 

@@ -1,4 +1,4 @@
-import { Router, raw } from 'express';
+import { Router, Response, raw } from 'express';
 import crypto from 'crypto';
 import { config } from '../config/env';
 import { processPoshWebhook } from '../services/posh';
@@ -10,6 +10,14 @@ function safeEquals(a: string, b: string): boolean {
   const left = Buffer.from(a);
   const right = Buffer.from(b);
   return left.length === right.length && crypto.timingSafeEqual(left, right);
+}
+
+function respondWebhook(res: Response, statusCode: number, message: string): void {
+  if (config.posh.webhookCompatMode) {
+    res.status(200).json({ message: 'Webhook received' });
+    return;
+  }
+  res.status(statusCode).json({ message });
 }
 
 // Posh webhook endpoint
@@ -46,9 +54,13 @@ router.post('/posh', raw({ type: 'application/json' }), async (req, res, next): 
         result: 'failure',
         failureReason: 'missing_webhook_secret',
         statusCode: 401,
-        metadata: { source: 'posh' },
+        metadata: {
+          source: 'posh',
+          responseMode: config.posh.webhookCompatMode ? 'compat_always_200' : 'strict_status',
+          logicalStatusCode: 401,
+        },
       });
-      res.status(401).json({ message: 'Unauthorized' });
+      respondWebhook(res, 401, 'Unauthorized');
       return;
     }
 
@@ -76,9 +88,13 @@ router.post('/posh', raw({ type: 'application/json' }), async (req, res, next): 
         result: 'failure',
         failureReason: !poshSecret && !hmacSignature ? 'missing_signature' : 'invalid_signature',
         statusCode: 401,
-        metadata: { source: 'posh' },
+        metadata: {
+          source: 'posh',
+          responseMode: config.posh.webhookCompatMode ? 'compat_always_200' : 'strict_status',
+          logicalStatusCode: 401,
+        },
       });
-      res.status(401).json({ message: 'Invalid signature' });
+      respondWebhook(res, 401, 'Invalid signature');
       return;
     }
 
@@ -95,9 +111,11 @@ router.post('/posh', raw({ type: 'application/json' }), async (req, res, next): 
         statusCode: 400,
         metadata: {
           source: 'posh',
+          responseMode: config.posh.webhookCompatMode ? 'compat_always_200' : 'strict_status',
+          logicalStatusCode: 400,
         },
       });
-      res.status(400).json({ message: 'Malformed payload' });
+      respondWebhook(res, 400, 'Malformed payload');
       return;
     }
 
@@ -111,6 +129,7 @@ router.post('/posh', raw({ type: 'application/json' }), async (req, res, next): 
       statusCode: 200,
       metadata: {
         source: 'posh',
+        responseMode: config.posh.webhookCompatMode ? 'compat_always_200' : 'strict_status',
       },
     });
 
@@ -125,8 +144,14 @@ router.post('/posh', raw({ type: 'application/json' }), async (req, res, next): 
       statusCode: 500,
       metadata: {
         source: 'posh',
+        responseMode: config.posh.webhookCompatMode ? 'compat_always_200' : 'strict_status',
+        logicalStatusCode: 500,
       },
     });
+    if (config.posh.webhookCompatMode) {
+      res.status(200).json({ message: 'Webhook received' });
+      return;
+    }
     next(error);
   }
 });

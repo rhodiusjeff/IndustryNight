@@ -35,6 +35,7 @@ const envSchema = z.object({
 
   // Posh
   POSH_WEBHOOK_SECRET: z.string().optional(),
+  POSH_WEBHOOK_COMPAT_MODE: z.string().default('false'),
 
   // Audit
   AUDIT_ENABLED: z.string().default('true'),
@@ -88,6 +89,7 @@ export const config = {
 
   posh: {
     webhookSecret: env.data.POSH_WEBHOOK_SECRET,
+    webhookCompatMode: env.data.POSH_WEBHOOK_COMPAT_MODE === 'true',
   },
 
   audit: {

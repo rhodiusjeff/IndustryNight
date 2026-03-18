@@ -68,6 +68,7 @@ class Event extends Equatable {
 
   final String? activationCode;
   final String? poshEventId;
+  final String? poshEventUrl;
 
   @JsonKey(fromJson: _eventStatusFromJson, toJson: _eventStatusToJson)
   final EventStatus status;
@@ -112,6 +113,7 @@ class Event extends Equatable {
     required this.endTime,
     this.activationCode,
     this.poshEventId,
+    this.poshEventUrl,
     this.status = EventStatus.draft,
     this.capacity,
     this.attendeeCount = 0,
@@ -143,6 +145,7 @@ class Event extends Equatable {
     DateTime? endTime,
     String? activationCode,
     String? poshEventId,
+    String? poshEventUrl,
     EventStatus? status,
     int? capacity,
     int? attendeeCount,
@@ -169,6 +172,7 @@ class Event extends Equatable {
       endTime: endTime ?? this.endTime,
       activationCode: activationCode ?? this.activationCode,
       poshEventId: poshEventId ?? this.poshEventId,
+      poshEventUrl: poshEventUrl ?? this.poshEventUrl,
       status: status ?? this.status,
       capacity: capacity ?? this.capacity,
       attendeeCount: attendeeCount ?? this.attendeeCount,
@@ -212,7 +216,7 @@ class Event extends Equatable {
         venueName, venueAddress,
         marketId, marketName,
         startTime, endTime,
-        activationCode, poshEventId,
+        activationCode, poshEventId, poshEventUrl,
         status, capacity, attendeeCount,
         heroImageUrl, imageCount, partnerCount,
         images, partners,
