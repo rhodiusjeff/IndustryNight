@@ -153,9 +153,9 @@ log_step() {
   echo -e "\n${BOLD}[$step/$total]${NC} $msg"
 }
 
-# Run AWS CLI with profile
+# Run AWS CLI with profile (pager disabled to avoid interactive prompts in scripts)
 aws_cmd() {
-  AWS_PROFILE=$AWS_PROFILE aws --region $AWS_REGION "$@"
+  AWS_PROFILE=$AWS_PROFILE AWS_PAGER="" aws --region $AWS_REGION "$@"
 }
 
 # Run kubectl with AWS profile

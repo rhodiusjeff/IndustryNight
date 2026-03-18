@@ -8,7 +8,12 @@ kind: ClusterConfig
 metadata:
   name: __CLUSTER_NAME__
   region: __REGION__
-  version: "1.31"
+  version: "1.35"
+
+# Explicitly disable Auto Mode (eksctl will make this the default in a future release).
+# We use managed node groups, so Auto Mode must remain off.
+autoModeConfig:
+  enabled: false
 
 # IAM configuration
 iam:
@@ -45,7 +50,7 @@ managedNodeGroups:
     maxSize: __MAX_SIZE__
     volumeSize: 20
     volumeType: gp3
-    amiFamily: AmazonLinux2
+    amiFamily: AmazonLinux2023
     labels:
       role: worker
     tags:

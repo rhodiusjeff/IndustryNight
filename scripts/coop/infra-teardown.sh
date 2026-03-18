@@ -347,11 +347,24 @@ if [[ "$EKS_STATUS" != "NOT_FOUND" ]]; then
         done
 
         # Delete non-default security groups
+        # Revoke all rules first to clear cross-SG references that block deletion
         SGS=$(aws_cmd ec2 describe-security-groups \
           --filters "Name=vpc-id,Values=$VPC_ID" \
           --query "SecurityGroups[?GroupName!='default'].GroupId" \
           --output text 2>/dev/null || echo "")
         for sg in $SGS; do
+          INGRESS=$(aws_cmd ec2 describe-security-groups --group-ids "$sg" \
+            --query 'SecurityGroups[0].IpPermissions' --output json 2>/dev/null || echo "[]")
+          if [[ "$INGRESS" != "[]" && "$INGRESS" != "" ]]; then
+            aws_cmd ec2 revoke-security-group-ingress --group-id "$sg" \
+              --ip-permissions "$INGRESS" 2>/dev/null || true
+          fi
+          EGRESS=$(aws_cmd ec2 describe-security-groups --group-ids "$sg" \
+            --query 'SecurityGroups[0].IpPermissionsEgress' --output json 2>/dev/null || echo "[]")
+          if [[ "$EGRESS" != "[]" && "$EGRESS" != "" ]]; then
+            aws_cmd ec2 revoke-security-group-egress --group-id "$sg" \
+              --ip-permissions "$EGRESS" 2>/dev/null || true
+          fi
           aws_cmd ec2 delete-security-group --group-id "$sg" 2>/dev/null || true
         done
 
