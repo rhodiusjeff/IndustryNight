@@ -10,6 +10,11 @@ metadata:
   region: __REGION__
   version: "1.35"
 
+# Explicitly disable Auto Mode (eksctl will make this the default in a future release).
+# We use managed node groups, so Auto Mode must remain off.
+autoModeConfig:
+  enabled: false
+
 # IAM configuration
 iam:
   withOIDC: true
