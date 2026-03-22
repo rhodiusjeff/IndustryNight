@@ -316,6 +316,11 @@ router.post('/refresh', validate(refreshSchema), async (req, res, next) => {
       user: fullUser,
     });
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      next(error);
+      return;
+    }
+
     await tryLogSecurityEventFromRequest(req, {
       action: 'login',
       entityType: 'auth',

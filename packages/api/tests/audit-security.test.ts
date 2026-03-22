@@ -2,7 +2,7 @@ import request from 'supertest';
 import { getApp } from './helpers/app';
 import { resetDb, getTestPool } from './helpers/db';
 import { resetFixtureCounters, createUser, createAdminUser } from './helpers/fixtures';
-import { adminToken, socialToken } from './helpers/auth';
+import { adminRefreshToken, adminToken, socialToken } from './helpers/auth';
 
 const app = getApp();
 
@@ -83,6 +83,36 @@ describe('Security Audit Logging', () => {
       status_code: 400,
     });
     expect(auditRes.rows[0].metadata).toMatchObject({ flow: 'verify_code' });
+  });
+
+  it('logs a single invalid_refresh_token event for rejected social refresh tokens', async () => {
+    const user = await createUser();
+
+    const res = await request(app)
+      .post('/auth/refresh')
+      .send({ refreshToken: adminRefreshToken(user.id) });
+
+    expect(res.status).toBe(401);
+
+    const pool = getTestPool();
+    const auditRes = await pool.query(
+      `SELECT action, entity_type, result, failure_reason, route, method, status_code, metadata
+       FROM audit_log
+       WHERE route = '/auth/refresh'
+       ORDER BY occurred_at DESC`
+    );
+
+    expect(auditRes.rows).toHaveLength(1);
+    expect(auditRes.rows[0]).toMatchObject({
+      action: 'login',
+      entity_type: 'auth',
+      result: 'failure',
+      failure_reason: 'invalid_refresh_token',
+      route: '/auth/refresh',
+      method: 'POST',
+      status_code: 401,
+    });
+    expect(auditRes.rows[0].metadata).toMatchObject({ flow: 'refresh' });
   });
 
   it('logs ban action for privileged admin user mutation', async () => {
