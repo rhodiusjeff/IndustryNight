@@ -27,8 +27,10 @@ class _EventFormScreenState extends State<EventFormScreen> {
   final _descriptionController = TextEditingController();
   final _capacityController    = TextEditingController();
   final _poshEventIdController = TextEditingController();
+  final _poshEventUrlController = TextEditingController();
 
   DateTime? _startDate;
+  DateTime? _endDate;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
   bool _isSubmitting = false;
@@ -49,7 +51,9 @@ class _EventFormScreenState extends State<EventFormScreen> {
       _descriptionController.text  = e.description ?? '';
       _capacityController.text     = e.capacity?.toString() ?? '';
       _poshEventIdController.text  = e.poshEventId ?? '';
+      _poshEventUrlController.text = e.poshEventUrl ?? '';
       _startDate = e.startTime;
+      _endDate = e.endTime;
       _startTime = TimeOfDay.fromDateTime(e.startTime);
       _endTime   = TimeOfDay.fromDateTime(e.endTime);
       _selectedMarketId = e.marketId;
@@ -79,6 +83,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
     _descriptionController.dispose();
     _capacityController.dispose();
     _poshEventIdController.dispose();
+    _poshEventUrlController.dispose();
     super.dispose();
   }
 
@@ -99,10 +104,10 @@ class _EventFormScreenState extends State<EventFormScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final startDateTime = _combineDateTime(_startDate, _startTime);
-    final endDateTime   = _combineDateTime(_startDate, _endTime);
+    final endDateTime   = _combineDateTime(_endDate, _endTime);
 
     if (startDateTime == null || endDateTime == null) {
-      _showError('Please select date, start time, and end time');
+      _showError('Please select start and end dates/times');
       return;
     }
     if (!endDateTime.isAfter(startDateTime)) {
@@ -123,6 +128,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
           description:  _descriptionController.text.trim().isNotEmpty ? _descriptionController.text.trim() : null,
           capacity:     _capacityController.text.trim().isNotEmpty ? int.tryParse(_capacityController.text.trim()) : null,
           poshEventId:  _poshEventIdController.text.trim().isNotEmpty ? _poshEventIdController.text.trim() : null,
+          poshEventUrl: _poshEventUrlController.text.trim().isNotEmpty ? _poshEventUrlController.text.trim() : null,
           startTime:    startDateTime,
           endTime:      endDateTime,
           marketId:     _selectedMarketId,
@@ -142,6 +148,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
           description:  _descriptionController.text.trim().isNotEmpty ? _descriptionController.text.trim() : null,
           capacity:     _capacityController.text.trim().isNotEmpty ? int.tryParse(_capacityController.text.trim()) : null,
           poshEventId:  _poshEventIdController.text.trim().isNotEmpty ? _poshEventIdController.text.trim() : null,
+          poshEventUrl: _poshEventUrlController.text.trim().isNotEmpty ? _poshEventUrlController.text.trim() : null,
           marketId:     _selectedMarketId,
         );
         if (!mounted) return;
@@ -241,7 +248,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                     Row(
                       children: [
                         Expanded(child: _DateTile(
-                          label: 'Date *',
+                          label: 'Start Date *',
                           value: _startDate != null
                               ? DateFormat('MMM d, yyyy').format(_startDate!)
                               : null,
@@ -263,7 +270,42 @@ class _EventFormScreenState extends State<EventFormScreen> {
                               firstDate: firstDate,
                               lastDate: lastDate,
                             );
-                            if (d != null) setState(() => _startDate = d);
+                            if (d != null) {
+                              setState(() {
+                                _startDate = d;
+                                _endDate ??= d;
+                                if (_endDate!.isBefore(d)) {
+                                  _endDate = d;
+                                }
+                              });
+                            }
+                          },
+                        )),
+                        const SizedBox(width: 16),
+                        Expanded(child: _DateTile(
+                          label: 'End Date *',
+                          value: _endDate != null
+                              ? DateFormat('MMM d, yyyy').format(_endDate!)
+                              : null,
+                          onTap: () async {
+                            final now = DateTime.now();
+                            final fallbackFirstDate = _dateOnly(now).subtract(const Duration(days: 1));
+                            final lastDate = _dateOnly(now).add(const Duration(days: 730));
+                            final firstDate = _startDate != null
+                                ? _dateOnly(_startDate!)
+                                : fallbackFirstDate;
+                            final initialDate = _clampDate(
+                              _dateOnly(_endDate ?? _startDate ?? now.add(const Duration(days: 7))),
+                              firstDate,
+                              lastDate,
+                            );
+                            final d = await showDatePicker(
+                              context: context,
+                              initialDate: initialDate,
+                              firstDate: firstDate,
+                              lastDate: lastDate,
+                            );
+                            if (d != null) setState(() => _endDate = d);
                           },
                         )),
                       ],
@@ -318,7 +360,18 @@ class _EventFormScreenState extends State<EventFormScreen> {
                       decoration: const InputDecoration(
                         labelText: 'Posh Event ID',
                         hintText: 'Find this in your Posh event URL',
-                        helperText: 'Required before publishing. From your Posh event URL or dashboard.',
+                        helperText: 'Required before publishing. Used for webhook order matching.',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Posh event URL
+                    TextFormField(
+                      controller: _poshEventUrlController,
+                      decoration: const InputDecoration(
+                        labelText: 'Posh Event URL',
+                        hintText: 'https://posh.vip/e/your-event',
+                        helperText: 'Optional canonical URL for reference and reconciliation.',
                       ),
                     ),
                     const SizedBox(height: 32),

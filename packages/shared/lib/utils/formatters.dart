@@ -28,6 +28,15 @@ String formatDateTime(DateTime dateTime) {
 String formatTimeRange(DateTime start, DateTime end) {
   final startTime = DateFormat.jm().format(start);
   final endTime = DateFormat.jm().format(end);
+  final sameDay = start.year == end.year &&
+      start.month == end.month &&
+      start.day == end.day;
+
+  if (!sameDay) {
+    final endDate = DateFormat.MMMd().format(end);
+    return '$startTime - $endDate $endTime';
+  }
+
   return '$startTime - $endTime';
 }
 

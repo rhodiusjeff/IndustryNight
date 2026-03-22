@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { z, ZodSchema } from 'zod';
 import { BadRequestError } from '../utils/errors';
+import { tryLogSecurityEventFromRequest } from '../services/audit';
 
 export function validate(schema: ZodSchema) {
-  return (req: Request, _res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       const parsed = schema.parse({
         body: req.body,
@@ -23,6 +24,21 @@ export function validate(schema: ZodSchema) {
           if (!errors[path]) errors[path] = [];
           errors[path].push(err.message);
         });
+
+        await tryLogSecurityEventFromRequest(req, {
+          action: 'reject',
+          entityType: 'validation',
+          actorType: req.user ? 'user' : 'system',
+          actorId: req.user?.userId,
+          result: 'failure',
+          failureReason: 'validation_failed',
+          statusCode: 400,
+          metadata: {
+            errorCount: error.errors.length,
+            errorPaths: Object.keys(errors).slice(0, 10),
+          },
+        });
+
         next(new BadRequestError('Validation failed', errors));
       } else {
         next(error);

@@ -2,6 +2,58 @@ import { query, queryOne } from '../config/database';
 import { sendSms } from './sms';
 import { sendEmail } from './email';
 
+function digitsOnly(value: string): string {
+  return value.replace(/\D/g, '');
+}
+
+async function tryImmediateReconcile(
+  poshOrderId: string,
+  eventId: string | null,
+  accountPhone: string | undefined,
+  orderNumber: string,
+  total: number,
+  purchasedAt: string | null,
+): Promise<void> {
+  if (!accountPhone) return;
+
+  const fullDigits = digitsOnly(accountPhone);
+  const localDigits = fullDigits.length > 10 ? fullDigits.slice(-10) : fullDigits;
+
+  const user = await queryOne<{ id: string }>(
+    `SELECT id FROM users
+     WHERE phone IS NOT NULL
+       AND (
+         regexp_replace(phone, '[^0-9]', '', 'g') = $1
+         OR regexp_replace(phone, '[^0-9]', '', 'g') = $2
+         OR regexp_replace(phone, '[^0-9]', '', 'g') = ('1' || $2)
+       )
+     LIMIT 1`,
+    [fullDigits, localDigits]
+  );
+
+  if (!user) return;
+
+  await query(
+    'UPDATE posh_orders SET user_id = $1 WHERE id = $2',
+    [user.id, poshOrderId]
+  );
+
+  if (!eventId) return;
+
+  await query(
+    `INSERT INTO tickets (user_id, event_id, posh_order_id, ticket_type, price, status, purchased_at)
+     SELECT $1, $2, $3, 'Posh', COALESCE($4::numeric, 0), 'purchased', COALESCE($5::timestamptz, NOW())
+     WHERE NOT EXISTS (
+       SELECT 1
+       FROM tickets t
+       WHERE t.event_id = $2
+         AND t.user_id = $1
+         AND t.status NOT IN ('cancelled', 'refunded')
+     )`,
+    [user.id, eventId, orderNumber, total, purchasedAt ? new Date(purchasedAt) : null]
+  );
+}
+
 // ────────────────────────────────────────────────────────────
 // Posh webhook payload types (based on actual Posh webhook format)
 // ────────────────────────────────────────────────────────────
@@ -100,6 +152,17 @@ async function handleNewOrder(data: PoshNewOrderPayload): Promise<void> {
     console.log('Duplicate Posh order, skipping:', orderNumberStr);
     return;
   }
+
+  // Reconcile immediately when the buyer already exists in the app.
+  // If no user is found, verify-code flow will reconcile later.
+  await tryImmediateReconcile(
+    inserted.id,
+    event?.id ?? null,
+    data.account_phone,
+    orderNumberStr,
+    data.total,
+    data.date_purchased,
+  );
 
   // Send invite to buyer so they can download the app and set up their profile
   const firstName = data.account_first_name || 'there';

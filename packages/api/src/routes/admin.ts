@@ -8,6 +8,7 @@ import { query, queryOne } from '../config/database';
 import { generateActivationCode } from '../utils/jwt';
 import { NotFoundError, BadRequestError } from '../utils/errors';
 import { uploadImage, deleteImage } from '../services/storage';
+import { tryLogSecurityEventFromRequest } from '../services/audit';
 
 const router = Router();
 
@@ -246,6 +247,17 @@ const updateUserSchema = z.object({
 router.patch('/users/:id', validate(updateUserSchema), async (req, res, next): Promise<void> => {
   try {
     const { role, banned, verificationStatus } = req.body;
+    const existingUser = await queryOne<{
+      id: string;
+      role: string;
+      banned: boolean;
+      verification_status: string;
+    }>(
+      'SELECT id, role, banned, verification_status FROM users WHERE id = $1',
+      [req.params.id]
+    );
+
+    if (!existingUser) throw new NotFoundError('User not found');
 
     const updates: string[] = [];
     const params: unknown[] = [];
@@ -267,12 +279,66 @@ router.patch('/users/:id', validate(updateUserSchema), async (req, res, next): P
     updates.push('updated_at = NOW()');
     params.push(req.params.id);
 
-    const user = await queryOne(
+    const user = await queryOne<any>(
       `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
       params
     );
 
     if (!user) throw new NotFoundError('User not found');
+
+    const adminActorId = req.user!.userId;
+
+    if (existingUser.role !== user.role) {
+      await tryLogSecurityEventFromRequest(req, {
+        action: 'update',
+        entityType: 'user',
+        entityId: user.id,
+        actorType: 'admin',
+        adminActorId,
+        result: 'success',
+        statusCode: 200,
+        oldValues: { role: existingUser.role },
+        newValues: { role: user.role },
+        metadata: { field: 'role' },
+      });
+    }
+
+    if (existingUser.banned !== user.banned) {
+      await tryLogSecurityEventFromRequest(req, {
+        action: user.banned ? 'ban' : 'unban',
+        entityType: 'user',
+        entityId: user.id,
+        actorType: 'admin',
+        adminActorId,
+        result: 'success',
+        statusCode: 200,
+        oldValues: { banned: existingUser.banned },
+        newValues: { banned: user.banned },
+        metadata: { field: 'banned' },
+      });
+    }
+
+    if (existingUser.verification_status !== user.verification_status) {
+      const verificationAction =
+        user.verification_status === 'verified'
+          ? 'verify'
+          : user.verification_status === 'rejected'
+            ? 'reject'
+            : 'update';
+
+      await tryLogSecurityEventFromRequest(req, {
+        action: verificationAction,
+        entityType: 'user',
+        entityId: user.id,
+        actorType: 'admin',
+        adminActorId,
+        result: 'success',
+        statusCode: 200,
+        oldValues: { verificationStatus: existingUser.verification_status },
+        newValues: { verificationStatus: user.verification_status },
+        metadata: { field: 'verification_status' },
+      });
+    }
 
     res.json({ user });
   } catch (error) {
@@ -410,21 +476,22 @@ const createEventSchema = z.object({
     description: z.string().optional(),
     capacity: z.number().positive().optional(),
     poshEventId: z.string().optional(),
+    poshEventUrl: z.string().optional(),
     marketId: z.string().uuid().optional(),
   }),
 });
 
 router.post('/events', validate(createEventSchema), async (req, res, next) => {
   try {
-    const { name, venueName, venueAddress, startTime, endTime, description, capacity, poshEventId, marketId } = req.body;
+    const { name, venueName, venueAddress, startTime, endTime, description, capacity, poshEventId, poshEventUrl, marketId } = req.body;
     const activationCode = generateActivationCode();
 
     const row = await queryOne(
       `INSERT INTO events
-         (name, venue_name, venue_address, start_time, end_time, description, capacity, activation_code, posh_event_id, market_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         (name, venue_name, venue_address, start_time, end_time, description, capacity, activation_code, posh_event_id, posh_event_url, market_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
-      [name, venueName ?? null, venueAddress ?? null, startTime, endTime, description ?? null, capacity ?? null, activationCode, poshEventId ?? null, marketId ?? null]
+      [name, venueName ?? null, venueAddress ?? null, startTime, endTime, description ?? null, capacity ?? null, activationCode, poshEventId ?? null, poshEventUrl ?? null, marketId ?? null]
     );
 
     // Join market name for the response
@@ -454,6 +521,7 @@ const updateEventSchema = z.object({
     startTime: z.string().min(1).optional(),
     endTime: z.string().min(1).optional(),
     poshEventId: z.string().nullable().optional(),
+    poshEventUrl: z.string().nullable().optional(),
     status: z.enum(['draft', 'published', 'cancelled', 'completed']).optional(),
     capacity: z.number().positive().nullable().optional(),
     marketId: z.string().uuid().nullable().optional(),
@@ -462,7 +530,7 @@ const updateEventSchema = z.object({
 
 router.patch('/events/:id', validate(updateEventSchema), async (req, res, next): Promise<void> => {
   try {
-    const { name, description, venueName, venueAddress, startTime, endTime, poshEventId, status, capacity, marketId } = req.body;
+    const { name, description, venueName, venueAddress, startTime, endTime, poshEventId, poshEventUrl, status, capacity, marketId } = req.body;
 
     // Publish gate: verify all requirements before allowing status → published
     if (status === 'published') {
@@ -509,6 +577,7 @@ router.patch('/events/:id', validate(updateEventSchema), async (req, res, next):
     if (startTime    !== undefined) { updates.push(`start_time = $${paramIndex++}`);    params.push(startTime); }
     if (endTime      !== undefined) { updates.push(`end_time = $${paramIndex++}`);      params.push(endTime); }
     if (poshEventId  !== undefined) { updates.push(`posh_event_id = $${paramIndex++}`); params.push(poshEventId); }
+    if (poshEventUrl !== undefined) { updates.push(`posh_event_url = $${paramIndex++}`); params.push(poshEventUrl); }
     if (status       !== undefined) { updates.push(`status = $${paramIndex++}`);        params.push(status); }
     if (capacity     !== undefined) { updates.push(`capacity = $${paramIndex++}`);      params.push(capacity); }
     if (marketId     !== undefined) { updates.push(`market_id = $${paramIndex++}`);     params.push(marketId); }
@@ -550,11 +619,23 @@ router.patch('/events/:id', validate(updateEventSchema), async (req, res, next):
 
 router.delete('/events/:id', async (req, res, next): Promise<void> => {
   try {
-    const rows = await query('SELECT status FROM events WHERE id = $1', [req.params.id]);
+    const rows = await query<{ status: string }>('SELECT status FROM events WHERE id = $1', [req.params.id]);
     if (rows.length === 0) throw new NotFoundError('Event not found');
-    if ((rows[0] as any).status !== 'draft') {
+    if (rows[0].status !== 'draft') {
       throw new BadRequestError('Only draft events can be deleted');
     }
+
+    await tryLogSecurityEventFromRequest(req, {
+      action: 'delete',
+      entityType: 'event',
+      entityId: req.params.id,
+      actorType: 'admin',
+      adminActorId: req.user!.userId,
+      result: 'success',
+      statusCode: 200,
+      oldValues: { status: rows[0].status },
+    });
+
     await query('DELETE FROM events WHERE id = $1', [req.params.id]);
     res.json({ message: 'Event deleted' });
   } catch (error) {
@@ -654,6 +735,23 @@ router.delete('/events/:id/images/:imageId', async (req, res, next): Promise<voi
 
     if (!image) throw new NotFoundError('Image not found');
     if (image.event_id !== req.params.id) throw new NotFoundError('Image not found');
+
+    await tryLogSecurityEventFromRequest(req, {
+      action: 'delete',
+      entityType: 'event_image',
+      entityId: image.id,
+      actorType: 'admin',
+      adminActorId: req.user!.userId,
+      result: 'success',
+      statusCode: 200,
+      oldValues: {
+        eventId: image.event_id,
+        sortOrder: image.sort_order,
+      },
+      metadata: {
+        imageUrl: image.url,
+      },
+    });
 
     await deleteImage(image.url);
     await query('DELETE FROM event_images WHERE id = $1', [req.params.imageId]);
@@ -1285,6 +1383,16 @@ router.delete('/customers/:id', async (req, res, next): Promise<void> => {
   try {
     const customer = await queryOne('SELECT id FROM customers WHERE id = $1', [req.params.id]);
     if (!customer) throw new NotFoundError('Customer not found');
+
+    await tryLogSecurityEventFromRequest(req, {
+      action: 'delete',
+      entityType: 'customer',
+      entityId: req.params.id,
+      actorType: 'admin',
+      adminActorId: req.user!.userId,
+      result: 'success',
+      statusCode: 200,
+    });
 
     await query('DELETE FROM customers WHERE id = $1', [req.params.id]);
     res.json({ message: 'Customer deleted' });

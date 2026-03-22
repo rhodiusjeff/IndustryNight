@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit';
 import { config } from './config/env';
 import { errorHandler } from './utils/errors';
 import pool, { query } from './config/database';
+import { requestContext } from './middleware/request-context';
 
 // Routes
 import authRoutes from './routes/auth';
@@ -23,6 +24,15 @@ import adminAuthRoutes from './routes/admin-auth';
 
 const app = express();
 
+if (!config.audit.enabled && config.nodeEnv !== 'test') {
+  console.error('');
+  console.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+  console.error('!! SECURITY WARNING: AUDIT LOGGING IS DISABLED          !!');
+  console.error('!! Set AUDIT_ENABLED=true before production startup.     !!');
+  console.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+  console.error('');
+}
+
 // Middleware
 app.use(helmet());
 app.use(cors({
@@ -30,6 +40,11 @@ app.use(cors({
   credentials: true,
 }));
 app.use(compression());
+app.use(requestContext);
+
+// Webhooks must receive the raw body for signature verification.
+app.use('/webhooks', webhooksRoutes);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -104,7 +119,6 @@ app.use('/posts', postsRoutes);
 app.use('/sponsors', sponsorsRoutes);
 app.use('/vendors', vendorsRoutes);
 app.use('/discounts', discountsRoutes);
-app.use('/webhooks', webhooksRoutes);
 app.use('/admin/auth', adminAuthLimiter, adminAuthRoutes);
 app.use('/admin', adminRoutes);
 

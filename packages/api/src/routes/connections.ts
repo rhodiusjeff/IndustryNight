@@ -5,6 +5,7 @@ import { authenticate } from '../middleware/auth';
 import { query, queryOne } from '../config/database';
 import { parseQrData } from '../utils/jwt';
 import { NotFoundError, BadRequestError, ConflictError } from '../utils/errors';
+import { tryLogSecurityEventFromRequest } from '../services/audit';
 
 const router = Router();
 
@@ -156,7 +157,20 @@ router.post('/', authenticate, validate(createConnectionSchema), async (req, res
       [inserted!.id]
     );
 
-    // TODO: Log to audit_log
+    await tryLogSecurityEventFromRequest(req, {
+      action: 'create',
+      entityType: 'connection',
+      entityId: inserted!.id,
+      actorType: 'user',
+      actorId: currentUserId,
+      result: 'success',
+      statusCode: 201,
+      metadata: {
+        otherUserId,
+        eventId: eventId || null,
+        justVerified,
+      },
+    });
 
     res.status(201).json({ connection, justVerified });
   } catch (error) {
@@ -183,7 +197,19 @@ router.delete('/:id', authenticate, async (req, res, next) => {
       throw new BadRequestError('Not authorized to remove this connection');
     }
 
-    // TODO: Log to audit_log before deletion (capture old_values)
+    await tryLogSecurityEventFromRequest(req, {
+      action: 'delete',
+      entityType: 'connection',
+      entityId: connection.id,
+      actorType: 'user',
+      actorId: userId,
+      result: 'success',
+      statusCode: 204,
+      oldValues: {
+        userAId: connection.user_a_id,
+        userBId: connection.user_b_id,
+      },
+    });
 
     await query('DELETE FROM connections WHERE id = $1', [req.params.id]);
 

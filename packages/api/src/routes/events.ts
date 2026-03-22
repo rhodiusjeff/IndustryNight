@@ -42,6 +42,7 @@ router.get('/', authenticate, validate(listEventsSchema), async (req, res, next)
     const events = await query(
       `SELECT
          e.*,
+         COALESCE(e.posh_event_url, CASE WHEN e.posh_event_id IS NOT NULL THEN 'https://posh.vip/e/' || e.posh_event_id ELSE NULL END) AS posh_event_url,
          (SELECT url FROM event_images WHERE event_id = e.id ORDER BY sort_order ASC LIMIT 1) AS hero_image_url,
          (SELECT COUNT(*)::int FROM event_images WHERE event_id = e.id) AS image_count,
          (SELECT COUNT(*)::int FROM customer_products WHERE event_id = e.id AND status = 'active') AS partner_count
@@ -84,6 +85,7 @@ router.get('/:id', authenticate, async (req, res, next) => {
     const event = await queryOne(
       `SELECT
          e.*,
+         COALESCE(e.posh_event_url, CASE WHEN e.posh_event_id IS NOT NULL THEN 'https://posh.vip/e/' || e.posh_event_id ELSE NULL END) AS posh_event_url,
          COALESCE(
            (SELECT json_agg(ei ORDER BY ei.sort_order)
             FROM event_images ei WHERE ei.event_id = e.id),

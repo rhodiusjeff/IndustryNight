@@ -28,6 +28,8 @@ class _ActivationCodeScreenState extends State<ActivationCodeScreen>
   final _codeController = TextEditingController();
   MobileScannerController? _scannerController;
   bool _isSubmitting = false;
+  String? _lastScannedPayload;
+  DateTime? _lastScanAt;
 
   @override
   void initState() {
@@ -66,6 +68,16 @@ class _ActivationCodeScreenState extends State<ActivationCodeScreen>
 
     final value = barcode!.rawValue!;
 
+    // Guard against rapid duplicate detections from the camera stream.
+    final now = DateTime.now();
+    if (_lastScannedPayload == value &&
+        _lastScanAt != null &&
+        now.difference(_lastScanAt!) < const Duration(seconds: 2)) {
+      return;
+    }
+    _lastScannedPayload = value;
+    _lastScanAt = now;
+
     // Expected: industrynight://checkin/{eventId}/{activationCode}
     if (!value.startsWith('industrynight://checkin/')) return;
 
@@ -82,6 +94,7 @@ class _ActivationCodeScreenState extends State<ActivationCodeScreen>
       return;
     }
 
+    _scannerController?.stop();
     _checkIn(scannedCode);
   }
 
@@ -123,13 +136,42 @@ class _ActivationCodeScreenState extends State<ActivationCodeScreen>
       context.pop(checkedInTicket);
     } on ApiException catch (e) {
       if (!mounted) return;
+
+      final isAlreadyCheckedIn = e.message.toLowerCase().contains('already checked in');
+      if (isAlreadyCheckedIn) {
+        setState(() => _isSubmitting = false);
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Already Checked In'),
+            content: const Text('You are already checked in for this event.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        if (!mounted) return;
+        context.pop();
+        return;
+      }
+
       setState(() => _isSubmitting = false);
+      if (_tabController.index == 0) {
+        _scannerController?.start();
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message)),
       );
     } catch (e) {
       if (!mounted) return;
       setState(() => _isSubmitting = false);
+      if (_tabController.index == 0) {
+        _scannerController?.start();
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Check-in failed. Please try again.')),
       );

@@ -1,13 +1,19 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { z } from 'zod';
 import { validate } from '../middleware/validation';
 import { authenticateAdmin } from '../middleware/admin-auth';
 import { verifyToken, generateAdminTokenPair } from '../config/auth';
 import { queryOne } from '../config/database';
 import { UnauthorizedError } from '../utils/errors';
+import { tryLogSecurityEventFromRequest } from '../services/audit';
 
 const router = Router();
+
+function hashEmail(email: string): string {
+  return crypto.createHash('sha256').update(email.toLowerCase()).digest('hex');
+}
 
 // Login
 const loginSchema = z.object({
@@ -33,11 +39,33 @@ router.post('/login', validate(loginSchema), async (req, res, next): Promise<voi
     }>('SELECT * FROM admin_users WHERE email = $1', [email.toLowerCase()]);
 
     if (!admin || !admin.is_active) {
+      await tryLogSecurityEventFromRequest(req, {
+        action: 'login',
+        entityType: 'admin_auth',
+        actorType: 'system',
+        result: 'failure',
+        failureReason: !admin ? 'admin_not_found' : 'admin_inactive',
+        statusCode: 401,
+        metadata: {
+          emailHash: hashEmail(email),
+        },
+      });
       throw new UnauthorizedError('Invalid credentials');
     }
 
     const validPassword = await bcrypt.compare(password, admin.password_hash);
     if (!validPassword) {
+      await tryLogSecurityEventFromRequest(req, {
+        action: 'login',
+        entityType: 'admin_auth',
+        actorType: 'system',
+        result: 'failure',
+        failureReason: 'invalid_credentials',
+        statusCode: 401,
+        metadata: {
+          emailHash: hashEmail(email),
+        },
+      });
       throw new UnauthorizedError('Invalid credentials');
     }
 
@@ -48,6 +76,15 @@ router.post('/login', validate(loginSchema), async (req, res, next): Promise<voi
     );
 
     const tokens = generateAdminTokenPair(admin.id, admin.role);
+
+    await tryLogSecurityEventFromRequest(req, {
+      action: 'login',
+      entityType: 'admin_auth',
+      actorType: 'admin',
+      adminActorId: admin.id,
+      result: 'success',
+      statusCode: 200,
+    });
 
     res.json({
       accessToken: tokens.accessToken,
@@ -81,6 +118,14 @@ router.post('/refresh', validate(refreshSchema), async (req, res, next): Promise
     const payload = verifyToken(refreshToken);
 
     if (payload.type !== 'refresh' || payload.tokenFamily !== 'admin') {
+      await tryLogSecurityEventFromRequest(req, {
+        action: 'login',
+        entityType: 'admin_auth',
+        actorType: 'system',
+        result: 'failure',
+        failureReason: 'invalid_refresh_token',
+        statusCode: 401,
+      });
       throw new UnauthorizedError('Invalid refresh token');
     }
 
@@ -95,10 +140,30 @@ router.post('/refresh', validate(refreshSchema), async (req, res, next): Promise
     }>('SELECT * FROM admin_users WHERE id = $1', [payload.userId]);
 
     if (!admin || !admin.is_active) {
+      await tryLogSecurityEventFromRequest(req, {
+        action: 'login',
+        entityType: 'admin_auth',
+        actorType: 'system',
+        result: 'failure',
+        failureReason: 'admin_not_found_or_inactive',
+        statusCode: 401,
+      });
       throw new UnauthorizedError('Invalid refresh token');
     }
 
     const tokens = generateAdminTokenPair(admin.id, admin.role);
+
+    await tryLogSecurityEventFromRequest(req, {
+      action: 'login',
+      entityType: 'admin_auth',
+      actorType: 'admin',
+      adminActorId: admin.id,
+      result: 'success',
+      statusCode: 200,
+      metadata: {
+        flow: 'refresh',
+      },
+    });
 
     res.json({
       accessToken: tokens.accessToken,
@@ -152,7 +217,16 @@ router.get('/me', authenticateAdmin, async (req, res, next): Promise<void> => {
 });
 
 // Logout
-router.post('/logout', authenticateAdmin, (_req, res) => {
+router.post('/logout', authenticateAdmin, async (req, res) => {
+  await tryLogSecurityEventFromRequest(req, {
+    action: 'logout',
+    entityType: 'admin_auth',
+    actorType: 'admin',
+    adminActorId: req.user!.userId,
+    result: 'success',
+    statusCode: 200,
+  });
+
   res.json({ message: 'Logged out' });
 });
 

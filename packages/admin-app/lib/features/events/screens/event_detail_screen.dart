@@ -126,6 +126,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   /// file_picker package silently fails to open on Flutter Web.
   Future<Uint8List?> _pickImageBytes() async {
     final completer = Completer<Uint8List?>();
+    var fileSelectionStarted = false;
 
     final input = html.FileUploadInputElement()..accept = 'image/*';
     html.document.body!.children.add(input);
@@ -137,6 +138,8 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         if (!completer.isCompleted) completer.complete(null);
         return;
       }
+
+      fileSelectionStarted = true;
       final reader = html.FileReader()..readAsArrayBuffer(files[0]);
       reader.onLoad.listen((_) {
         if (!completer.isCompleted) {
@@ -149,11 +152,14 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     });
 
     // onFocus fires when the file dialog closes (cancel or selection). Use
-    // a 1000ms delay so onChange always wins when a file was chosen — Chrome
-    // fires focus before change in some versions.
+    // a 1000ms delay and only auto-cancel when no file selection started.
+    // Chrome can fire focus before change; if a file was selected, FileReader
+    // may still be loading bytes after focus returns.
     html.window.onFocus.first.then((_) {
       Future.delayed(const Duration(milliseconds: 1000), () {
-        if (!completer.isCompleted) completer.complete(null);
+        if (!completer.isCompleted && !fileSelectionStarted) {
+          completer.complete(null);
+        }
       });
     });
 
@@ -396,6 +402,12 @@ class _InfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final e = event;
+    final poshUrl = e.poshEventUrl?.trim();
+    final hasPoshUrl = poshUrl != null && poshUrl.isNotEmpty;
+    final normalizedPoshUrl = hasPoshUrl && !poshUrl.contains('://')
+        ? 'https://$poshUrl'
+        : poshUrl;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -422,6 +434,14 @@ class _InfoCard extends StatelessWidget {
               _InfoRow(Icons.people, 'Capacity: ${e.capacity}'),
             if (e.poshEventId != null)
               _InfoRow(Icons.confirmation_number, 'Posh ID: ${e.poshEventId}'),
+            _InfoRow(
+              Icons.link,
+              hasPoshUrl ? 'Posh URL: $normalizedPoshUrl' : 'Posh URL: Not Set',
+              onTap: hasPoshUrl
+                  ? () => html.window.open(normalizedPoshUrl!, '_blank')
+                  : null,
+              emphasize: !hasPoshUrl,
+            ),
             if (e.description != null && e.description!.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text('Description', style: Theme.of(context).textTheme.labelMedium),
@@ -438,11 +458,22 @@ class _InfoCard extends StatelessWidget {
 class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String text;
+  final VoidCallback? onTap;
+  final bool emphasize;
 
-  const _InfoRow(this.icon, this.text);
+  const _InfoRow(this.icon, this.text, {this.onTap, this.emphasize = false});
 
   @override
   Widget build(BuildContext context) {
+    final linkStyle = TextStyle(
+      color: Theme.of(context).colorScheme.primary,
+      decoration: TextDecoration.underline,
+    );
+    final alertStyle = TextStyle(
+      color: Theme.of(context).colorScheme.error,
+      fontWeight: FontWeight.w600,
+    );
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -450,7 +481,14 @@ class _InfoRow extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: Theme.of(context).hintColor),
           const SizedBox(width: 10),
-          Expanded(child: Text(text)),
+          Expanded(
+            child: onTap != null
+                ? InkWell(
+                    onTap: onTap,
+                    child: Text(text, style: linkStyle),
+                  )
+                : Text(text, style: emphasize ? alertStyle : null),
+          ),
         ],
       ),
     );
