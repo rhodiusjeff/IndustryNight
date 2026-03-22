@@ -6,6 +6,53 @@
 
 ---
 
+## Milestone Update (March 17, 2026)
+
+### Milestone Reached: Posh RSVP -> IN Ticket -> Check-in E2E
+
+The platform now has a validated end-to-end flow in dev for the core event lifecycle:
+
+1. User opens event and launches the canonical Posh event URL.
+2. Posh `new_order` webhook is ingested by Industry Night API.
+3. Webhook-time reconcile links order to existing user (phone match) and creates/ensures purchased ticket state.
+4. Social app event detail refreshes on app resume and reflects ticket state transitions.
+5. User check-in succeeds and ticket status persists to `checkedIn`.
+
+This is a product milestone because it validates cross-system behavior (Posh + API + DB + social app + admin-managed event data), not just isolated feature completion.
+
+### What Changed Operationally
+
+- Added canonical `posh_event_url` support through DB/API/shared/admin/social paths.
+- Removed read-side ticket reconciliation side effects from social ticket read endpoints.
+- Added webhook-time immediate reconciliation for known users, with verify-code as fallback path.
+- Hardened scanner duplicate handling and already-checked-in terminal flow.
+- Improved admin event scheduling for overnight events (independent end date).
+
+### Next Planning Focus (Q2 2026)
+
+#### Track A: Lean Into Admin Business Use-Cases
+
+Prioritize the business operations workflows that unlock revenue and partner value:
+
+1. Customer lifecycle management quality (customer profile completeness, product assignment, status workflows).
+2. Event partner operations (event -> customer/product assignment UX and auditability).
+3. Posh order visibility in admin (order reconciliation transparency, user linkage visibility, manual exception handling).
+4. Discount/perk operations quality (eligibility clarity, redemption reporting confidence).
+5. Event-day operations support (check-in visibility, attendee status management, issue triage flows).
+
+#### Track B: Prepare Admin Web Migration (Flutter Web -> React)
+
+Run migration preparation as a deliberate discovery + extraction effort before code rewrite:
+
+1. Define React target architecture (routing, state, API layer, auth/session handling, component library).
+2. Stabilize API contracts used by admin flows (request/response schema lock and test fixtures).
+3. Inventory admin workflows by business criticality (P0/P1/P2 parity matrix).
+4. Extract reusable domain contracts from current Flutter models into canonical API schema docs.
+5. Create phased migration strategy (dual-run or route-by-route cutover) with rollback plan.
+6. Define acceptance criteria for parity (functional, performance, and operator workflow time-to-complete).
+
+---
+
 ## Current Progress (as of February 27, 2026)
 
 | Phase | Status | Notes |
@@ -305,6 +352,16 @@ This document outlines the implementation plan for the Industry Night platform, 
 - [ ] Analytics dashboard
 - [ ] Posh API sync (automatic event import)
 - [ ] Android release
+
+### Phase 4: Infrastructure Scaling (Post-Revenue)
+- [ ] **Migrate prod RDS PostgreSQL → Aurora Serverless v2 (PostgreSQL-compatible)**
+  - Production only — dev stays on RDS PostgreSQL (simpler, cheaper at dev scale)
+  - Aurora Serverless v2 scales instantly between min/max ACUs based on load, eliminating idle cost during off-hours
+  - Continuous backup to S3 at 1-second granularity (vs daily snapshots on RDS)
+  - ~30s failover vs 1-2 min on RDS; up to 15 read replicas if needed
+  - Migration path: snapshot RDS → restore into Aurora cluster → update connection string → verify
+  - Defer until real load patterns exist to right-size min/max ACU settings
+- [ ] Upgrade EKS node group if API load warrants it (currently t3.small)
 
 ---
 
