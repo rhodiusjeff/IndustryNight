@@ -13,8 +13,8 @@
 --
 -- Idempotency: ADD VALUE IF NOT EXISTS, ADD COLUMN IF NOT EXISTS, CREATE TABLE IF NOT EXISTS,
 -- ON CONFLICT DO NOTHING for seed inserts. user_role recreation is guarded by a PL/pgSQL block.
-
-BEGIN;
+--
+-- NOTE: Do not add top-level BEGIN/COMMIT here; scripts/migrate.js wraps each migration in a transaction.
 
 -- ============================================================
 -- 1. Expand admin_role enum
@@ -91,7 +91,7 @@ ON CONFLICT (key) DO NOTHING;
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS llm_usage_log (
-  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
   feature       TEXT        NOT NULL,
   model         TEXT        NOT NULL,
   input_tokens  INT,
@@ -120,5 +120,3 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS
 -- ============================================================
 
 ALTER TABLE tickets ADD COLUMN IF NOT EXISTS wristband_issued_at TIMESTAMPTZ;
-
-COMMIT;

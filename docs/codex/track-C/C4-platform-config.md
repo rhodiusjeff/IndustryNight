@@ -10,7 +10,7 @@
 
 ### C0 Winner Handoff (Control Session)
 
-- Winner for C0 execution/apply authority: `gpt-5.3-codex` (control session decision).
+- Winner for C0 execution/apply authority: `claude-sonnet-4-6` (control session decision).
 - Source-of-truth migration: `packages/database/migrations/004_phase0_foundation.sql`.
 - Assume these C0 outputs exist before implementing C4:
   - `platform_config` table exists with seeded keys
