@@ -8,6 +8,17 @@
 **Estimated Effort:** Large (12-16 hours)
 **Dependencies:** C0 (Phase 0 Foundation), C1 (Event Schema), C2 (Admin Endpoints)
 
+### C0 Winner Handoff (Control Session)
+
+- Winner for C0 execution/apply authority: `gpt-5.3-codex` (control session decision).
+- Source-of-truth migration: `packages/database/migrations/004_phase0_foundation.sql`.
+- Assume these C0 outputs exist before implementing C3:
+  - `admin_role` includes `platformAdmin`, `moderator`, `eventOps`
+  - `llm_usage_log` exists and is available for image-tagging telemetry logging
+  - `platform_config` exists for feature flags and runtime tuning
+  - `user_role` no longer includes `venueStaff`
+- Do not modify C0 migration in this prompt. Any additional schema work must be introduced as `003_*` or later.
+
 ---
 
 ## Context
@@ -17,7 +28,7 @@ Read these before writing any code:
 - `CLAUDE.md` — full project reference (API services section, database section, tech stack)
 - `docs/product/master_plan_v2.md` — Section 3.5 "Image Assets Table" (architectural goals)
 - `packages/database/migrations/001_baseline_schema.sql` — baseline schema
-- `packages/database/migrations/002_phase0_foundation.sql` — Phase 0 foundation (from C0)
+- `packages/database/migrations/004_phase0_foundation.sql` — Phase 0 foundation (from C0)
 - `packages/api/src/services/storage.ts` — current S3 upload implementation
 - `packages/api/src/routes/admin.ts` — current event image endpoints (POST, PATCH, DELETE /admin/events/:id/images)
 - `packages/api/src/__tests__/customers.test.ts` — test patterns (testcontainers, mocking S3)

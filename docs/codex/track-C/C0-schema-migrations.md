@@ -24,25 +24,70 @@ Read these before writing any SQL or code:
 
 ## Goal
 
-Create and apply a single SQL migration file (`002_phase0_foundation.sql`) that adds the seven schema changes required before any other development work can proceed. These changes are additive only — no existing columns, tables, or enum values are modified in a breaking way. The migration must be idempotent (safe to re-run).
+Create and apply a single SQL migration file (`004_phase0_foundation.sql`) that adds the seven schema changes required before any other development work can proceed. These changes are additive only — no existing columns, tables, or enum values are modified in a breaking way. The migration must be idempotent (safe to re-run).
+
+### A/B Safety Mode (Required for model comparison runs)
+
+During GPT vs Claude evaluation, this prompt runs in file-generation mode only.
+
+- Do not run shared-environment commands against AWS/Kubernetes/dev DB.
+- Forbidden during A/B: `./scripts/pf-db.sh`, `node scripts/migrate.js`, `psql` against shared dev DB, `kubectl`, and `aws` commands.
+- A/B local DB targets (required):
+  - GPT lane uses local Postgres at `localhost:5433`
+  - Claude lane uses local Postgres at `localhost:5434`
+  - Do not use `5432` for this comparison run
+- Connection policy:
+  - Read DB connection from environment variables only.
+  - Required vars for any DB command in A/B: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`.
+  - Never auto-discover or override to shared endpoints.
+  - If required DB env vars are missing, stop and ask for them.
+  - Reject any host that is not `localhost` or `127.0.0.1` during A/B.
+- Produce migration SQL, test updates, and verification command plan only.
+- Optional: validate in isolated local Postgres per lane (separate instance or separate local database per model lane).
+- Apply to AWS dev DB exactly once, after winner selection.
+
+### Mandatory Local Runtime Evidence (Required for valid A/B signal)
+
+For this prompt, a lane run is only valid if it demonstrates execution against a local Postgres instance.
+
+- Each lane must choose and declare a local runtime strategy at the top of its output:
+  - existing local Postgres service, or
+  - ephemeral containerized Postgres (Docker/Podman), or
+  - other local-only runtime.
+- DB host must be `localhost` or `127.0.0.1`.
+- Lane ports are fixed:
+  - GPT lane: `5433`
+  - Claude lane: `5434`
+- The lane may choose credentials/database name, but must print the exact values used (password may be redacted in logs).
+- Required execution sequence per lane:
+  1. Start local Postgres runtime.
+  2. Apply baseline migrations through current head (including existing `001`, `002`, `003`).
+  3. Apply candidate C0 migration.
+  4. Run schema verification queries and tests.
+- If local runtime is unavailable, the run must stop and report `RUN FAILED: no local DB runtime`.
+- A lane must not claim completion without local execution evidence.
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] Migration file exists at `packages/database/migrations/002_phase0_foundation.sql`
+- [ ] Migration file exists at `packages/database/migrations/004_phase0_foundation.sql`
 - [ ] `admin_role` enum has values `platformAdmin`, `moderator`, `eventOps` (adds moderator + eventOps)
 - [ ] `user_role` enum no longer contains `venueStaff` (removed; existing rows updated to `user` before removal)
 - [ ] `platform_config` table exists with columns: `key TEXT PRIMARY KEY`, `value JSONB NOT NULL`, `description TEXT`, `updated_by UUID REFERENCES admin_users(id) ON DELETE SET NULL`, `updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
 - [ ] `llm_usage_log` table exists with columns: `id UUID PRIMARY KEY DEFAULT gen_random_uuid()`, `feature TEXT NOT NULL`, `model TEXT NOT NULL`, `input_tokens INT`, `output_tokens INT`, `latency_ms INT`, `success BOOLEAN NOT NULL`, `error TEXT`, `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
 - [ ] `users.fcm_token TEXT` column exists (nullable)
-- [ ] `users.primary_specialty_id UUID REFERENCES specialties(id) ON DELETE SET NULL` column exists (nullable)
+- [ ] `users.primary_specialty_id VARCHAR(50) REFERENCES specialties(id) ON DELETE SET NULL` column exists (nullable)
 - [ ] `tickets.wristband_issued_at TIMESTAMPTZ` column exists (nullable)
 - [ ] Migration is recorded in `_migrations` table after running `node scripts/migrate.js`
 - [ ] `node scripts/migrate.js --dry-run` shows the migration as pending before run, and as applied after run
 - [ ] `node scripts/migrate.js` (re-run) is a no-op (idempotent via `_migrations` check)
 - [ ] All existing data is preserved — zero rows deleted or corrupted
 - [ ] Existing admin_users with `admin_role = 'platformAdmin'` are unaffected by the enum expansion
+- [ ] A/B run does not execute shared-environment DB or cloud commands; winner-only apply step is deferred until post-review
+- [ ] Lane output includes runtime strategy, localhost connection details, and executed command log
+- [ ] Lane output includes proof of baseline apply + C0 apply on local DB (query results or migrate output)
+- [ ] Lane output includes explicit status `RUN PASSED` or `RUN FAILED`
 
 ---
 
@@ -93,16 +138,13 @@ Note: `ADD VALUE IF NOT EXISTS` is idempotent. Use it for all enum additions.
 Follow the pattern in `001_baseline_schema.sql`. Each section should be clearly commented. The migration runner checks the `_migrations` table by filename — the file must have a unique name.
 
 ```sql
--- 002_phase0_foundation.sql
+-- 004_phase0_foundation.sql
 -- Phase 0 foundation: admin_role expansion, user_role cleanup,
 -- platform_config, llm_usage_log, fcm_token, primary_specialty_id, wristband_issued_at
-
-BEGIN;
-
 -- [each change in its own commented block]
-
-COMMIT;
 ```
+
+Note: do not include top-level `BEGIN`/`COMMIT` in this migration file because `scripts/migrate.js` wraps each migration in a transaction.
 
 ### Default seed data for platform_config
 
@@ -125,7 +167,7 @@ ON CONFLICT (key) DO NOTHING;
 
 ```sql
 ALTER TABLE users ADD COLUMN IF NOT EXISTS fcm_token TEXT;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS primary_specialty_id UUID REFERENCES specialties(id) ON DELETE SET NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS primary_specialty_id VARCHAR(50) REFERENCES specialties(id) ON DELETE SET NULL;
 ALTER TABLE tickets ADD COLUMN IF NOT EXISTS wristband_issued_at TIMESTAMPTZ;
 ```
 
@@ -137,49 +179,86 @@ This prompt is database-only. Do NOT modify any Flutter Dart model files, API ro
 
 ## Test Suite
 
-### Manual Verification (run after migration)
+### Evaluation mode split (A/B then apply)
+
+1. A/B evaluation phase (both lanes): file changes and optional isolated local DB validation only.
+2. Winner apply phase (single lane): one human-approved apply to AWS dev DB and final verification.
+
+### Manual Verification
+
+#### A/B local-only verification (both lanes)
+
+Use lane-specific local Postgres only:
+
+- GPT lane: `DB_HOST=localhost DB_PORT=5433`
+- Claude lane: `DB_HOST=localhost DB_PORT=5434`
 
 ```bash
-# Start port-forward to dev DB
-./scripts/pf-db.sh start
+# Example env export (fill values per lane)
+export DB_HOST=localhost
+export DB_PORT=5433   # use 5434 in Claude lane
+export DB_NAME=industrynight
+export DB_USER=postgres
+export DB_PASSWORD=xxx
 
-# Run migration
-DB_PASSWORD=xxx node scripts/migrate.js
+# Build a local DATABASE_URL for psql checks
+export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
 
-# Verify migration recorded
-psql $DATABASE_URL -c "SELECT filename, applied_at FROM _migrations ORDER BY applied_at;"
-# Expected: 002_phase0_foundation.sql appears with current timestamp
+# Optional local apply for validation only
+node scripts/migrate.js
+
+# Verify migration recorded (local lane DB)
+psql "$DATABASE_URL" -c "SELECT filename, applied_at FROM _migrations ORDER BY applied_at;"
+# Expected: 004_phase0_foundation.sql appears if local apply was run
 
 # Verify enum values
-psql $DATABASE_URL -c "SELECT unnest(enum_range(NULL::admin_role));"
+psql "$DATABASE_URL" -c "SELECT unnest(enum_range(NULL::admin_role));"
 # Expected: platformAdmin, moderator, eventOps
 
-psql $DATABASE_URL -c "SELECT unnest(enum_range(NULL::user_role));"
+psql "$DATABASE_URL" -c "SELECT unnest(enum_range(NULL::user_role));"
 # Expected: user, platformAdmin (no venueStaff)
 
 # Verify new tables exist
-psql $DATABASE_URL -c "\d platform_config"
-psql $DATABASE_URL -c "\d llm_usage_log"
+psql "$DATABASE_URL" -c "\d platform_config"
+psql "$DATABASE_URL" -c "\d llm_usage_log"
 
 # Verify new columns
-psql $DATABASE_URL -c "\d users" | grep -E "fcm_token|primary_specialty"
-psql $DATABASE_URL -c "\d tickets" | grep wristband
+psql "$DATABASE_URL" -c "\d users" | grep -E "fcm_token|primary_specialty"
+psql "$DATABASE_URL" -c "\d tickets" | grep wristband
 
 # Verify default config rows
-psql $DATABASE_URL -c "SELECT key, value FROM platform_config ORDER BY key;"
+psql "$DATABASE_URL" -c "SELECT key, value FROM platform_config ORDER BY key;"
 # Expected: 8 rows matching the seed data above
 
 # Verify idempotency
 node scripts/migrate.js
-# Expected: "002_phase0_foundation.sql already applied, skipping"
+# Expected: "004_phase0_foundation.sql already applied, skipping"
 ```
 
-### Automated Test (add to `packages/api/src/__tests__/schema.test.ts`)
+Minimum required evidence to attach in each lane report:
+
+- runtime strategy used (service/container/tool)
+- exact command transcript for start/apply/verify steps
+- `SELECT filename FROM _migrations ORDER BY filename;` output showing `004_phase0_foundation.sql`
+- enum outputs for `admin_role` and `user_role`
+- schema query output proving `platform_config`, `llm_usage_log`, and new columns exist
+- final line: `RUN PASSED` or `RUN FAILED`
+
+#### Winner-only AWS dev apply (post-review)
+
+Run exactly once after adversarial panel winner is selected:
+
+```bash
+./scripts/pf-db.sh start
+DB_PASSWORD=xxx node scripts/migrate.js
+```
+
+### Automated Test (add to `packages/api/tests/schema.test.ts`)
 
 Create or add to a schema verification test file:
 
 ```typescript
-// packages/api/src/__tests__/schema.test.ts
+// packages/api/tests/schema.test.ts
 describe('Phase 0 schema migration', () => {
   it('admin_role enum contains moderator and eventOps', async () => {
     const result = await db.query(
@@ -244,7 +323,7 @@ describe('Phase 0 schema migration', () => {
 
 ### CI/CD Integration
 
-This test should be added to `packages/api/src/__tests__/schema.test.ts` and will run automatically in `api.yml` via `npx jest`. The test uses the testcontainers PostgreSQL setup already in place — the migration must be applied to the test container as part of the test setup (testcontainers runs all migrations in order).
+This test should be added to `packages/api/tests/schema.test.ts` and will run automatically in `api.yml` via `npx jest`. The test uses the testcontainers PostgreSQL setup already in place — the migration must be applied to the test container as part of the test setup (testcontainers runs all migrations in order).
 
 **Smoke test (post-deploy check):**
 ```bash
@@ -253,19 +332,29 @@ curl -sf "$API_URL/health" | jq -e '.status == "ok"' || exit 1
 # Schema changes don't need a dedicated smoke endpoint — health check DB ping suffices
 ```
 
+### Disallowed completion claims
+
+The following are insufficient to mark the lane complete:
+
+- Typecheck-only success without DB execution
+- "Could not run due to missing Docker/runtime" with no alternative local runtime attempted
+- Migration/test files created without migration apply evidence
+
 ---
 
 ## Definition of Done
 
-- [ ] `packages/database/migrations/002_phase0_foundation.sql` committed
+- [ ] `packages/database/migrations/004_phase0_foundation.sql` committed
 - [ ] Migration applied successfully to dev DB
 - [ ] All manual verification commands pass
-- [ ] Schema test file added/updated in `packages/api/src/__tests__/schema.test.ts`
+- [ ] Schema test file added/updated in `packages/api/tests/schema.test.ts`
 - [ ] Tests pass in testcontainers environment (`cd packages/api && npx jest schema`)
 - [ ] No existing tests broken by enum changes
 - [ ] Completion Report filled in (below)
 - [ ] Interrogative Session completed with Jeff
 - [ ] (A/B) Adversarial panel review complete — see `docs/codex/reviews/C0-adversarial-review.md`
+- [ ] (A/B) Winner recorded in control docs (`docs/codex/reviews/C0-adversarial-review.md` + `docs/codex/log/C0-control-decision.md`)
+- [ ] Shared-environment apply executed exactly once from control session after winner confirmation
 
 ---
 

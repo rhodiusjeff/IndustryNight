@@ -8,6 +8,16 @@
 **Estimated Effort:** Small (2-3 hours)
 **Dependencies:** C0 (platform_config table created), C2 (FCM + LLM services), C3 (Admin React routes)
 
+### C0 Winner Handoff (Control Session)
+
+- Winner for C0 execution/apply authority: `gpt-5.3-codex` (control session decision).
+- Source-of-truth migration: `packages/database/migrations/004_phase0_foundation.sql`.
+- Assume these C0 outputs exist before implementing C4:
+  - `platform_config` table exists with seeded keys
+  - `llm_usage_log` exists for operational call telemetry
+  - `admin_role` includes `moderator` and `eventOps`
+- C4 must not change C0 directly. If C4 needs schema updates, add a new migration file.
+
 ---
 
 ## Context
@@ -19,7 +29,7 @@ Read these before implementing:
 - `packages/api/src/middleware/` — authentication and validation patterns
 - `packages/api/src/__tests__/customers.test.ts` — Jest test pattern for admin endpoints
 - `packages/api/src/services/` — service layer patterns (sms.ts, storage.ts)
-- `packages/database/migrations/002_phase0_foundation.sql` (from C0) — platform_config table schema
+- `packages/database/migrations/004_phase0_foundation.sql` (from C0) — platform_config table schema
 - `packages/react-admin/app` — page structure and auth gating
 
 ---
