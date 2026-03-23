@@ -40,6 +40,12 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [[ "$COPY_TO_CLIPBOARD" == "true" ]] && ! command -v pbcopy >/dev/null 2>&1; then
+  log_error "pbcopy not found but clipboard copy is enabled."
+  log_info "Install pbcopy-compatible tooling or rerun with --no-copy and retrieve via ./scripts/copy-db-password.sh"
+  exit 1
+fi
+
 check_aws_credentials
 
 confirm_destructive "Rotate ${ENV_NAME} database password for RDS instance ${RDS_INSTANCE}."
@@ -119,12 +125,8 @@ log_success "Secrets Manager updated: $SECRETS_ID"
 
 log_step 3 4 "Clipboard handling"
 if [[ "$COPY_TO_CLIPBOARD" == "true" ]]; then
-  if command -v pbcopy >/dev/null 2>&1; then
-    printf %s "$new_password" | pbcopy
-    log_success "New password copied to clipboard"
-  else
-    log_warn "pbcopy not found; skipping clipboard copy"
-  fi
+  printf %s "$new_password" | pbcopy
+  log_success "New password copied to clipboard"
 else
   log_info "Skipping clipboard copy (--no-copy)"
 fi

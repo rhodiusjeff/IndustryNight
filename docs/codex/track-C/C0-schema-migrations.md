@@ -75,7 +75,7 @@ For this prompt, a lane run is only valid if it demonstrates execution against a
 - [ ] `admin_role` enum has values `platformAdmin`, `moderator`, `eventOps` (adds moderator + eventOps)
 - [ ] `user_role` enum no longer contains `venueStaff` (removed; existing rows updated to `user` before removal)
 - [ ] `platform_config` table exists with columns: `key TEXT PRIMARY KEY`, `value JSONB NOT NULL`, `description TEXT`, `updated_by UUID REFERENCES admin_users(id) ON DELETE SET NULL`, `updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
-- [ ] `llm_usage_log` table exists with columns: `id UUID PRIMARY KEY DEFAULT gen_random_uuid()`, `feature TEXT NOT NULL`, `model TEXT NOT NULL`, `input_tokens INT`, `output_tokens INT`, `latency_ms INT`, `success BOOLEAN NOT NULL`, `error TEXT`, `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+- [ ] `llm_usage_log` table exists with columns: `id UUID PRIMARY KEY DEFAULT uuid_generate_v4()`, `feature TEXT NOT NULL`, `model TEXT NOT NULL`, `input_tokens INT`, `output_tokens INT`, `latency_ms INT`, `success BOOLEAN NOT NULL`, `error TEXT`, `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
 - [ ] `users.fcm_token TEXT` column exists (nullable)
 - [ ] `users.primary_specialty_id VARCHAR(50) REFERENCES specialties(id) ON DELETE SET NULL` column exists (nullable)
 - [ ] `tickets.wristband_issued_at TIMESTAMPTZ` column exists (nullable)
