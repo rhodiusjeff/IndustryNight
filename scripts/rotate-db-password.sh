@@ -23,8 +23,31 @@ load_environment "$IN_ENV"
 SKIP_CONFIRM=false
 COPY_TO_CLIPBOARD=true
 
+usage() {
+  cat <<EOF
+Usage: $0 [--env dev|prod] [--yes] [--no-copy]
+
+Rotate the RDS master DB password and update the matching Secrets Manager entry.
+
+Options:
+  --env dev|prod  Target environment (default: dev)
+  --yes           Skip destructive confirmation prompt
+  --no-copy       Do not copy new password to clipboard
+  -h, --help      Show this help message
+
+Clipboard behavior:
+  By default this command copies the new password to clipboard using pbcopy.
+  If pbcopy is unavailable and --no-copy is not provided, the command fails
+  fast before making any AWS changes.
+EOF
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    -h|--help)
+      usage
+      exit 0
+      ;;
     --yes)
       SKIP_CONFIRM=true
       shift
@@ -34,7 +57,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     *)
-      echo "Usage: $0 [--env dev|prod] [--yes] [--no-copy]"
+      usage
       exit 1
       ;;
   esac

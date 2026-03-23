@@ -12,6 +12,8 @@ Operational scripts for developing, debugging, and managing the Industry Night p
 | `db-reset.js` | Full DB reset + migrations | `--skip-k8s`, `--seed-only`, `--yes` |
 | `db-scrub-user.js` | Delete users by phone | `--skip-k8s`, `--yes` |
 | `migrate.js` | Apply pending DB migrations | `--skip-k8s`, `--dry-run`, `--status` |
+| `copy-db-password.sh` | Copy DB password from Secrets Manager to clipboard | `--env` |
+| `rotate-db-password.sh` | Rotate RDS DB password + update Secrets Manager | `--env`, `--yes`, `--no-copy` |
 | `seed-admin.js` | Create or reset an admin user | `--skip-k8s` |
 | `maintenance.sh` | ALB maintenance mode toggle | `--env`, `on`, `off`, `status` |
 | `setup-local.sh` | Init local dev environment | (none) |
@@ -177,6 +179,33 @@ DB_PASSWORD=xxx node scripts/migrate.js --dry-run     # Show what would be appli
 DB_PASSWORD=xxx node scripts/migrate.js
 ./scripts/deploy-api.sh
 ```
+
+### copy-db-password.sh
+
+Copies the environment-specific DB password from AWS Secrets Manager to clipboard.
+
+```bash
+./scripts/copy-db-password.sh             # Copy dev DB password
+./scripts/copy-db-password.sh --env prod # Copy prod DB password
+```
+
+**Requires:** `aws` CLI access to the selected environment secret and `pbcopy` (macOS clipboard command).
+
+### rotate-db-password.sh
+
+Rotates the RDS master password for the selected environment and updates the matching Secrets Manager entry.
+
+```bash
+./scripts/rotate-db-password.sh                  # Rotate dev DB password and copy to clipboard
+./scripts/rotate-db-password.sh --env prod       # Rotate prod DB password
+./scripts/rotate-db-password.sh --no-copy        # Rotate without clipboard copy
+./scripts/rotate-db-password.sh --yes --no-copy  # Skip confirmation prompt
+./scripts/rotate-db-password.sh --help           # Show command help
+```
+
+**Clipboard safety behavior:** By default, the script requires `pbcopy` so the newly generated password is available immediately. If `pbcopy` is missing and `--no-copy` is not provided, the script exits before making any AWS changes.
+
+**After rotation:** Restart/redeploy workloads that cache DB credentials so they pick up the new password.
 
 ### seed-admin.js
 
