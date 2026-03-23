@@ -5,7 +5,7 @@
 **Model used:** `claude-sonnet-4-6` (selected after A/B adjudication)
 **A/B prompt:** Yes
 **Date completed:** 2026-03-23
-**Execution duration:** Adjudication complete; winner-only apply pending
+**Execution duration:** Adjudication complete; winner-only apply executed
 
 ---
 
@@ -23,7 +23,6 @@
 - Reason: both lanes passed hard gates, but Claude provided stronger artifact traceability (committed lane artifacts) and deeper schema test coverage.
 
 ### What I deferred or left incomplete
-- Winner-only AWS/dev apply from control session.
 - Merge to `integration` after one-pass verification.
 
 ### Technical debt introduced
@@ -46,7 +45,7 @@
 | C0 implications propagated to future phases | ✅ Met | Added C0 handoff sections to C1-C4 prompts |
 | Shared-environment apply authority centralized | ✅ Met | Control-session winner-only apply policy documented |
 | Winner selected with full local-runtime evidence | ✅ Met | Claude selected in adversarial review |
-| AWS/dev apply executed | ⚠️ Partial | Deferred by design pending synthesis |
+| AWS/dev apply executed | ✅ Met | Executed from control session on 2026-03-23; `004_phase0_foundation.sql` recorded in `_migrations` |
 
 ---
 
@@ -67,13 +66,18 @@
 
 ## Outcome
 
-**Ready for adversarial review / merge review:** ☒ Yes ☐ No — pending: winner-only single apply
+**Ready for adversarial review / merge review:** ☒ Yes ☐ No
 
-**Merge decision:** ☐ Merged to integration | ☒ Needs control-session winner apply | ☐ Replaced by other branch (A/B loser)
+**Merge decision:** ☒ Merged to integration | ☐ Needs control-session winner apply | ☐ Replaced by other branch (A/B loser)
 
-**Date merged:** Pending
+**Date merged:** 2026-03-23
 
 **Notes:**
 - Review: `docs/codex/reviews/C0-adversarial-review.md`
 - Track status row updated in `docs/codex/tracks.md`
 - Recommendation: Claude wins (second-pass A/B with local-runtime evidence)
+- AWS dev apply verification snapshot (control session):
+	- `_migrations` includes `004_phase0_foundation.sql`
+	- `admin_role` enum values: `platformAdmin`, `moderator`, `eventOps`
+	- `user_role` enum values: `user`, `platformAdmin`
+	- `platform_config` and `llm_usage_log` tables present
