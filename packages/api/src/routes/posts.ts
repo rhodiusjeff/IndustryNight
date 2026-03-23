@@ -34,7 +34,7 @@ router.get('/', optionalAuth, validate(getFeedSchema), async (req, res, next) =>
 
     let likeSubquery = 'false as is_liked_by_current_user';
     if (userId) {
-      likeSubquery = `EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $${paramIndex++}) as is_liked_by_current_user`;
+      likeSubquery = `EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $${paramIndex++}::uuid) as is_liked_by_current_user`;
       params.push(userId);
     }
 
@@ -66,7 +66,7 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
 
     let likeSubquery = 'false as is_liked_by_current_user';
     if (userId) {
-      likeSubquery = `EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $2) as is_liked_by_current_user`;
+      likeSubquery = `EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $2::uuid) as is_liked_by_current_user`;
       params.push(userId);
     }
 
@@ -205,8 +205,7 @@ router.delete('/:id/like', authenticate, async (req, res, next) => {
       [req.params.id]
     );
 
-    const post = await queryOne('SELECT * FROM posts WHERE id = $1', [req.params.id]);
-    res.json({ post });
+    res.json({ success: true });
   } catch (error) {
     next(error);
   }
@@ -252,6 +251,43 @@ router.post('/:id/comments', authenticate, validate(addCommentSchema), async (re
     );
 
     res.status(201).json({ comment });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete comment
+router.delete('/:id/comments/:commentId', authenticate, async (req, res, next) => {
+  try {
+    const { id: postId, commentId } = req.params;
+    const userId = req.user!.userId;
+
+    const comment = await queryOne<{ id: string; author_id: string }>(
+      `SELECT id, author_id
+       FROM post_comments
+       WHERE id = $1 AND post_id = $2`,
+      [commentId, postId]
+    );
+
+    if (!comment) {
+      throw new NotFoundError('Comment not found');
+    }
+
+    const isAuthor = comment.author_id === userId;
+    const isAdmin = req.user!.role === 'platformAdmin';
+    if (!isAuthor && !isAdmin) {
+      throw new ForbiddenError('Cannot delete this comment');
+    }
+
+    await query('DELETE FROM post_comments WHERE id = $1', [commentId]);
+    await query(
+      `UPDATE posts
+       SET comment_count = (SELECT COUNT(*) FROM post_comments WHERE post_id = $1)
+       WHERE id = $1`,
+      [postId]
+    );
+
+    res.json({ success: true });
   } catch (error) {
     next(error);
   }

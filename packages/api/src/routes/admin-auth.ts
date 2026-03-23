@@ -115,7 +115,21 @@ router.post('/refresh', validate(refreshSchema), async (req, res, next): Promise
   try {
     const { refreshToken } = req.body;
 
-    const payload = verifyToken(refreshToken);
+    let payload: ReturnType<typeof verifyToken>;
+    try {
+      payload = verifyToken(refreshToken);
+    } catch {
+      await tryLogSecurityEventFromRequest(req, {
+        action: 'login',
+        entityType: 'admin_auth',
+        actorType: 'system',
+        result: 'failure',
+        failureReason: 'invalid_refresh_token',
+        statusCode: 401,
+      });
+      res.status(401).json({ error: 'Invalid or expired refresh token' });
+      return;
+    }
 
     if (payload.type !== 'refresh' || payload.tokenFamily !== 'admin') {
       await tryLogSecurityEventFromRequest(req, {
@@ -126,7 +140,8 @@ router.post('/refresh', validate(refreshSchema), async (req, res, next): Promise
         failureReason: 'invalid_refresh_token',
         statusCode: 401,
       });
-      throw new UnauthorizedError('Invalid refresh token');
+      res.status(401).json({ error: 'Invalid or expired refresh token' });
+      return;
     }
 
     const admin = await queryOne<{

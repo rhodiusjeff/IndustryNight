@@ -93,12 +93,8 @@ class PostsApi {
   }
 
   /// Unlike a post
-  Future<Post> unlikePost(String id) async {
-    final response = await _client.delete('/posts/$id/like');
-    // delete returns void but for unlike we need the updated post
-    // The API should return the updated post
-    return Post.fromJson(
-        (response as Map<String, dynamic>)['post'] as Map<String, dynamic>);
+  Future<void> unlikePost(String id) async {
+    await _client.delete('/posts/$id/like');
   }
 
   /// Get comments for a post

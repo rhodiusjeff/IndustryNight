@@ -10,8 +10,10 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AppState>().currentUser;
+    final appState = context.watch<AppState>();
+    final user = appState.currentUser;
     final hasEmail = user?.email != null && user!.email!.isNotEmpty;
+    final isAuthenticated = appState.isLoggedIn;
 
     return Scaffold(
       appBar: AppBar(
@@ -78,6 +80,68 @@ class SettingsScreen extends StatelessWidget {
           ),
 
           const Divider(),
+
+          if (isAuthenticated) ...[
+            _buildSectionHeader('Danger Zone'),
+            ListTile(
+              leading: Icon(
+                Icons.delete_forever,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              title: Text(
+                'Delete Account',
+                style: AppTypography.bodyLarge.copyWith(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+              onTap: () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (dialogContext) => AlertDialog(
+                    title: const Text('Delete Account'),
+                    content: const Text(
+                      'Are you sure? This permanently deletes your account and all your data. '
+                      'This cannot be undone.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(dialogContext, false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          foregroundColor:
+                              Theme.of(dialogContext).colorScheme.error,
+                        ),
+                        onPressed: () => Navigator.pop(dialogContext, true),
+                        child: const Text('Delete Account'),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirmed != true || !context.mounted) return;
+
+                final success = await context.read<AppState>().deleteAccount();
+                if (!context.mounted) return;
+
+                if (success) {
+                  context.go(Routes.phoneEntry);
+                  return;
+                }
+
+                final message = context.read<AppState>().error ??
+                    'Failed to delete account. Please try again.';
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(message),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              },
+            ),
+            const Divider(),
+          ],
 
           // Logout
           ListTile(
