@@ -14,6 +14,7 @@ Operational scripts for developing, debugging, and managing the Industry Night p
 | `migrate.js` | Apply pending DB migrations | `--skip-k8s`, `--dry-run`, `--status` |
 | `copy-db-password.sh` | Copy DB password from Secrets Manager to clipboard | `--env` |
 | `rotate-db-password.sh` | Rotate RDS DB password + update Secrets Manager | `--env`, `--yes`, `--no-copy` |
+| `codex-update-tracker.py` | Close out CODEX IDs and sync tracker metadata | `--id`, `--closeout`, `--pr`, `--repo`, `--pr-number`, `--update-tracks-md`, `--update-xlsx` |
 | `seed-admin.js` | Create or reset an admin user | `--skip-k8s` |
 | `maintenance.sh` | ALB maintenance mode toggle | `--env`, `on`, `off`, `status` |
 | `setup-local.sh` | Init local dev environment | (none) |
@@ -206,6 +207,36 @@ Rotates the RDS master password for the selected environment and updates the mat
 **Clipboard safety behavior:** By default, the script requires `pbcopy` so the newly generated password is available immediately. If `pbcopy` is missing and `--no-copy` is not provided, the script exits before making any AWS changes.
 
 **After rotation:** Restart/redeploy workloads that cache DB credentials so they pick up the new password.
+
+### codex-update-tracker.py
+
+Updates one prompt row in trackers and supports explicit closeout mode.
+
+`--closeout` behavior:
+- Sets status to `✅ Merged`
+- Writes `PR #` in the Tracker sheet dedicated `PR #` column
+- Sets Tracker `Date Done`
+- Updates ID sheet (`ID-<prompt>`) rows for `PR #`, `Date Completed`, and `Status`
+- Replaces the ID sheet `Pending` value with a completion summary
+
+```bash
+# Close out C0 after merged PR verification, and sync markdown tracker
+python3 scripts/codex-update-tracker.py \
+  --id C0 \
+  --closeout \
+  --winner "Claude" \
+  --log-file "docs/codex/log/C0-control-decision.md" \
+  --review-file "docs/codex/reviews/C0-adversarial-review.md" \
+  --pr 50 \
+  --repo rhodiusjeff/IndustryNight \
+  --notes "Winner-only control-session apply executed on AWS dev; C0 schema gate complete" \
+  --update-tracks-md
+
+# Record a PR number without merged-state verification (non-closeout metadata update)
+python3 scripts/codex-update-tracker.py --id C1 --pr-number 73 --update-xlsx
+```
+
+When `--pr` is provided, `--repo` is required so merged state can be validated before write.
 
 ### seed-admin.js
 
