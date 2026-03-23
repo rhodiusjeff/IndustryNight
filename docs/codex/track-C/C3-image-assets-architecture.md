@@ -8,6 +8,17 @@
 **Estimated Effort:** Large (12-16 hours)
 **Dependencies:** C0 (Phase 0 Foundation), C1 (Event Schema), C2 (Admin Endpoints)
 
+### C0 Winner Handoff (Control Session)
+
+- Winner for C0 execution/apply authority: `claude-sonnet-4-6` (control session decision).
+- Source-of-truth migration: `packages/database/migrations/004_phase0_foundation.sql`.
+- Assume these C0 outputs exist before implementing C3:
+  - `admin_role` includes `platformAdmin`, `moderator`, `eventOps`
+  - `llm_usage_log` exists and is available for image-tagging telemetry logging
+  - `platform_config` exists for feature flags and runtime tuning
+  - `user_role` no longer includes `venueStaff`
+- Do not modify C0 migration in this prompt. Any additional schema work must be introduced as `005_*` or later.
+
 ---
 
 ## Context
@@ -17,7 +28,7 @@ Read these before writing any code:
 - `CLAUDE.md` — full project reference (API services section, database section, tech stack)
 - `docs/product/master_plan_v2.md` — Section 3.5 "Image Assets Table" (architectural goals)
 - `packages/database/migrations/001_baseline_schema.sql` — baseline schema
-- `packages/database/migrations/002_phase0_foundation.sql` — Phase 0 foundation (from C0)
+- `packages/database/migrations/004_phase0_foundation.sql` — Phase 0 foundation (from C0)
 - `packages/api/src/services/storage.ts` — current S3 upload implementation
 - `packages/api/src/routes/admin.ts` — current event image endpoints (POST, PATCH, DELETE /admin/events/:id/images)
 - `packages/api/src/__tests__/customers.test.ts` — test patterns (testcontainers, mocking S3)
@@ -40,7 +51,7 @@ Implement the `image_assets` table as a first-class image registry that replaces
 ## Acceptance Criteria
 
 ### Database
-- [ ] Migration file `003_image_assets.sql` exists at `packages/database/migrations/`
+- [ ] Migration file `005_image_assets.sql` exists at `packages/database/migrations/`
 - [ ] `image_assets` table created with columns: `id UUID PRIMARY KEY`, `s3_key TEXT NOT NULL`, `s3_bucket TEXT NOT NULL`, `url TEXT NOT NULL`, `width INT`, `height INT`, `file_size_bytes BIGINT`, `mime_type TEXT`, `uploaded_by_admin_id UUID REFERENCES admin_users(id) ON DELETE SET NULL`, `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`, `archived_at TIMESTAMPTZ`, `deleted_at TIMESTAMPTZ`, `llm_tags JSONB DEFAULT NULL`, `similarity_hash TEXT`, `event_id UUID REFERENCES events(id) ON DELETE SET NULL`, `sort_order INT DEFAULT 0`, `is_hero BOOLEAN DEFAULT FALSE`
 - [ ] Indexes created: `idx_image_assets_event_id`, `idx_image_assets_archived_at`, `idx_image_assets_similarity_hash`, `idx_image_assets_uploaded_by_admin_id`
 - [ ] Existing `event_images` data migrated to `image_assets` (with s3_key extracted from URL, sort_order computed, is_hero inferred)
@@ -122,10 +133,10 @@ Implement the `image_assets` table as a first-class image registry that replaces
 
 ## Technical Spec
 
-### Database Migration: `003_image_assets.sql`
+### Database Migration: `005_image_assets.sql`
 
 ```sql
--- 003_image_assets.sql
+-- 005_image_assets.sql
 -- Image Assets: first-class image registry with lifecycle (active → archived → deleted),
 -- LLM tagging, and near-duplicate detection via perceptual hash
 
@@ -838,7 +849,7 @@ describe('TagNewImagesJob', () => {
 
 ## Definition of Done
 
-- [ ] Migration `003_image_assets.sql` committed and applied successfully
+- [ ] Migration `005_image_assets.sql` committed and applied successfully
 - [ ] `image_assets` table exists with all columns and indexes
 - [ ] Existing `event_images` data migrated to `image_assets` correctly
 - [ ] `event_images_archive` table exists (renamed, not dropped)

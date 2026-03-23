@@ -8,6 +8,17 @@
 **Estimated Effort:** Small–Medium (3–5 hours)
 **Dependencies:** C0 (schema migrations must be applied first; `post_reports` table created in this prompt)
 
+### C0 Winner Handoff (Control Session)
+
+- Winner for C0 execution/apply authority: `claude-sonnet-4-6` (control session decision).
+- Source-of-truth migration: `packages/database/migrations/004_phase0_foundation.sql`.
+- Assume these C0 outputs exist before implementing C1:
+  - `admin_role` includes `platformAdmin`, `moderator`, `eventOps`
+  - `user_role` no longer includes `venueStaff`
+  - `platform_config` and `llm_usage_log` tables exist
+  - `users.fcm_token`, `users.primary_specialty_id`, and `tickets.wristband_issued_at` columns exist
+- Do not edit C0 migration in this prompt. Any schema adjustment discovered in C1 must be a new migration file.
+
 ---
 
 ## Context

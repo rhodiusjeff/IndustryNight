@@ -164,13 +164,27 @@ TODAY — Start all three in parallel (all are ⚡ A/B):
 
 ---
 
+## Post-Track Completion Gate (Preproduction)
+
+When all tracks are complete (preproduction), execute this finalization sequence:
+
+1. Collapse all accumulated migrations into a single fresh initial schema baseline.
+2. Snapshot/backup database state.
+3. Perform full infrastructure teardown and rebuild from scratch.
+4. Apply the consolidated baseline schema in the rebuilt environment.
+5. Run end-to-end completion validation as the final system integrity test.
+
+Until that completion gate, continue using incremental migrations as normal.
+
+---
+
 ## Status Tracker
 
 Update this table as prompts complete.
 
 | Prompt | A/B | Status | Winner | Log | Review | Notes |
 |--------|-----|--------|--------|-----|--------|-------|
-| C0 | ⚡ | ⬜ Not started | — | — | — | |
+| C0 | ⚡ | ✅ Merged | Claude | docs/codex/log/C0-control-decision.md | docs/codex/reviews/C0-adversarial-review.md | Winner-only control-session apply executed on AWS dev; C0 schema gate complete |
 | A0 | ⚡ | ⬜ Not started | — | — | — | |
 | B0 | ⚡ | ⬜ Not started | — | — | — | |
 | C1 | — | ⬜ Not started | — | — | — | Waiting for C0 |
