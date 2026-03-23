@@ -164,6 +164,20 @@ TODAY — Start all three in parallel (all are ⚡ A/B):
 
 ---
 
+## Post-Track Completion Gate (Preproduction)
+
+When all tracks are complete (preproduction), execute this finalization sequence:
+
+1. Collapse all accumulated migrations into a single fresh initial schema baseline.
+2. Snapshot/backup database state.
+3. Perform full infrastructure teardown and rebuild from scratch.
+4. Apply the consolidated baseline schema in the rebuilt environment.
+5. Run end-to-end completion validation as the final system integrity test.
+
+Until that completion gate, continue using incremental migrations as normal.
+
+---
+
 ## Status Tracker
 
 Update this table as prompts complete.
