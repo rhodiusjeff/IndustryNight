@@ -41,7 +41,7 @@ describe('Security Audit Logging', () => {
   });
 
   it('logs verification_code_expired when verification code is expired', async () => {
-    const phone = '+15559999091';
+    const phone = '+15555550191';  // Magic test prefix
 
     const codeRes = await request(app)
       .post('/auth/request-code')

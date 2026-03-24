@@ -16,6 +16,19 @@ function phoneDigits(phone: string): string {
   return phone.replace(/\D/g, '');
 }
 
+/**
+ * Magic test phone prefix: +1555555xxxx
+ * - Always uses local devCode verification (bypasses Twilio)
+ * - Blocked in production for security
+ * - Used by automated tests and local development
+ */
+function isTestPhone(phone: string): boolean {
+  if (process.env.NODE_ENV === 'production') {
+    return false;
+  }
+  return phone.startsWith('+1555555');
+}
+
 async function reconcilePoshOrdersForUser(userId: string, phone: string): Promise<{ linkedOrders: number; createdTickets: number }> {
   const fullDigits = phoneDigits(phone);
   const localDigits = fullDigits.length > 10 ? fullDigits.slice(-10) : fullDigits;
@@ -86,12 +99,9 @@ router.post('/request-code', validate(requestCodeSchema), async (req, res, next)
   try {
     const { phone } = req.body;
     const allowDevOtpFallback = config.auth.allowDevOtpFallback;
+    const useLocalCode = isTestPhone(phone) || (!verifyAvailable && allowDevOtpFallback);
 
-    if (verifyAvailable) {
-      // Use Twilio Verify — it handles code generation, storage, and delivery
-      await sendVerification(phone);
-      res.json({ message: 'Verification code sent' });
-    } else if (allowDevOtpFallback) {
+    if (useLocalCode) {
       // Explicit dev fallback mode: generate and store code locally
       const code = generateVerificationCode();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
@@ -105,6 +115,10 @@ router.post('/request-code', validate(requestCodeSchema), async (req, res, next)
 
       console.log(`[SMS-DEV] Verification code generated for ****${phone.slice(-4)}`);
       res.json({ message: 'Verification code sent', devCode: code });
+    } else if (verifyAvailable) {
+      // Use Twilio Verify — it handles code generation, storage, and delivery
+      await sendVerification(phone);
+      res.json({ message: 'Verification code sent' });
     } else {
       throw new AppError(503, 'SMS verification is unavailable. Twilio Verify is required.');
     }
@@ -148,14 +162,9 @@ router.post('/verify-code', validate(verifyCodeSchema), async (req, res, next) =
   try {
     const { phone, code } = req.body;
     const allowDevOtpFallback = config.auth.allowDevOtpFallback;
+    const useLocalCode = isTestPhone(phone) || (!verifyAvailable && allowDevOtpFallback);
 
-    if (verifyAvailable) {
-      // Use Twilio Verify to check the code
-      const approved = await checkVerification(phone, code);
-      if (!approved) {
-        throw new BadRequestError('Invalid verification code');
-      }
-    } else if (allowDevOtpFallback) {
+    if (useLocalCode) {
       // Explicit dev fallback mode: check code from our database
       const storedCode = await queryOne<{ code: string; expires_at: Date }>(
         'SELECT code, expires_at FROM verification_codes WHERE phone = $1',
@@ -172,6 +181,12 @@ router.post('/verify-code', validate(verifyCodeSchema), async (req, res, next) =
 
       // Delete used code
       await query('DELETE FROM verification_codes WHERE phone = $1', [phone]);
+    } else if (verifyAvailable) {
+      // Use Twilio Verify to check the code
+      const approved = await checkVerification(phone, code);
+      if (!approved) {
+        throw new BadRequestError('Invalid verification code');
+      }
     } else {
       throw new AppError(503, 'SMS verification is unavailable. Twilio Verify is required.');
     }
