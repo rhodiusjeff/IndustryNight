@@ -203,10 +203,10 @@ python3 -m venv /tmp/pptx-env && /tmp/pptx-env/bin/python -m ensurepip --upgrade
 /tmp/pptx-env/bin/pip install python-pptx
 
 # Generate Executive Brief (14 slides, detailed)
-/tmp/pptx-env/bin/python scripts/generate-exec-brief.py
+/tmp/pptx-env/bin/python scripts/doc-generation/generate-exec-brief.py
 
 # Generate Executive Summary (5 slides, non-technical)
-/tmp/pptx-env/bin/python scripts/generate-exec-summary.py
+/tmp/pptx-env/bin/python scripts/doc-generation/generate-exec-summary.py
 ```
 
 ### PDF versions
