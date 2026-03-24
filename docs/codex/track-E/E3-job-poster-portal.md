@@ -8,6 +8,14 @@
 **Estimated Effort:** Large (3-4 days)
 **Dependencies:** E0 (backend API — job board endpoints), E2 (hire confirmation + ratings system)
 
+## Execution Mode (Required)
+
+- [ ] Stage 1 (required): execute and validate locally first (local Postgres + local API + local admin/mobile against local endpoint).
+- [ ] Stage 2 (required for backend/integration-impacting tracks): run shared-dev integration smoke only after local pass.
+- [ ] Stage 3 (required before PR merge): run AWS dev deploy/integration smoke for final confidence.
+- [ ] Completion log must explicitly record: execution mode used, exact commands run, evidence links, and cleanup actions.
+
+
 ---
 
 ## Context

@@ -8,6 +8,14 @@
 **Estimated Effort:** Medium (2-3 days)
 **Dependencies:** C0 (schema migrations), B0 (React scaffold) — B0 must be complete before starting B1
 
+## Execution Mode (Required)
+
+- [ ] Stage 1 (required): execute and validate locally first (local Postgres + local API + local admin/mobile against local endpoint).
+- [ ] Stage 2 (required for backend/integration-impacting tracks): run shared-dev integration smoke only after local pass.
+- [ ] Stage 3 (required before PR merge): run AWS dev deploy/integration smoke for final confidence.
+- [ ] Completion log must explicitly record: execution mode used, exact commands run, evidence links, and cleanup actions.
+
+
 ---
 
 ## Context

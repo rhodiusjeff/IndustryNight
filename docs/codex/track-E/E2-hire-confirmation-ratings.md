@@ -8,6 +8,14 @@
 **Estimated Effort:** Medium (8-12 hours)
 **Dependencies:** E0 (schema with job_applications table), E1 (social app job browsing UI), D0 (moderation pipeline for rating reviews)
 
+## Execution Mode (Required)
+
+- [ ] Stage 1 (required): execute and validate locally first (local Postgres + local API + local admin/mobile against local endpoint).
+- [ ] Stage 2 (required for backend/integration-impacting tracks): run shared-dev integration smoke only after local pass.
+- [ ] Stage 3 (required before PR merge): run AWS dev deploy/integration smoke for final confidence.
+- [ ] Completion log must explicitly record: execution mode used, exact commands run, evidence links, and cleanup actions.
+
+
 ---
 
 ## Context
