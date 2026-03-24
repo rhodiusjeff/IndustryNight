@@ -102,10 +102,10 @@ describe('Auth flow (magic prefix)', () => {
 
 describe('GET /auth/me', () => {
   it('returns current user with valid token', async () => {
-    const res = await api.get<{ id: string; phone: string }>('/auth/me', auth.accessToken);
+    const res = await api.get<{ user: { id: string; phone: string } }>('/auth/me', auth.accessToken);
     expect(res.status).toBe(200);
-    expect(res.body.phone).toBe(TEST_PHONE);
-    expect(res.body.id).toBeDefined();
+    expect((res.body as any).user.phone).toBe(TEST_PHONE);
+    expect((res.body as any).user.id).toBeDefined();
   });
 
   it('returns 401 without token', async () => {

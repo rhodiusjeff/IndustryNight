@@ -400,6 +400,9 @@ router.post('/logout', authenticate, async (req, res) => {
 router.get('/me', authenticate, async (req, res, next) => {
   try {
     const user = await queryOne('SELECT * FROM users WHERE id = $1', [req.user!.userId]);
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
     res.json({ user });
   } catch (error) {
     next(error);
