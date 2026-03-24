@@ -34,6 +34,8 @@ class Post extends Equatable {
   final bool isHidden;
   final int likeCount;
   final int commentCount;
+  final String? authorName;
+  final String? authorPhoto;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -53,6 +55,8 @@ class Post extends Equatable {
     this.isHidden = false,
     this.likeCount = 0,
     this.commentCount = 0,
+    this.authorName,
+    this.authorPhoto,
     required this.createdAt,
     required this.updatedAt,
     this.author,
@@ -73,6 +77,8 @@ class Post extends Equatable {
     bool? isHidden,
     int? likeCount,
     int? commentCount,
+    String? authorName,
+    String? authorPhoto,
     DateTime? createdAt,
     DateTime? updatedAt,
     User? author,
@@ -88,6 +94,8 @@ class Post extends Equatable {
       isHidden: isHidden ?? this.isHidden,
       likeCount: likeCount ?? this.likeCount,
       commentCount: commentCount ?? this.commentCount,
+      authorName: authorName ?? this.authorName,
+      authorPhoto: authorPhoto ?? this.authorPhoto,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       author: author ?? this.author,
@@ -109,6 +117,8 @@ class Post extends Equatable {
         isHidden,
         likeCount,
         commentCount,
+        authorName,
+        authorPhoto,
         createdAt,
         updatedAt,
         author,

@@ -15,7 +15,7 @@ import request from 'supertest';
 import { getApp } from './helpers/app';
 import { resetDb, getTestPool } from './helpers/db';
 import { socialToken, socialRefreshToken, adminRefreshToken, expiredToken } from './helpers/auth';
-import { createUser } from './helpers/fixtures';
+import { createAdminUser, createUser } from './helpers/fixtures';
 
 const app = getApp();
 
@@ -189,6 +189,7 @@ describe('POST /auth/refresh', () => {
       .send({ refreshToken });
 
     expect(res.status).toBe(401);
+    expect(res.body).toEqual({ error: 'Invalid or expired refresh token' });
   });
 
   it('rejects access token used as refresh token', async () => {
@@ -200,6 +201,16 @@ describe('POST /auth/refresh', () => {
       .send({ refreshToken: accessToken });
 
     expect(res.status).toBe(401);
+    expect(res.body).toEqual({ error: 'Invalid or expired refresh token' });
+  });
+
+  it('returns 401 with explicit error for malformed refresh token', async () => {
+    const res = await request(app)
+      .post('/auth/refresh')
+      .send({ refreshToken: 'not-a-valid-token' });
+
+    expect(res.status).toBe(401);
+    expect(res.body).toEqual({ error: 'Invalid or expired refresh token' });
   });
 
   it('rejects refresh for banned user', async () => {
@@ -215,6 +226,42 @@ describe('POST /auth/refresh', () => {
       .send({ refreshToken });
 
     expect(res.status).toBe(401);
+  });
+});
+
+describe('POST /admin/auth/refresh', () => {
+  it('returns 401 with explicit error for malformed refresh token', async () => {
+    const res = await request(app)
+      .post('/admin/auth/refresh')
+      .send({ refreshToken: 'not-a-valid-token' });
+
+    expect(res.status).toBe(401);
+    expect(res.body).toEqual({ error: 'Invalid or expired refresh token' });
+  });
+
+  it('returns 401 for social-family token sent to admin refresh endpoint', async () => {
+    const user = await createUser({ role: 'platformAdmin' });
+    const socialRefresh = socialRefreshToken(user.id, 'platformAdmin');
+
+    const res = await request(app)
+      .post('/admin/auth/refresh')
+      .send({ refreshToken: socialRefresh });
+
+    expect(res.status).toBe(401);
+    expect(res.body).toEqual({ error: 'Invalid or expired refresh token' });
+  });
+
+  it('returns 200 for valid admin refresh token', async () => {
+    const admin = await createAdminUser({ role: 'platformAdmin' });
+    const adminRefresh = adminRefreshToken(admin.id, 'platformAdmin');
+
+    const res = await request(app)
+      .post('/admin/auth/refresh')
+      .send({ refreshToken: adminRefresh });
+
+    expect(res.status).toBe(200);
+    expect(res.body.accessToken).toBeDefined();
+    expect(res.body.refreshToken).toBeDefined();
   });
 });
 
@@ -314,6 +361,12 @@ describe('DELETE /auth/me (account deletion)', () => {
 
     const user = await createUser({ phone: '+15559999012' });
     const otherUser = await createUser({ phone: '+15559999013' });
+    const event = await pool.query(
+      `INSERT INTO events (name, venue_name, venue_address, start_time, end_time, activation_code, market_id)
+       VALUES ($1, $2, $3, NOW() + INTERVAL '1 day', NOW() + INTERVAL '1 day 2 hours', $4, NULL)
+       RETURNING id`,
+      ['Cascade Event', 'Test Venue', '123 Test Ave', '1234']
+    );
 
     // Create associated data
     await pool.query(
@@ -323,6 +376,11 @@ describe('DELETE /auth/me (account deletion)', () => {
     await pool.query(
       `INSERT INTO connections (user_a_id, user_b_id) VALUES ($1, $2)`,
       [user.id, otherUser.id]
+    );
+    await pool.query(
+      `INSERT INTO tickets (user_id, event_id, ticket_type, price, status, purchased_at)
+       VALUES ($1, $2, 'General', 0, 'purchased', NOW())`,
+      [user.id, event.rows[0].id]
     );
 
     const token = socialToken(user.id);
@@ -336,8 +394,10 @@ describe('DELETE /auth/me (account deletion)', () => {
       'SELECT id FROM connections WHERE user_a_id = $1 OR user_b_id = $1',
       [user.id]
     );
+    const tickets = await pool.query('SELECT id FROM tickets WHERE user_id = $1', [user.id]);
 
     expect(posts.rows).toHaveLength(0);
     expect(connections.rows).toHaveLength(0);
+    expect(tickets.rows).toHaveLength(0);
   });
 });

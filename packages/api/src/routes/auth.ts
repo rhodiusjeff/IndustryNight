@@ -256,11 +256,29 @@ const refreshSchema = z.object({
   }),
 });
 
-router.post('/refresh', validate(refreshSchema), async (req, res, next) => {
+router.post('/refresh', validate(refreshSchema), async (req, res, next): Promise<void> => {
   try {
     const { refreshToken } = req.body;
 
-    const payload = verifyToken(refreshToken);
+    let payload: ReturnType<typeof verifyToken>;
+    try {
+      payload = verifyToken(refreshToken);
+    } catch {
+      await tryLogSecurityEventFromRequest(req, {
+        action: 'login',
+        entityType: 'auth',
+        actorType: 'system',
+        result: 'failure',
+        failureReason: 'invalid_refresh_token',
+        statusCode: 401,
+        metadata: {
+          flow: 'refresh',
+        },
+      });
+      res.status(401).json({ error: 'Invalid or expired refresh token' });
+      return;
+    }
+
     if (payload.type !== 'refresh' || payload.tokenFamily !== 'social') {
       await tryLogSecurityEventFromRequest(req, {
         action: 'login',
@@ -273,7 +291,8 @@ router.post('/refresh', validate(refreshSchema), async (req, res, next) => {
           flow: 'refresh',
         },
       });
-      throw new UnauthorizedError('Invalid refresh token');
+      res.status(401).json({ error: 'Invalid or expired refresh token' });
+      return;
     }
 
     const user = await queryOne<{ id: string; role: string; banned: boolean }>(
@@ -315,6 +334,7 @@ router.post('/refresh', validate(refreshSchema), async (req, res, next) => {
       ...tokens,
       user: fullUser,
     });
+    return;
   } catch (error) {
     if (error instanceof UnauthorizedError) {
       next(error);
@@ -333,6 +353,7 @@ router.post('/refresh', validate(refreshSchema), async (req, res, next) => {
       },
     });
     next(error);
+    return;
   }
 });
 
@@ -374,20 +395,22 @@ router.delete('/me', authenticate, async (req, res, next) => {
     // Clean up verification codes, then delete user (CASCADE handles the rest)
     await query('DELETE FROM verification_codes WHERE phone = $1', [user.phone]);
 
+    await query('DELETE FROM users WHERE id = $1', [userId]);
+
     await tryLogSecurityEventFromRequest(req, {
       action: 'delete',
       entityType: 'user',
       entityId: userId,
-      actorType: 'user',
-      actorId: userId,
+      actorType: 'system',
       result: 'success',
       statusCode: 200,
       oldValues: {
         phoneMasked: `****${user.phone.slice(-4)}`,
       },
+      metadata: {
+        deletedUserId: userId,
+      },
     });
-
-    await query('DELETE FROM users WHERE id = $1', [userId]);
 
     res.json({ message: 'Account deleted' });
   } catch (error) {

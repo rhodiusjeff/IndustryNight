@@ -220,6 +220,9 @@ describe('Customer Model', () => {
     });
 
     it('filters by product type', async () => {
+      // New RBAC gate requires platformAdmin role for product catalog access.
+      admin.role = 'platformAdmin';
+      token = adminToken(admin.id, 'platformAdmin');
       await createProduct({ product_type: 'sponsorship' });
       await createProduct({ product_type: 'vendor_space' });
 
