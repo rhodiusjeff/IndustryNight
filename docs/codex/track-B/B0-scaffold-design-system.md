@@ -4,7 +4,7 @@
 **Sequence:** 1 of 4 in Track B
 **Model:** claude-opus-4-6
 **Alternate Model:** gpt-5.4 ← the stronger OpenAI choice for this prompt specifically; architectural scaffolding involves chaining many tools (npm install, type-check, test run, build verify) where GPT-5.4's tool orchestration score (54.6% vs 51.9%) matters more than GPT-5.3-Codex's terminal advantage. Do NOT use GPT-5.4 mini for B0 — the architectural decisions made here propagate through all of Track B.
-**A/B Test:** Yes ⚡ — run both models on `feature/B0-react-scaffold/claude` and `feature/B0-react-scaffold/gpt`; adversarial panel review before merging to `integration`. **Highest-impact A/B in the library** — B1, B2, B3 all build on this foundation.
+**A/B Test:** Yes ⚡ — run both models on `feature/B0-react-scaffold-claude` and `feature/B0-react-scaffold-gpt`; adversarial panel review before merging to `integration`. **Highest-impact A/B in the library** — B1, B2, B3 all build on this foundation.
 **Estimated Effort:** Medium (1-2 days)
 **Dependencies:** None — runs in parallel with C0 and A0. However, complete C0 before starting B1.
 
@@ -483,7 +483,7 @@ echo "✓ B0 smoke tests passed"
 
 > To be filled in by the executing agent after implementation is complete.
 
-**Branch:** `feature/B0-react-scaffold/[claude|gpt]`
+**Branch:** `feature/B0-react-scaffold-[claude|gpt]`
 **Model used:** —
 **Date completed:** —
 

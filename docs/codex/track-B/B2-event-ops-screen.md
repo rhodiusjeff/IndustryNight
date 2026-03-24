@@ -6,7 +6,7 @@
 **Alternate Model:** gpt-5.4
 **A/B Test:** No
 **Estimated Effort:** Medium
-**Dependencies:** B1 (auth + RBAC), C1 (attendees endpoints), C2 (FCM wristband notification)
+**Dependencies:** B1 (auth + RBAC), C1 (missing API endpoints), C2 (push notifications)
 
 ---
 
@@ -16,9 +16,9 @@ Read these before writing any code:
 
 - `CLAUDE.md` — project reference (database schema, API routes, roles)
 - `docs/codex/track-B/B0-scaffold-design-system.md` — design system, component patterns, styling conventions
-- `docs/codex/track-B/B1-auth-rbac.md` — role-gated navigation, `eventOps` role definition, auth hooks
-- `docs/codex/track-C/C1-attendees-endpoints.md` — backend SSE stream format, check-in payload structure, ticket resolution
-- `docs/codex/track-C/C2-fcm-wristband-notification.md` — FCM integration, push notification payload for wristband confirmation
+- `docs/codex/track-B/B1-auth-rbac-permissions.md` — role-gated navigation, `eventOps` role definition, auth hooks
+- `docs/codex/track-C/C1-missing-api-endpoints.md` — backend SSE stream format, check-in payload structure, ticket resolution
+- `docs/codex/track-C/C2-push-notifications.md` — FCM integration, push notification payload for wristband confirmation
 
 ---
 

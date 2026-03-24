@@ -957,7 +957,7 @@ async function loginAs(page: any, role: string) {
 
 > To be filled in by the executing agent after implementation is complete.
 
-**Branch:** `feature/B1-auth-rbac/[claude|gpt]`
+**Branch:** `feature/B1-auth-rbac-[claude|gpt]`
 **Model used:** —
 **Date completed:** —
 

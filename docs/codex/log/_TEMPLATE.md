@@ -1,7 +1,7 @@
 # Completion Log — [Prompt ID]: [Prompt Title]
 
 **Prompt file:** `docs/codex/track-X/XX-title.md`
-**Branch:** `feature/{prompt-id}-{short-name}/{claude|gpt}`
+**Branch:** `feature/{prompt-id}-{short-name}-[claude|gpt]` (A/B) or `feature/{prompt-id}-{short-name}` (non-A/B)
 **Model used:** [exact model string, e.g. claude-sonnet-4-6]
 **A/B prompt:** Yes | No
 **Date completed:** [YYYY-MM-DD]

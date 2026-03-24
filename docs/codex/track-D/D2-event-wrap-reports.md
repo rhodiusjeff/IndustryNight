@@ -17,7 +17,7 @@ Read these before writing any code:
 - `CLAUDE.md` — full project reference (database, API routes, Admin app routes, state management)
 - `docs/product/requirements.md` — Section 4.2 "Event Wrap Reports" (product vision)
 - `packages/database/migrations/001_baseline_schema.sql` — current baseline schema
-- `packages/database/migrations/005_event_reports.sql` — new migration file (provided below)
+- `packages/database/migrations/NNN_event_reports.sql` — use the next sequential migration number when implementing (provided below)
 - `packages/api/src/services/` — existing services (auth, email, storage, posh)
 - `packages/api/src/routes/admin.ts` — admin endpoints pattern
 - `packages/api/src/__tests__/` — existing test patterns (customers.test.ts for reference)
@@ -34,7 +34,7 @@ Automatically generate post-event wrap reports using Claude Sonnet 24 hours afte
 
 ## Acceptance Criteria
 
-- [ ] Migration file exists at `packages/database/migrations/005_event_reports.sql`
+- [ ] Migration file exists at `packages/database/migrations/NNN_event_reports.sql` (next sequential number)
 - [ ] `event_reports` table created with all required columns (see schema below)
 - [ ] `generateEventWrapReport(eventId: string)` service function exists at `packages/api/src/services/event-wrap.ts`
 - [ ] Function calls Claude Sonnet with structured prompt; parses JSON response into all report sections
@@ -71,12 +71,12 @@ Automatically generate post-event wrap reports using Claude Sonnet 24 hours afte
 
 ## Technical Spec
 
-### 1. Database Migration: `005_event_reports.sql`
+### 1. Database Migration: `NNN_event_reports.sql`
 
-Create migration file at `packages/database/migrations/005_event_reports.sql`:
+Create migration file at `packages/database/migrations/NNN_event_reports.sql` (replace `NNN` with the next sequential migration number):
 
 ```sql
--- 005_event_reports.sql
+-- NNN_event_reports.sql
 -- Event wrap reports: automated Sonnet-generated summaries of completed events
 -- Stores stats, narrative sections, and full markdown for admin viewing and export
 
@@ -913,7 +913,7 @@ router.delete('/events/:id/report', authenticateAdmin, requirePlatformAdmin, asy
 
 ### 5. Platform Config Seed Values
 
-Add to `packages/database/migrations/005_event_reports.sql` or via seed script:
+Add to `packages/database/migrations/NNN_event_reports.sql` or via seed script:
 
 ```sql
 -- Add to migration or seed script (packages/api/src/seeds/)
@@ -1430,7 +1430,7 @@ describe('Event Report Endpoints', () => {
 
 ## Definition of Done
 
-- [ ] Migration file `packages/database/migrations/005_event_reports.sql` created and applied
+- [ ] Migration file `packages/database/migrations/NNN_event_reports.sql` created and applied (with correct sequential number)
 - [ ] `event_reports` table exists with all columns and indexes
 - [ ] `packages/api/src/services/event-wrap.ts` implemented with `generateEventWrapReport()` and `cronGenerateEventWrapReports()`
 - [ ] Service tested: Sonnet called with correct prompt; response parsed into all sections

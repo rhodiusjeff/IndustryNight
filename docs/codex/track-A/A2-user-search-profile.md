@@ -868,7 +868,7 @@ describe('GET /connections', () => {
 
 > To be filled in by the executing agent after implementation is complete.
 
-**Branch:** `feature/A2-user-search-profile/[claude|gpt]`
+**Branch:** `feature/A2-user-search-profile-[claude|gpt]`
 **Model used:** —
 **Date completed:** —
 

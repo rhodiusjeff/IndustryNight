@@ -1383,7 +1383,7 @@ testWidgets('Portfolio URL validation rejects invalid URL', (tester) async {
 
 > To be filled in by the executing agent after implementation is complete.
 
-**Branch:** `feature/E1-jobs-board-flutter/[claude|gpt]`
+**Branch:** `feature/E1-jobs-board-flutter-[claude|gpt]`
 **Model used:** —
 **Date completed:** —
 
