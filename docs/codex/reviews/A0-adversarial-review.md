@@ -69,13 +69,13 @@
 
 ---
 
-## Jeff's Qualitative Input Summary
+## Jeff's Qualitative Input Summary (Optional)
 
 *Claude branch review:*
-> Pending direct interrogative-session notes in this review artifact.
+> Not provided for this review cycle.
 
 *GPT branch review:*
-> Pending direct interrogative-session notes in this review artifact.
+> Not provided for this review cycle.
 
 ---
 
@@ -103,7 +103,6 @@ GPT delivers stronger acceptance-criteria fidelity on two key requirements: auth
 - From GPT: route + model + tests as primary merge candidate for A0.
 
 ### Issues to address before merge
-- [ ] Add Jeff interrogative-session summaries to this file before final sign-off.
 - [ ] Confirm any generated-artifact policy expectations for shared models are documented in carry-forward (repository currently does not track `post.g.dart`).
 - [ ] Ensure Completion Report for winning lane explicitly lists any deviations and rationale.
 

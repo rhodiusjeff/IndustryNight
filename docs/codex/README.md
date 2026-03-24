@@ -222,9 +222,9 @@ Two families are recommended: Anthropic (Claude) and OpenAI (GPT-5.x-Codex / GPT
 
 ---
 
-## Interrogative Session
+## Interrogative Session (Optional)
 
-> Posed by the agent to Jeff after the Completion Report is written. Jeff's answers are recorded here before the branch is marked ready for review.
+> Optional product-owner input after the Completion Report is written. If skipped, control context notes can be captured directly in carry-forward artifacts.
 
 **Q1: Does the implemented behavior match your mental model of this feature?**
 > Jeff: [answer]
@@ -278,7 +278,7 @@ feature/C0-schema-foundation-gpt
 1. Create `feature/{prompt-id}-{short-name}-claude` and `feature/{prompt-id}-{short-name}-gpt` off `integration`
 2. Run the prompt on each model branch independently (same prompt, same context, different model)
 3. Both models fill in Completion Report on their branch
-4. Interrogative Session with Jeff on each branch (Jeff reviews claude output, then gpt output)
+4. Optional interrogative session on each branch (if skipped, capture any product-owner guidance in control/carry-forward artifacts)
 5. Adversarial panel (Option B — four role evaluators) runs against both; writes `docs/codex/reviews/{prompt-id}-adversarial-review.md`
 6. Product owner picks winner (or cherry-picks specific parts)
 7. Winning branch squash-merges to `integration`; other branch archived
@@ -288,7 +288,7 @@ feature/C0-schema-foundation-gpt
 1. Create `feature/{prompt-id}-{short-name}` off `integration`
 2. Run with the model designated in the prompt header by default
 3. Product owner may override to the `Alternate Model` at execution time based on latest A/B evidence and operational context
-4. Fill Completion Report + Interrogative Session
+4. Fill Completion Report (+ optional Interrogative Session)
 5. Merge review (single reviewer, not full adversarial panel)
 6. Squash-merge to `integration`
 

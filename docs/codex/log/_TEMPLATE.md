@@ -49,9 +49,11 @@
 
 ---
 
-## Jeff's Interrogative Session
+## Jeff's Interrogative Session (Optional)
 
-**Date of review:** [YYYY-MM-DD]
+If this section is skipped, record product-owner guidance (if any) in the carry-forward report.
+
+**Date of review:** [YYYY-MM-DD] or Not provided
 
 **Q1: Does the implemented behavior match your mental model of this feature?**
 > Jeff: [answer]
@@ -61,6 +63,8 @@
 
 **Q3: Any concerns you want flagged before this goes to adversarial review or merge?**
 > Jeff: [answer]
+
+_or:_ Not provided for this run.
 
 ---
 

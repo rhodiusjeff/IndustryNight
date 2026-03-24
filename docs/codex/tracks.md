@@ -183,7 +183,7 @@ Update this table as prompts complete.
 | Prompt | A/B | Status | Winner | Log | Review | Notes |
 |--------|-----|--------|--------|-----|--------|-------|
 | C0 | ⚡ | ✅ Merged | Claude | docs/codex/log/C0-control-decision.md | docs/codex/reviews/C0-adversarial-review.md | Winner-only control-session apply executed on AWS dev; C0 schema gate complete |
-| A0 | ⚡ | ⬜ Not started | — | — | — | |
+| A0 | ⚡ | 🟠 Under adversarial review | GPT | — | docs/codex/reviews/A0-adversarial-review.md | Winner identified; carry-forward execution in progress |
 | B0 | ⚡ | ⬜ Not started | — | — | — | |
 | C1 | — | ⬜ Not started | — | — | — | Waiting for C0 |
 | C2 | — | ⬜ Not started | — | — | — | Waiting for C0 |
