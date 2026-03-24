@@ -19,13 +19,16 @@ function phoneDigits(phone: string): string {
 /**
  * Magic test phone prefix: +1555555xxxx
  * - Always uses local devCode verification (bypasses Twilio)
- * - Blocked in production for security
+ * - Enabled when ENABLE_MAGIC_TEST_PREFIX=true OR NODE_ENV=test
+ * - NOT enabled by NODE_ENV=production alone — requires explicit opt-in for dev clusters
  * - Used by automated tests and local development
  */
 function isTestPhone(phone: string): boolean {
-  if (process.env.NODE_ENV === 'production') {
-    return false;
-  }
+  // Enabled if explicitly opted in (dev k8s) OR running under Jest (local)
+  const enabled =
+    process.env.ENABLE_MAGIC_TEST_PREFIX === 'true' ||
+    process.env.NODE_ENV === 'test';
+  if (!enabled) return false;
   return phone.startsWith('+1555555');
 }
 
