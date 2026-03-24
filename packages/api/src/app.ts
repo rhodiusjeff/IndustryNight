@@ -24,6 +24,11 @@ import adminAuthRoutes from './routes/admin-auth';
 
 const app = express();
 
+// Trust one reverse-proxy hop (ALB/ingress) so rate limiting and request IP handling work correctly.
+if (config.nodeEnv !== 'test') {
+  app.set('trust proxy', 1);
+}
+
 if (!config.audit.enabled && config.nodeEnv !== 'test') {
   console.error('');
   console.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
