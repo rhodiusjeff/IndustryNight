@@ -59,7 +59,7 @@ if (config.nodeEnv !== 'test') {
 }
 
 // Rate limiters (skipped in test — tests make many requests from a single IP)
-const isTest = config.nodeEnv === 'test';
+const isTest = config.nodeEnv === 'test' || process.env.ENABLE_MAGIC_TEST_PREFIX === 'true';
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
