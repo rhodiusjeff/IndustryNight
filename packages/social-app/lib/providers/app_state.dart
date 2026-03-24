@@ -147,7 +147,7 @@ class AppState extends ChangeNotifier {
   }
 
   /// Request SMS verification code
-  /// Returns a dev code if Twilio is not configured (for simulator testing)
+  /// Returns a dev code only when API dev OTP fallback is explicitly enabled
   Future<String?> requestVerificationCode(String phone) async {
     _isLoading = true;
     _error = null;

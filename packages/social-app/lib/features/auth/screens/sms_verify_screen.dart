@@ -22,7 +22,7 @@ class _SmsVerifyScreenState extends State<SmsVerifyScreen> {
   @override
   void initState() {
     super.initState();
-    // Auto-fill dev code for simulator testing (no Twilio configured)
+    // Auto-fill only when API explicitly returns a devCode in fallback mode.
     if (widget.devCode != null) {
       _codeController.text = widget.devCode!;
       WidgetsBinding.instance.addPostFrameCallback((_) => _verifyCode());
