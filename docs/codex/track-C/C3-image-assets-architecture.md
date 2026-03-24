@@ -4,9 +4,17 @@
 **Sequence:** 4 of 5 in Track C
 **Model:** claude-opus-4-6
 **Alternate Model:** gpt-5.4 ← preferred for architectural patterns and LLM service design
-**A/B Test:** Yes ⚡ — run both models on `feature/C3-image-assets/claude` and `feature/C3-image-assets/gpt`; adversarial panel review before merging to `integration`
+**A/B Test:** Yes ⚡ — run both models on `feature/C3-image-assets-claude` and `feature/C3-image-assets-gpt`; adversarial panel review before merging to `integration`
 **Estimated Effort:** Large (12-16 hours)
 **Dependencies:** C0 (Phase 0 Foundation), C1 (Event Schema), C2 (Admin Endpoints)
+
+## Execution Mode (Required)
+
+- [ ] Stage 1 (required): execute and validate locally first (local Postgres + local API + local admin/mobile against local endpoint).
+- [ ] Stage 2 (required for backend/integration-impacting tracks): run shared-dev integration smoke only after local pass.
+- [ ] Stage 3 (required before PR merge): run AWS dev deploy/integration smoke for final confidence.
+- [ ] Completion log must explicitly record: execution mode used, exact commands run, evidence links, and cleanup actions.
+
 
 ### C0 Winner Handoff (Control Session)
 
@@ -876,7 +884,7 @@ describe('TagNewImagesJob', () => {
 
 > To be filled in by the executing agent after implementation is complete.
 
-**Branch:** `feature/C3-image-assets/[claude|gpt]`
+**Branch:** `feature/C3-image-assets-[claude|gpt]`
 **Model used:** —
 **Date completed:** —
 
@@ -893,9 +901,9 @@ describe('TagNewImagesJob', () => {
 -
 
 ### Architectural decisions made (A/B evaluation note)
-> If running the `/claude` branch: describe which architectural decisions you made that differ from the alternative options in the spec (e.g., job scheduling approach, error handling strategy, image registry pattern).
+> If running the `-claude` branch: describe which architectural decisions you made that differ from the alternative options in the spec (e.g., job scheduling approach, error handling strategy, image registry pattern).
 >
-> If running the `/gpt` branch: same request — note specific architectural choices made and trade-offs considered.
+> If running the `-gpt` branch: same request — note specific architectural choices made and trade-offs considered.
 
 -
 

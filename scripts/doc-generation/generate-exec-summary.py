@@ -7,7 +7,7 @@ No code metrics, no architecture — just what we built, why, and where we're go
 
 Usage:
     source /tmp/pptx-env/bin/activate
-    python3 scripts/generate-exec-summary.py
+    python3 scripts/doc-generation/generate-exec-summary.py
 """
 
 from pptx import Presentation

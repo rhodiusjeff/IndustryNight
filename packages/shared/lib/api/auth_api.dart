@@ -32,7 +32,7 @@ class AuthApi {
   AuthApi(this._client);
 
   /// Request an SMS verification code
-  /// Returns a dev code if Twilio is not configured (for simulator testing)
+  /// Returns a dev code only when API dev OTP fallback is explicitly enabled
   Future<String?> requestCode(String phone) async {
     final response = await _client.post<Map<String, dynamic>>(
       '/auth/request-code',

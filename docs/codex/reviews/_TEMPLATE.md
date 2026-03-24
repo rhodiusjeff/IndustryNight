@@ -2,8 +2,8 @@
 
 **Date:** [YYYY-MM-DD]
 **Prompt file:** `docs/codex/track-X/XX-title.md`
-**Claude branch:** `feature/{id}-{name}/claude`
-**GPT branch:** `feature/{id}-{name}/gpt`
+**Claude branch:** `feature/{id}-{name}-claude`
+**GPT branch:** `feature/{id}-{name}-gpt`
 **Panel model:** [model used to run evaluators]
 
 ---

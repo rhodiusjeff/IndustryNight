@@ -155,6 +155,7 @@ Optional (with defaults):
 - `DB_HOST` (localhost), `DB_PORT` (5432), `DB_NAME` (industrynight), `DB_USER` (postgres), `DB_PASSWORD`
 - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER` — if missing, SMS is skipped (dev-safe)
 - `TWILIO_VERIFY_SERVICE_SID` — if set (with account SID + auth token), uses Twilio Verify API for OTP
+- `AUTH_ALLOW_DEV_OTP_FALLBACK` (`false` by default) — when `true`, allows local dev OTP fallback (`devCode`) if Twilio Verify is unavailable
 - `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET`, `SES_FROM_EMAIL`
 - `POSH_WEBHOOK_SECRET`
 - `CORS_ORIGINS` (comma-separated)
@@ -423,12 +424,12 @@ DB scripts use `pg` from `packages/api/node_modules` (no separate install needed
 
 ### Executive Brief Generator
 
-`scripts/generate-exec-brief.py` generates a 14-slide PowerPoint presentation at `docs/executive/Industry Night - Executive Brief.pptx`. Dark theme, purple accents, widescreen (16:9).
+`scripts/doc-generation/generate-exec-brief.py` generates a 14-slide PowerPoint presentation at `docs/executive/Industry Night - Executive Brief.pptx`. Dark theme, purple accents, widescreen (16:9).
 
 **To regenerate:**
 ```bash
 python3 -m venv /tmp/pptx-env && source /tmp/pptx-env/bin/activate && pip install python-pptx
-python3 scripts/generate-exec-brief.py
+python3 scripts/doc-generation/generate-exec-brief.py
 ```
 
 ### COOP Scripts (scripts/coop/)
@@ -524,17 +525,19 @@ cd packages/social-app && flutter run
 cd packages/admin-app && flutter run -d chrome
 ```
 
-### DevCode system (simulator testing without Twilio)
-When `TWILIO_VERIFY_SERVICE_SID` is not set (or Twilio credentials are missing entirely):
+### DevCode system (explicit fallback mode)
+When `AUTH_ALLOW_DEV_OTP_FALLBACK=true` **and** Twilio Verify is unavailable:
 1. Backend generates its own 6-digit code, stores it in `verification_codes` table
 2. Returns `{ message: "Verification code sent", devCode: "123456" }` on `/auth/request-code`
 3. Flutter `phone_entry_screen` captures `devCode` from response
 4. Passes it to `sms_verify_screen` which auto-fills the code field
 5. Auto-submits after a short delay
 
-When `TWILIO_VERIFY_SERVICE_SID` is set (production):
+When Twilio Verify is available (default behavior):
 - Twilio Verify API handles code generation, delivery, and verification
 - No codes stored in local DB; no `devCode` in response
+
+When Twilio Verify is unavailable and fallback is not enabled (default), `/auth/request-code` and `/auth/verify-code` return 503.
 
 ### iOS setup
 - Deployment target: iOS 14.0
@@ -547,7 +550,7 @@ When `TWILIO_VERIFY_SERVICE_SID` is set (production):
 
 2. **GoRouter singleton:** `GoRouter` must be created once in `initState()` of the app widget, NOT inside a `Consumer<AppState>` that rebuilds on every `notifyListeners()`. GoRouter's `refreshListenable` parameter handles auth state re-evaluation.
 
-3. **Twilio Verify:** When `TWILIO_VERIFY_SERVICE_SID` is set, the Twilio Verify API handles OTP code generation, delivery, and checking. Without it, SMS is a no-op and the verification code is returned in the API response (devCode mode for simulator testing).
+3. **Twilio Verify default:** OTP uses Twilio Verify by default. Local `devCode` fallback only works when `AUTH_ALLOW_DEV_OTP_FALLBACK=true`.
 
 4. **User deletion cascade:** `DELETE FROM users WHERE id = $1` cascades to all related tables. But you MUST delete `verification_codes` separately first (keyed by phone, not user ID).
 

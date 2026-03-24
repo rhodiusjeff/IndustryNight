@@ -4,9 +4,17 @@
 **Sequence:** 1 of 5 in Track D
 **Model:** claude-opus-4-6
 **Alternate Model:** gpt-5.4 ← preferred for structured JSON reliability and cost-per-token advantage at scale
-**A/B Test:** Yes ⚡ — run both models on `feature/D0-moderation-pipeline/claude` and `feature/D0-moderation-pipeline/gpt`; adversarial panel review before merging to `integration`
+**A/B Test:** Yes ⚡ — run both models on `feature/D0-moderation-pipeline-claude` and `feature/D0-moderation-pipeline-gpt`; adversarial panel review before merging to `integration`
 **Estimated Effort:** Large (6–8 hours)
 **Dependencies:** C0 (platform_config + llm_usage_log tables), C1 (post_reports table exists), A1 (posts table exists with community feed feature)
+
+## Execution Mode (Required)
+
+- [ ] Stage 1 (required): execute and validate locally first (local Postgres + local API + local admin/mobile against local endpoint).
+- [ ] Stage 2 (required for backend/integration-impacting tracks): run shared-dev integration smoke only after local pass.
+- [ ] Stage 3 (required before PR merge): run AWS dev deploy/integration smoke for final confidence.
+- [ ] Completion log must explicitly record: execution mode used, exact commands run, evidence links, and cleanup actions.
+
 
 ---
 
@@ -957,7 +965,7 @@ Panel reviewers should compare:
 
 > To be filled in by the executing agent after implementation is complete.
 
-**Branch:** `feature/D0-moderation-pipeline/[claude|gpt]`
+**Branch:** `feature/D0-moderation-pipeline-[claude|gpt]`
 **Model used:** —
 **Date completed:** —
 

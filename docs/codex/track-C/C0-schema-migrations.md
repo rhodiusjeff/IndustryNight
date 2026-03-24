@@ -4,9 +4,17 @@
 **Sequence:** 1 of 5 in Track C
 **Model:** claude-sonnet-4-6
 **Alternate Model:** gpt-5.3-codex ← preferred if running inside OpenAI Codex platform; terminal-first workflow (psql, node scripts, grep verification) is where GPT-5.3-Codex's Terminal-Bench advantage is most tangible
-**A/B Test:** Yes ⚡ — run both models on `feature/C0-schema-foundation/claude` and `feature/C0-schema-foundation/gpt`; adversarial panel review before merging to `integration`
+**A/B Test:** Yes ⚡ — run both models on `feature/C0-schema-foundation-claude` and `feature/C0-schema-foundation-gpt`; adversarial panel review before merging to `integration`
 **Estimated Effort:** Small (2-4 hours)
 **Dependencies:** None — this is a root prompt. All other tracks depend on this completing successfully.
+
+## Execution Mode (Required)
+
+- [ ] Stage 1 (required): execute and validate locally first (local Postgres + local API + local admin/mobile against local endpoint).
+- [ ] Stage 2 (required for backend/integration-impacting tracks): run shared-dev integration smoke only after local pass.
+- [ ] Stage 3 (required before PR merge): run AWS dev deploy/integration smoke for final confidence.
+- [ ] Completion log must explicitly record: execution mode used, exact commands run, evidence links, and cleanup actions.
+
 
 ---
 
@@ -362,7 +370,7 @@ The following are insufficient to mark the lane complete:
 
 > To be filled in by the executing agent after implementation is complete.
 
-**Branch:** `feature/C0-schema-foundation/[claude|gpt]`
+**Branch:** `feature/C0-schema-foundation-[claude|gpt]`
 **Model used:** —
 **Date completed:** —
 

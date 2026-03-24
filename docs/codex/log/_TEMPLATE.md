@@ -1,7 +1,7 @@
 # Completion Log — [Prompt ID]: [Prompt Title]
 
 **Prompt file:** `docs/codex/track-X/XX-title.md`
-**Branch:** `feature/{prompt-id}-{short-name}/{claude|gpt}`
+**Branch:** `feature/{prompt-id}-{short-name}-[claude|gpt]` (A/B) or `feature/{prompt-id}-{short-name}` (non-A/B)
 **Model used:** [exact model string, e.g. claude-sonnet-4-6]
 **A/B prompt:** Yes | No
 **Date completed:** [YYYY-MM-DD]
@@ -49,9 +49,11 @@
 
 ---
 
-## Jeff's Interrogative Session
+## Jeff's Interrogative Session (Optional)
 
-**Date of review:** [YYYY-MM-DD]
+If this section is skipped, record product-owner guidance (if any) in the carry-forward report.
+
+**Date of review:** [YYYY-MM-DD] or Not provided
 
 **Q1: Does the implemented behavior match your mental model of this feature?**
 > Jeff: [answer]
@@ -61,6 +63,8 @@
 
 **Q3: Any concerns you want flagged before this goes to adversarial review or merge?**
 > Jeff: [answer]
+
+_or:_ Not provided for this run.
 
 ---
 

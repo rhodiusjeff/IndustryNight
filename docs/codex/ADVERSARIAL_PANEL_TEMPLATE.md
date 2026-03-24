@@ -12,8 +12,8 @@ Before running any evaluator, assemble these artifacts:
 
 ```
 1. The CODEX prompt spec (the .md file from docs/codex/track-X/)
-2. Claude branch output — full diff: `git diff integration feature/{id}/claude`
-3. GPT branch output — full diff: `git diff integration feature/{id}/gpt`
+2. Claude branch output — full diff: `git diff integration feature/{id}-{name}-claude`
+3. GPT branch output — full diff: `git diff integration feature/{id}-{name}-gpt`
 4. Claude Completion Report (from the prompt's Completion Report section)
 5. GPT Completion Report (from the prompt's Completion Report section)
 6. Jeff's Interrogative Session responses for each branch
@@ -280,8 +280,8 @@ After all four evaluators have run, compile the summary:
 # Adversarial Review — [Prompt ID]: [Prompt Title]
 
 **Date:** [ISO date]
-**Claude branch:** feature/{id}/claude
-**GPT branch:** feature/{id}/gpt
+**Claude branch:** feature/{id}-{name}-claude
+**GPT branch:** feature/{id}-{name}-gpt
 
 ## Scorecard
 

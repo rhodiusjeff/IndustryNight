@@ -9,6 +9,14 @@
 **Estimated Effort:** Large (may span 2 weeks)
 **Dependencies:** B0 (scaffold + design system), B1 (auth + RBAC), B2 (Event Ops screen + image management)
 
+## Execution Mode (Required)
+
+- [ ] Stage 1 (required): execute and validate locally first (local Postgres + local API + local admin/mobile against local endpoint).
+- [ ] Stage 2 (required for backend/integration-impacting tracks): run shared-dev integration smoke only after local pass.
+- [ ] Stage 3 (required before PR merge): run AWS dev deploy/integration smoke for final confidence.
+- [ ] Completion log must explicitly record: execution mode used, exact commands run, evidence links, and cleanup actions.
+
+
 ---
 
 ## Context
@@ -17,8 +25,8 @@ Read these before implementing:
 
 - `CLAUDE.md` — Admin API endpoints table (routes/admin.ts) and Flutter admin app feature list
 - `docs/codex/track-B/B0-scaffold-design-system.md` — design system, Tailwind config, component patterns
-- `docs/codex/track-B/B1-auth-rbac.md` — auth middleware, role gating, admin session management (reference for consistency)
-- `docs/codex/track-B/B2-event-ops.md` — Event Ops screen + image upload patterns, EventFormScreen structure
+- `docs/codex/track-B/B1-auth-rbac-permissions.md` — auth middleware, role gating, admin session management (reference for consistency)
+- `docs/codex/track-B/B2-event-ops-screen.md` — Event Ops screen + image upload patterns, EventFormScreen structure
 - `packages/admin-app/lib/features/` — Flutter admin screens (reference for feature scope, not code to copy)
 - `packages/react-admin/components/` — existing shared components from B0 (StatusBadge, DataTable, etc.)
 
@@ -1104,7 +1112,7 @@ test('delete post from moderation queue', async ({ page }) => {
 
 > To be filled in by the executing agent after implementation is complete.
 
-**Branch:** `feature/B3-admin-parity/[claude|gpt]`
+**Branch:** `feature/B3-admin-parity-[claude|gpt]`
 **Model used:** —
 **Date completed:** —
 **Total implementation time:** —

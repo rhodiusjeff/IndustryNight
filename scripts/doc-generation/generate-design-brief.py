@@ -8,7 +8,7 @@ Usage:
     python3 -m venv /tmp/design-brief-env
     source /tmp/design-brief-env/bin/activate
     pip install reportlab
-    python3 scripts/generate-design-brief.py
+    python3 scripts/doc-generation/generate-design-brief.py
 """
 
 import os

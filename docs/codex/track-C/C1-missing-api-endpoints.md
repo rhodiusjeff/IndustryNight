@@ -8,6 +8,14 @@
 **Estimated Effort:** Small–Medium (3–5 hours)
 **Dependencies:** C0 (schema migrations must be applied first; `post_reports` table created in this prompt)
 
+## Execution Mode (Required)
+
+- [ ] Stage 1 (required): execute and validate locally first (local Postgres + local API + local admin/mobile against local endpoint).
+- [ ] Stage 2 (required for backend/integration-impacting tracks): run shared-dev integration smoke only after local pass.
+- [ ] Stage 3 (required before PR merge): run AWS dev deploy/integration smoke for final confidence.
+- [ ] Completion log must explicitly record: execution mode used, exact commands run, evidence links, and cleanup actions.
+
+
 ### C0 Winner Handoff (Control Session)
 
 - Winner for C0 execution/apply authority: `claude-sonnet-4-6` (control session decision).
@@ -53,7 +61,7 @@ Implement all 8 missing API endpoints required by the social app screens and adm
 - [ ] `PATCH /admin/events/:id/attendees/:ticketId/wristband` updates wristband_issued_at
 - [ ] `GET /admin/posh-exceptions` returns only unmatched posh_orders (user_id IS NULL)
 - [ ] `PATCH /admin/posh-exceptions/:orderId/resolve` links order to user
-- [ ] `post_reports` migration created as `002_post_reports.sql` in `packages/database/migrations/`
+- [ ] `post_reports` migration created as `005_post_reports.sql` in `packages/database/migrations/`
 - [ ] All new route files created in `packages/api/src/routes/` (e.g., `checkin.ts`, additions to `admin.ts`)
 - [ ] Admin endpoints require `authenticateAdmin` middleware and appropriate role checks
 - [ ] Social endpoints require `authenticate` middleware
@@ -204,18 +212,18 @@ const postReportSchema = z.object({
 - 400: reason field missing or invalid
 
 **Notes:**
-- `post_reports` table created in migration `002_post_reports.sql` (see below)
+- `post_reports` table created in migration `005_post_reports.sql` (see below)
 - Moderation system (Track D0) will read from this table and process reports
 
 ---
 
-### 5. Migration: 002_post_reports.sql
+### 5. Migration: 005_post_reports.sql
 
-**Location:** `packages/database/migrations/002_post_reports.sql`
+**Location:** `packages/database/migrations/005_post_reports.sql`
 
 **Schema:**
 ```sql
--- 002_post_reports.sql
+-- 005_post_reports.sql
 -- Post reporting and moderation tracking
 
 BEGIN;
@@ -791,13 +799,13 @@ describe('PATCH /admin/posh-exceptions/:orderId/resolve', () => {
 
 ### CI/CD Integration
 
-These tests will run automatically in `api.yml` via `npx jest`. The testcontainers PostgreSQL setup will apply all migrations (including `002_post_reports.sql`) before tests run.
+These tests will run automatically in `api.yml` via `npx jest`. The testcontainers PostgreSQL setup will apply all migrations (including `005_post_reports.sql`) before tests run.
 
 ---
 
 ## Definition of Done
 
-- [ ] `packages/database/migrations/002_post_reports.sql` committed
+- [ ] `packages/database/migrations/005_post_reports.sql` committed
 - [ ] Migration applied successfully to dev DB: `DB_PASSWORD=xxx node scripts/migrate.js`
 - [ ] All 8 endpoints implemented in `packages/api/src/routes/`
 - [ ] All Zod schemas defined and validation middleware applied
@@ -839,7 +847,7 @@ These tests will run automatically in `api.yml` via `npx jest`. The testcontaine
 **Q1: Do all 8 endpoints pass their test suites and return correct status codes for all error paths?**
 > Jeff:
 
-**Q2: Does the migration `002_post_reports.sql` apply cleanly and idempotently, and does the unique constraint on (post_id, reported_by) work as expected?**
+**Q2: Does the migration `005_post_reports.sql` apply cleanly and idempotently, and does the unique constraint on (post_id, reported_by) work as expected?**
 > Jeff:
 
 **Q3: Are there any ambiguities in the endpoint specs that would cause confusion during Flutter wiring in Track A or B?**

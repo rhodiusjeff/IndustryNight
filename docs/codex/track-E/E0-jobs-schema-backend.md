@@ -8,6 +8,14 @@
 **Estimated Effort:** Medium (6–8 hours)
 **Dependencies:** C0 (Phase 0 schema migrations), C2 (platform_config feature flagging system)
 
+## Execution Mode (Required)
+
+- [ ] Stage 1 (required): execute and validate locally first (local Postgres + local API + local admin/mobile against local endpoint).
+- [ ] Stage 2 (required for backend/integration-impacting tracks): run shared-dev integration smoke only after local pass.
+- [ ] Stage 3 (required before PR merge): run AWS dev deploy/integration smoke for final confidence.
+- [ ] Completion log must explicitly record: execution mode used, exact commands run, evidence links, and cleanup actions.
+
+
 ---
 
 ## Context
@@ -35,7 +43,7 @@ The jobs board is a premium feature (product tier). Job posters are businesses w
 
 ## Acceptance Criteria
 
-- [ ] Migration file `006_jobs_board.sql` created and applied successfully
+- [ ] Migration file `NNN_jobs_board.sql` created and applied successfully (use next sequential migration number)
 - [ ] All tables exist with correct columns, constraints, indexes, and enum types
 - [ ] All enum types created: `job_status`, `job_type`, `compensation_type`, `application_status`
 - [ ] Job poster auth middleware `authenticateJobPoster` exists and rejects non-job_poster tokens
@@ -70,7 +78,7 @@ The jobs board is a premium feature (product tier). Job posters are businesses w
 
 ## Technical Spec
 
-### 1. Database Migration: `006_jobs_board.sql`
+### 1. Database Migration: `NNN_jobs_board.sql`
 
 **Step 1: Create enum types**
 
@@ -1559,7 +1567,7 @@ WHERE status = 'probationary' AND probation_ends_at < NOW();
 
 ## Definition of Done
 
-- [ ] Migration `006_jobs_board.sql` created and applied
+- [ ] Migration `NNN_jobs_board.sql` created and applied (with correct sequential number)
 - [ ] All tables exist with correct schema
 - [ ] Job poster auth routes work (register, login, refresh, logout, me)
 - [ ] JWT tokenFamily isolation enforced (job_poster tokens rejected by social/admin middleware)
@@ -1581,7 +1589,7 @@ WHERE status = 'probationary' AND probation_ends_at < NOW();
 
 > To be filled in by the executing agent after implementation is complete.
 
-**Branch:** `feature/E0-jobs-schema-backend/[claude|gpt]`
+**Branch:** `feature/E0-jobs-schema-backend-[claude|gpt]`
 **Model used:** —
 **Date completed:** —
 

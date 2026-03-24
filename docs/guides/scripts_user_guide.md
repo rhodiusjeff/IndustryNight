@@ -22,8 +22,8 @@ Operational scripts for developing, debugging, and managing the Industry Night p
 | `run-mobile.sh` | Start **social app** on simulator/device | (none) |
 | `run-admin-app.sh` | Start **admin app** in Chrome | (none) |
 | `debug-api.sh` | Remote Node.js debugging on EKS | `enable`, `disable` |
-| `generate-exec-brief.py` | Regenerate PowerPoint executive brief | (none) |
-| `generate-exec-summary.py` | Regenerate markdown executive summary | (none) |
+| `doc-generation/generate-exec-brief.py` | Regenerate PowerPoint executive brief | (none) |
+| `doc-generation/generate-exec-summary.py` | Regenerate markdown executive summary | (none) |
 
 ### Environment flag
 
@@ -346,7 +346,7 @@ Regenerates the 14-slide PowerPoint executive brief at `docs/executive/Industry 
 
 ```bash
 python3 -m venv /tmp/pptx-env && source /tmp/pptx-env/bin/activate && pip install python-pptx
-python3 scripts/generate-exec-brief.py
+python3 scripts/doc-generation/generate-exec-brief.py
 ```
 
 Edit data values directly in the script before regenerating — see CLAUDE.md for which fields to update for a weekly brief.
@@ -356,7 +356,7 @@ Edit data values directly in the script before regenerating — see CLAUDE.md fo
 Regenerates the companion markdown executive summary at `docs/executive/executive-brief.md`.
 
 ```bash
-python3 scripts/generate-exec-summary.py
+python3 scripts/doc-generation/generate-exec-summary.py
 ```
 
 ---

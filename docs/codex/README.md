@@ -17,6 +17,30 @@
 
 ---
 
+## Post-Run Carry-Forward (Control Context)
+
+Use this process to apply lessons forward without rewriting historical prompts.
+
+Principles:
+- Freeze executed prompts as historical artifacts.
+- Apply lessons only to downstream prompts and shared protocol/templates.
+- For A/B prompts, adjudicate first, then carry-forward.
+
+Artifacts:
+- Template: `docs/codex/carry-forward/_TEMPLATE.md`
+- Prompt-level control run: `docs/codex/carry-forward/CONTROL_POST_RUN_PROMPT.md`
+- Track-level synthesis: `docs/codex/carry-forward/TRACK_SYNTHESIS_PROMPT.md`
+- Phase consolidation/replay prep: `docs/codex/carry-forward/PHASE_CONSOLIDATION_PROMPT.md`
+
+Recommended sequence:
+1. Prompt completes and tests are verified.
+2. Control context runs the post-run carry-forward prompt and writes a carry-forward report.
+3. Only forward targets are patched (unexecuted prompts and shared templates/protocol docs).
+4. After full track completion, control context runs track synthesis.
+5. At phase end, control context runs phase consolidation for replay readiness planning.
+
+---
+
 ## Parallel Execution Map
 
 Tracks can execute in parallel where dependency arrows allow. Within a track, prompts are strictly sequential.
@@ -52,6 +76,26 @@ Tracks can execute in parallel where dependency arrows allow. Within a track, pr
 **C0 must complete before:** A1, B1, C1, C2, C3, B2
 
 **A0 must complete before:** A1 (A0 fixes posts.ts SQL that A1 relies on)
+
+---
+
+## Shared Dev DB Safety (Parallel Runs)
+
+When prompts are executed in parallel, treat the AWS dev database as a shared environment.
+
+- Prefer local-only verification first: Jest testcontainers, local Flutter/widget tests, and static checks.
+- Use shared dev DB only for final smoke/manual verification that requires integrated services.
+- Use unique test identities per lane/session (for example lane-specific phone/email) to avoid cross-lane collisions.
+- Do not run destructive global operations during prompt execution (for example full resets).
+- If any prompt creates shared test data, include explicit cleanup commands in the prompt completion notes.
+
+Recommended cleanup scripts (targeted):
+
+- `node scripts/db-uncheckin.js [--skip-k8s] [--yes] <phone>`
+- `node scripts/db-unconnect.js [--skip-k8s] [--yes] <phone>`
+- `node scripts/db-scrub-user.js [--skip-k8s] [--yes] <phone>`
+
+For A/B prompts touching schema or shared infrastructure, continue using winner-only control-session apply after review.
 
 ---
 
@@ -157,7 +201,7 @@ Two families are recommended: Anthropic (Claude) and OpenAI (GPT-5.x-Codex / GPT
 
 > Filled in by the executing agent after implementation is complete. Required before calling for review.
 
-**Branch:** `feature/[prompt-id]-[short-name]/[claude|gpt]`
+**Branch:** `feature/[prompt-id]-[short-name]-[claude|gpt]` (A/B) or `feature/[prompt-id]-[short-name]` (non-A/B)
 **Model used:** [actual model string]
 **Date completed:** [ISO date]
 
@@ -178,9 +222,9 @@ Two families are recommended: Anthropic (Claude) and OpenAI (GPT-5.x-Codex / GPT
 
 ---
 
-## Interrogative Session
+## Interrogative Session (Optional)
 
-> Posed by the agent to Jeff after the Completion Report is written. Jeff's answers are recorded here before the branch is marked ready for review.
+> Optional product-owner input after the Completion Report is written. If skipped, control context notes can be captured directly in carry-forward artifacts.
 
 **Q1: Does the implemented behavior match your mental model of this feature?**
 > Jeff: [answer]
@@ -219,35 +263,34 @@ Bad examples (not verifiable by a test):
 **Branch naming convention:**
 ```
 integration
-└── feature/{prompt-id}-{short-name}          ← base branch (created first, never committed to directly)
-    ├── feature/{prompt-id}-{short-name}/claude   ← Claude model execution
-    └── feature/{prompt-id}-{short-name}/gpt      ← OpenAI model execution
+└── feature/{prompt-id}-{short-name}          ← non-A/B prompt branch
+    ├── feature/{prompt-id}-{short-name}-claude   ← Claude model execution (A/B prompts)
+    └── feature/{prompt-id}-{short-name}-gpt      ← OpenAI model execution (A/B prompts)
 ```
 
 Example for C0:
 ```
-feature/C0-schema-foundation
-feature/C0-schema-foundation/claude
-feature/C0-schema-foundation/gpt
+feature/C0-schema-foundation-claude
+feature/C0-schema-foundation-gpt
 ```
 
 **Execution sequence for A/B prompts:**
-1. Create base branch off `integration`
-2. Branch `base/claude` and `base/gpt` off the base branch
-3. Run the prompt on each model branch independently (same prompt, same context, different model)
-4. Both models fill in Completion Report on their branch
-5. Interrogative Session with Jeff on each branch (Jeff reviews claude output, then gpt output)
-6. Adversarial panel (Option B — four role evaluators) runs against both; writes `docs/codex/reviews/{prompt-id}-adversarial-review.md`
-7. Product owner picks winner (or cherry-picks specific parts)
-8. Winning branch squash-merges to `integration`; other branch archived
-9. Update CODEX_TRACKER.xlsx with outcome + rationale
+1. Create `feature/{prompt-id}-{short-name}-claude` and `feature/{prompt-id}-{short-name}-gpt` off `integration`
+2. Run the prompt on each model branch independently (same prompt, same context, different model)
+3. Both models fill in Completion Report on their branch
+4. Optional interrogative session on each branch (if skipped, capture any product-owner guidance in control/carry-forward artifacts)
+5. Adversarial panel (Option B — four role evaluators) runs against both; writes `docs/codex/reviews/{prompt-id}-adversarial-review.md`
+6. Product owner picks winner (or cherry-picks specific parts)
+7. Winning branch squash-merges to `integration`; other branch archived
+8. Update CODEX_TRACKER.xlsx with outcome + rationale
 
 **For non-A/B prompts:**
 1. Create `feature/{prompt-id}-{short-name}` off `integration`
-2. Run with the model designated in the prompt header
-3. Fill Completion Report + Interrogative Session
-4. Merge review (single reviewer, not full adversarial panel)
-5. Squash-merge to `integration`
+2. Run with the model designated in the prompt header by default
+3. Product owner may override to the `Alternate Model` at execution time based on latest A/B evidence and operational context
+4. Fill Completion Report (+ optional Interrogative Session)
+5. Merge review (single reviewer, not full adversarial panel)
+6. Squash-merge to `integration`
 
 ---
 

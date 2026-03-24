@@ -12,20 +12,18 @@
 
 ```
 integration
-└── feature/{prompt-id}-{short-name}              ← base branch (never committed to directly)
-    ├── feature/{prompt-id}-{short-name}/claude    ← Claude model execution
-    └── feature/{prompt-id}-{short-name}/gpt       ← OpenAI model execution (A/B prompts only)
+└── feature/{prompt-id}-{short-name}              ← non-A/B prompt branch
+    ├── feature/{prompt-id}-{short-name}-claude    ← Claude model execution (A/B prompts)
+    └── feature/{prompt-id}-{short-name}-gpt       ← OpenAI model execution (A/B prompts)
 
 Examples:
-  feature/C0-schema-foundation
-  feature/C0-schema-foundation/claude
-  feature/C0-schema-foundation/gpt
+  feature/C0-schema-foundation-claude
+  feature/C0-schema-foundation-gpt
 
-  feature/B0-react-scaffold
-  feature/B0-react-scaffold/claude
-  feature/B0-react-scaffold/gpt
+  feature/B0-react-scaffold-claude
+  feature/B0-react-scaffold-gpt
 
-  feature/A1-community-board             ← non-A/B: single branch, no /claude suffix needed
+  feature/A1-community-board             ← non-A/B: single branch
 ```
 
 ---
@@ -185,7 +183,7 @@ Update this table as prompts complete.
 | Prompt | A/B | Status | Winner | Log | Review | Notes |
 |--------|-----|--------|--------|-----|--------|-------|
 | C0 | ⚡ | ✅ Merged | Claude | docs/codex/log/C0-control-decision.md | docs/codex/reviews/C0-adversarial-review.md | Winner-only control-session apply executed on AWS dev; C0 schema gate complete |
-| A0 | ⚡ | ⬜ Not started | — | — | — | |
+| A0 | ⚡ | 🟠 Under adversarial review | GPT | — | docs/codex/reviews/A0-adversarial-review.md | Winner identified; carry-forward execution in progress |
 | B0 | ⚡ | ⬜ Not started | — | — | — | |
 | C1 | — | ⬜ Not started | — | — | — | Waiting for C0 |
 | C2 | — | ⬜ Not started | — | — | — | Waiting for C0 |

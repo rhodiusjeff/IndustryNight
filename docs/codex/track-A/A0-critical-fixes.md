@@ -4,9 +4,17 @@
 **Sequence:** 1 of 4 in Track A
 **Model:** claude-sonnet-4-6
 **Alternate Model:** gpt-5.3-codex ← solid choice; the mix of Dart + TypeScript + running flutter build and npx jest to verify fixes plays to its terminal strength. Either model works well here given the tight spec.
-**A/B Test:** Yes ⚡ — run both models on `feature/A0-critical-fixes/claude` and `feature/A0-critical-fixes/gpt`; adversarial panel review before merging to `integration`
+**A/B Test:** Yes ⚡ — run both models on `feature/A0-critical-fixes-claude` and `feature/A0-critical-fixes-gpt`; adversarial panel review before merging to `integration`
 **Estimated Effort:** Small (3-5 hours)
 **Dependencies:** None — can run in parallel with C0 and B0
+
+## Execution Mode (Required)
+
+- [ ] Stage 1 (required): execute and validate locally first (local Postgres + local API + local admin/mobile against local endpoint).
+- [ ] Stage 2 (required for backend/integration-impacting tracks): run shared-dev integration smoke only after local pass.
+- [ ] Stage 3 (required before PR merge): run AWS dev deploy/integration smoke for final confidence.
+- [ ] Completion log must explicitly record: execution mode used, exact commands run, evidence links, and cleanup actions.
+
 
 ---
 
@@ -14,15 +22,23 @@
 
 Read these before writing any code:
 
+- `README.md` — high-level repo orientation and run/test entrypoints
 - `CLAUDE.md` — full project reference (key gotchas section especially)
+- `docs/codex/README.md` — CODEX execution protocol and model guidance
+- `docs/product/master_plan_v2.md` — platform decisions and constraints referenced by CODEX prompts
 - `docs/analysis/implementation_audit.md` — detailed bug descriptions with root causes
 - `packages/api/src/routes/posts.ts` — SQL injection bug location
 - `packages/api/src/routes/auth.ts` — token refresh 500 error
 - `packages/api/src/routes/admin-auth.ts` — admin token refresh 500 error
 - `packages/social-app/lib/features/community/` — unlikePost crash location
+- `packages/social-app/lib/features/community/screens/community_feed_screen.dart` — unlike UI behavior and optimistic count updates
 - `packages/social-app/lib/features/profile/screens/settings_screen.dart` — Delete Account button missing
+- `packages/social-app/lib/providers/app_state.dart` — `deleteAccount()` implementation and auth state clearing
 - `packages/shared/lib/models/post.dart` — post model (author fields)
+- `packages/shared/lib/models/post.g.dart` — generated serializer map to verify after build_runner
+- `packages/shared/lib/api/api_client.dart` — delete response handling behavior used by `PostsApi`
 - `packages/shared/lib/api/posts_api.dart` — unlikePost signature
+- `packages/api/jest.config.ts` — API test harness config for new/updated tests
 
 ---
 
@@ -413,6 +429,25 @@ RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
 echo "✓ A0 smoke tests passed"
 ```
 
+### Shared Dev DB Safety + Cleanup (required when using AWS dev)
+
+If this prompt is verified against shared AWS dev API/DB (instead of fully local), prevent collisions between parallel lanes:
+
+- Use lane-specific test identities (for example unique phone numbers/emails per lane).
+- Keep smoke tests scoped to only records created by that lane.
+- Record every test identity used in the Completion Report for traceability.
+
+After manual/smoke verification on shared dev, run targeted cleanup for test identities created by this lane:
+
+```bash
+# Example cleanup sequence for one lane-specific phone
+DB_PASSWORD=xxx node scripts/db-uncheckin.js --yes +15551230001
+DB_PASSWORD=xxx node scripts/db-unconnect.js --yes +15551230001
+DB_PASSWORD=xxx node scripts/db-scrub-user.js --yes +15551230001
+```
+
+Do not run global reset commands (for example `scripts/db-reset.js`) as part of A0 execution.
+
 ---
 
 ## Definition of Done
@@ -424,6 +459,7 @@ echo "✓ A0 smoke tests passed"
 - [ ] Manual test: tapping "Unlike" on a post no longer throws a Dart exception
 - [ ] Manual test: "Delete Account" button visible in Settings and confirmation dialog appears
 - [ ] Smoke tests pass against dev API
+- [ ] If shared dev DB was used: lane-created test data is cleaned up (targeted scripts only)
 - [ ] No existing passing tests are broken
 - [ ] Completion Report filled in (below)
 - [ ] Interrogative Session completed with Jeff
@@ -435,7 +471,7 @@ echo "✓ A0 smoke tests passed"
 
 > To be filled in by the executing agent after implementation is complete.
 
-**Branch:** `feature/A0-critical-fixes/[claude|gpt]`
+**Branch:** `feature/A0-critical-fixes-[claude|gpt]`
 **Model used:** —
 **Date completed:** —
 

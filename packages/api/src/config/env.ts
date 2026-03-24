@@ -32,6 +32,7 @@ const envSchema = z.object({
   TWILIO_AUTH_TOKEN: z.string().optional(),
   TWILIO_PHONE_NUMBER: z.string().optional(),
   TWILIO_VERIFY_SERVICE_SID: z.string().optional(),
+  AUTH_ALLOW_DEV_OTP_FALLBACK: z.string().default('false'),
 
   // Posh
   POSH_WEBHOOK_SECRET: z.string().optional(),
@@ -85,6 +86,10 @@ export const config = {
     authToken: env.data.TWILIO_AUTH_TOKEN,
     phoneNumber: env.data.TWILIO_PHONE_NUMBER,
     verifyServiceSid: env.data.TWILIO_VERIFY_SERVICE_SID,
+  },
+
+  auth: {
+    allowDevOtpFallback: env.data.AUTH_ALLOW_DEV_OTP_FALLBACK === 'true',
   },
 
   posh: {

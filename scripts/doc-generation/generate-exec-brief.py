@@ -7,7 +7,7 @@ Re-run this script to regenerate the deck with updated metrics.
 
 Usage:
     source /tmp/pptx-env/bin/activate
-    python3 scripts/generate-exec-brief.py
+    python3 scripts/doc-generation/generate-exec-brief.py
 """
 
 from pptx import Presentation

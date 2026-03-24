@@ -2,11 +2,12 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { validate, phoneSchema } from '../middleware/validation';
 import { authenticate } from '../middleware/auth';
+import { config } from '../config/env';
 import { generateTokenPair, verifyToken } from '../config/auth';
 import { query, queryOne } from '../config/database';
 import { verifyAvailable, sendVerification, checkVerification } from '../services/sms';
 import { generateVerificationCode } from '../utils/jwt';
-import { BadRequestError, NotFoundError, UnauthorizedError } from '../utils/errors';
+import { AppError, BadRequestError, NotFoundError, UnauthorizedError } from '../utils/errors';
 import { tryLogSecurityEventFromRequest } from '../services/audit';
 
 const router = Router();
@@ -84,13 +85,14 @@ const requestCodeSchema = z.object({
 router.post('/request-code', validate(requestCodeSchema), async (req, res, next): Promise<void> => {
   try {
     const { phone } = req.body;
+    const allowDevOtpFallback = config.auth.allowDevOtpFallback;
 
     if (verifyAvailable) {
       // Use Twilio Verify — it handles code generation, storage, and delivery
       await sendVerification(phone);
       res.json({ message: 'Verification code sent' });
-    } else {
-      // Dev mode: generate and store code locally
+    } else if (allowDevOtpFallback) {
+      // Explicit dev fallback mode: generate and store code locally
       const code = generateVerificationCode();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
@@ -103,6 +105,8 @@ router.post('/request-code', validate(requestCodeSchema), async (req, res, next)
 
       console.log(`[SMS-DEV] Verification code generated for ****${phone.slice(-4)}`);
       res.json({ message: 'Verification code sent', devCode: code });
+    } else {
+      throw new AppError(503, 'SMS verification is unavailable. Twilio Verify is required.');
     }
 
     await tryLogSecurityEventFromRequest(req, {
@@ -113,7 +117,7 @@ router.post('/request-code', validate(requestCodeSchema), async (req, res, next)
       statusCode: 200,
       metadata: {
         flow: 'request_code',
-        provider: verifyAvailable ? 'twilio_verify' : 'local_dev',
+        provider: verifyAvailable ? 'twilio_verify' : (allowDevOtpFallback ? 'local_dev' : 'unavailable'),
       },
     });
   } catch (error) {
@@ -143,6 +147,7 @@ const verifyCodeSchema = z.object({
 router.post('/verify-code', validate(verifyCodeSchema), async (req, res, next) => {
   try {
     const { phone, code } = req.body;
+    const allowDevOtpFallback = config.auth.allowDevOtpFallback;
 
     if (verifyAvailable) {
       // Use Twilio Verify to check the code
@@ -150,8 +155,8 @@ router.post('/verify-code', validate(verifyCodeSchema), async (req, res, next) =
       if (!approved) {
         throw new BadRequestError('Invalid verification code');
       }
-    } else {
-      // Dev mode: check code from our database
+    } else if (allowDevOtpFallback) {
+      // Explicit dev fallback mode: check code from our database
       const storedCode = await queryOne<{ code: string; expires_at: Date }>(
         'SELECT code, expires_at FROM verification_codes WHERE phone = $1',
         [phone]
@@ -167,6 +172,8 @@ router.post('/verify-code', validate(verifyCodeSchema), async (req, res, next) =
 
       // Delete used code
       await query('DELETE FROM verification_codes WHERE phone = $1', [phone]);
+    } else {
+      throw new AppError(503, 'SMS verification is unavailable. Twilio Verify is required.');
     }
 
     // Get or create user
