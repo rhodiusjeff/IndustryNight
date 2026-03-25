@@ -15,6 +15,13 @@
 5. Write the tests specified in the **Test Suite** section and confirm they pass.
 6. Commit with the message format: `feat(track-X): <short description>`
 
+Important:
+- Prompt execution output is provisional until control gates pass.
+- Review and closeout governance is control-owned (local review gate + GitHub review gate + validation evidence gate).
+
+Control operator guide:
+- `docs/codex/guides/control_plane_user_manual.md`
+
 ---
 
 ## Post-Run Carry-Forward (Control Context)

@@ -1,0 +1,1584 @@
+
+[1m══════════════════════════════════════════════════[0m
+[1m  CODEX CLOSEOUT — A0[0m
+[1m══════════════════════════════════════════════════[0m
+  Date:    2026-03-25 16:34:34 EDT
+  Branch:  feature/A0-integration-mopup @ 49de4d1
+  Mode:    full (phases 1–7, env: dev)
+  Log:     /Users/jmsimpson/Documents/GitHub/IndustryNight/test_logs/A0_closeout_test_2026-03-25_163434.log
+[1m══════════════════════════════════════════════════[0m
+
+
+
+[1m[1/7][0m Jest unit tests
+
+> industrynight-api@1.0.0 test
+> jest
+
+
+🐘 Starting PostgreSQL test container...
+📦 Applying migrations...
+✅ Test database ready
+
+  console.error
+    [AUDIT] Failed to write audit event {
+      action: 'reject',
+      entityType: 'validation',
+      error: error: insert or update on table "audit_log" violates foreign key constraint "audit_log_actor_id_fkey"
+          at /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/node_modules/pg/lib/client.js:624:17
+          at processTicksAndRejections (node:internal/process/task_queues:103:5)
+          at async query (/Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/config/database.ts:32:20)
+          at async logAuditEvent (/Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/services/audit.ts:70:3)
+          at async logSecurityEventFromRequest (/Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/services/audit.ts:125:3)
+          at async tryLogSecurityEventFromRequest (/Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/services/audit.ts:137:5)
+          at async /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/middleware/validation.ts:28:9 {
+        length: 296,
+        severity: 'ERROR',
+        code: '23503',
+        detail: 'Key (actor_id)=(6e0ab6ed-0d63-4bc4-b634-e3c1c4c68c35) is not present in table "users".',
+        hint: undefined,
+        position: undefined,
+        internalPosition: undefined,
+        internalQuery: undefined,
+        where: undefined,
+        schema: 'public',
+        table: 'audit_log',
+        column: undefined,
+        dataType: undefined,
+        constraint: 'audit_log_actor_id_fkey',
+        file: 'ri_triggers.c',
+        line: '2608',
+        routine: 'ri_ReportViolation'
+      }
+    }
+
+      137 |     await logSecurityEventFromRequest(req, event);
+      138 |   } catch (error) {
+    > 139 |     console.error('[AUDIT] Failed to write audit event', {
+          |             ^
+      140 |       action: event.action,
+      141 |       entityType: event.entityType,
+      142 |       error,
+
+      at tryLogSecurityEventFromRequest (src/services/audit.ts:139:13)
+      at async /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/middleware/validation.ts:28:9
+
+  console.error
+    Error: BadRequestError [AppError]: Validation failed
+        at /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/middleware/validation.ts:42:14
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 400,
+      errors: { 'body.name': [ 'Required' ] }
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at next (node_modules/express/lib/router/route.js:147:13)
+      at src/middleware/validation.ts:42:9
+
+  console.error
+    Error: NotFoundError [AppError]: Customer not found
+        at /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/routes/admin.ts:1267:26
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 404,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at src/routes/admin.ts:1271:5
+
+  console.error
+    Error: BadRequestError [AppError]: Cannot delete product that has been purchased by customers. Deactivate it instead.
+        at /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/routes/admin.ts:1727:13
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 400,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at src/routes/admin.ts:1733:5
+
+  console.error
+    [AUDIT] Failed to write audit event {
+      action: 'reject',
+      entityType: 'validation',
+      error: error: insert or update on table "audit_log" violates foreign key constraint "audit_log_actor_id_fkey"
+          at /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/node_modules/pg/lib/client.js:624:17
+          at processTicksAndRejections (node:internal/process/task_queues:103:5)
+          at async query (/Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/config/database.ts:32:20)
+          at async logAuditEvent (/Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/services/audit.ts:70:3)
+          at async logSecurityEventFromRequest (/Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/services/audit.ts:125:3)
+          at async tryLogSecurityEventFromRequest (/Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/services/audit.ts:137:5)
+          at async /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/middleware/validation.ts:28:9 {
+        length: 296,
+        severity: 'ERROR',
+        code: '23503',
+        detail: 'Key (actor_id)=(2c11ec2e-dc9a-4600-9071-17015aaf3231) is not present in table "users".',
+        hint: undefined,
+        position: undefined,
+        internalPosition: undefined,
+        internalQuery: undefined,
+        where: undefined,
+        schema: 'public',
+        table: 'audit_log',
+        column: undefined,
+        dataType: undefined,
+        constraint: 'audit_log_actor_id_fkey',
+        file: 'ri_triggers.c',
+        line: '2608',
+        routine: 'ri_ReportViolation'
+      }
+    }
+
+      137 |     await logSecurityEventFromRequest(req, event);
+      138 |   } catch (error) {
+    > 139 |     console.error('[AUDIT] Failed to write audit event', {
+          |             ^
+      140 |       action: event.action,
+      141 |       entityType: event.entityType,
+      142 |       error,
+
+      at tryLogSecurityEventFromRequest (src/services/audit.ts:139:13)
+      at async /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/middleware/validation.ts:28:9
+
+  console.error
+    Error: BadRequestError [AppError]: Validation failed
+        at /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/middleware/validation.ts:42:14
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 400,
+      errors: { 'body.name': [ 'Required' ] }
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at next (node_modules/express/lib/router/route.js:147:13)
+      at src/middleware/validation.ts:42:9
+
+  console.error
+    Error: BadRequestError [AppError]: Cannot publish: Market must be assigned
+        at /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/routes/admin.ts:565:40
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 400,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at src/routes/admin.ts:612:5
+
+  console.error
+    Error: BadRequestError [AppError]: Cannot publish: Venue address is required
+        at /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/routes/admin.ts:564:40
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 400,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at src/routes/admin.ts:612:5
+
+  console.error
+    Error: NotFoundError [AppError]: Customer not found
+        at /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/routes/admin.ts:1412:26
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 404,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at src/routes/admin.ts:1420:5
+
+  console.error
+    Error: Error: Input buffer contains unsupported image format
+        at Sharp.toBuffer (/Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/node_modules/sharp/lib/output.js:163:17)
+        at /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/routes/admin.ts:1564:8
+        at processTicksAndRejections (node:internal/process/task_queues:103:5)
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at src/routes/admin.ts:1576:5
+
+  console.log
+    [DEV] S3 delete skipped: https://example.com/banner.png
+
+      at deleteImage (src/services/storage.ts:57:13)
+
+  console.error
+    Error: NotFoundError [AppError]: Media not found
+        at /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/routes/admin.ts:1587:23
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 404,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at src/routes/admin.ts:1594:5
+
+  console.error
+    Error: BadRequestError [AppError]: Invalid placement: invalid_placement. Must be one of: app_banner, web_banner, social_media, logo, other
+        at /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/routes/admin.ts:1558:13
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 400,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at src/routes/admin.ts:1576:5
+
+PASS tests/customers.test.ts (11.723 s)
+  Customer Model
+    GET /admin/customers
+      ✓ returns empty list initially (186 ms)
+      ✓ returns all customers (149 ms)
+      ✓ filters by search query (142 ms)
+      ✓ filters by product type (146 ms)
+    POST /admin/customers
+      ✓ creates a customer with required fields (143 ms)
+      ✓ creates a customer with all fields (144 ms)
+      ✓ requires name (172 ms)
+    GET /admin/customers/:id
+      ✓ returns customer with products and discounts (153 ms)
+      ✓ returns 404 for nonexistent customer (145 ms)
+    PATCH /admin/customers/:id
+      ✓ updates customer fields (144 ms)
+    DELETE /admin/customers/:id
+      ✓ deletes customer and cascades to products and discounts (143 ms)
+    GET /admin/products
+      ✓ returns product catalog (139 ms)
+      ✓ filters by product type (134 ms)
+    POST /admin/products
+      ✓ creates a product (140 ms)
+    DELETE /admin/products/:id
+      ✓ prevents deletion when referenced by customer_products (218 ms)
+      ✓ allows deletion of unreferenced product (147 ms)
+    Customer product management
+      ✓ records a purchase (149 ms)
+      ✓ lists customer products (150 ms)
+      ✓ updates customer product status (138 ms)
+    Discount CRUD
+      ✓ creates a discount for a customer (148 ms)
+      ✓ lists discounts for a customer (138 ms)
+    Discount redemption (social)
+      ✓ allows a user to redeem a discount (193 ms)
+      ✓ prevents duplicate redemption (140 ms)
+      ✓ checks if user has redeemed a discount (156 ms)
+    Event partner routes
+      ✓ adds a partner to an event (142 ms)
+      ✓ removes a partner from an event (143 ms)
+      ✓ shows partners in event detail (139 ms)
+    Social sponsor/discount endpoints
+      ✓ GET /sponsors returns active customers with sponsorship products (152 ms)
+      ✓ GET /discounts returns active discounts with customer info (136 ms)
+    Redemption analytics
+      ✓ returns redemption stats for a customer (219 ms)
+    GET /admin/markets
+      ✓ returns created markets (154 ms)
+      ✓ includes event counts (144 ms)
+    POST /admin/markets
+      ✓ creates a market with auto-generated slug (146 ms)
+      ✓ auto-generates slug with hyphens from multi-word name (174 ms)
+      ✓ returns 409 for duplicate name (140 ms)
+      ✓ validates required name (151 ms)
+    PATCH /admin/markets/:id
+      ✓ updates market name (153 ms)
+      ✓ does not change slug even when name changes (139 ms)
+      ✓ retires a market (is_active = false) (185 ms)
+      ✓ activates a retired market (164 ms)
+      ✓ returns 404 for non-existent market (147 ms)
+    GET /markets (public)
+      ✓ returns only active markets without auth (145 ms)
+      ✓ returns minimal fields for dropdowns (137 ms)
+    No DELETE endpoint for markets
+      ✓ returns 404 for DELETE /admin/markets/:id (138 ms)
+    Event-Market Association
+      ✓ creates event with marketId (137 ms)
+      ✓ creates event without marketId (null) (151 ms)
+      ✓ updates event marketId (146 ms)
+      ✓ clears event marketId to null (155 ms)
+      ✓ event list includes market_name (140 ms)
+      ✓ event detail includes market_name (233 ms)
+      ✓ publish gate rejects event without market (140 ms)
+      ✓ publish gate rejects event without venue address (158 ms)
+      ✓ publish succeeds with all requirements (138 ms)
+    Customer Contacts CRUD
+      ✓ creates a contact (138 ms)
+      ✓ lists contacts for a customer (138 ms)
+      ✓ updates a contact (141 ms)
+      ✓ deletes a contact (171 ms)
+      ✓ returns 404 for contact on nonexistent customer (142 ms)
+      ✓ unsets existing primary when setting new primary contact (148 ms)
+      ✓ contacts appear in customer detail (137 ms)
+      ✓ cascades delete when customer is deleted (141 ms)
+    Customer-Market Associations
+      ✓ creates customer with marketIds (155 ms)
+      ✓ customer list includes market names (144 ms)
+      ✓ customer detail includes full market objects (145 ms)
+      ✓ updates customer marketIds (full replace) (141 ms)
+      ✓ clears all market associations with empty array (154 ms)
+      ✓ filters customers by marketId (137 ms)
+      ✓ market associations cascade on customer delete (161 ms)
+    Customer Media
+      ✓ uploads customer media via API (142 ms)
+      ✓ media appears in customer detail (152 ms)
+      ✓ deletes customer media (142 ms)
+      ✓ returns 404 for nonexistent media (157 ms)
+      ✓ media cascades on customer delete (147 ms)
+      ✓ rejects invalid placement (163 ms)
+
+  console.log
+    [SMS-DEV] Verification code generated for ****0001
+
+      at src/routes/auth.ts:122:15
+
+  console.log
+    [SMS-DEV] Verification code generated for ****0001
+
+      at src/routes/auth.ts:122:15
+
+  console.error
+    Error: BadRequestError [AppError]: Validation failed
+        at /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/middleware/validation.ts:42:14
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 400,
+      errors: { 'body.phone': [ 'Invalid phone number format' ] }
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at next (node_modules/express/lib/router/route.js:147:13)
+      at src/middleware/validation.ts:42:9
+
+  console.log
+    [SMS-DEV] Verification code generated for ****0002
+
+      at src/routes/auth.ts:122:15
+
+  console.log
+    [SMS-DEV] Verification code generated for ****0002
+
+      at src/routes/auth.ts:122:15
+
+  console.log
+    [SMS-DEV] Verification code generated for ****0101
+
+      at src/routes/auth.ts:122:15
+
+  console.log
+    [SMS-DEV] Verification code generated for ****0102
+
+      at src/routes/auth.ts:122:15
+
+  console.log
+    [SMS-DEV] Verification code generated for ****0103
+
+      at src/routes/auth.ts:122:15
+
+  console.error
+    Error: BadRequestError [AppError]: Invalid verification code
+        at /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/routes/auth.ts:183:15
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 400,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at src/routes/auth.ts:278:5
+
+  console.log
+    [SMS-DEV] Verification code generated for ****0104
+
+      at src/routes/auth.ts:122:15
+
+  console.log
+    [SMS-DEV] Verification code generated for ****0105
+
+      at src/routes/auth.ts:122:15
+
+  console.error
+    Error: UnauthorizedError [AppError]: User not found or banned
+        at /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/routes/auth.ts:345:13
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 401,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at src/routes/auth.ts:370:7
+
+  console.error
+    Error: UnauthorizedError [AppError]: Missing authorization header
+        at authenticate (/Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/middleware/auth.ts:28:13)
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 401,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at next (node_modules/express/lib/router/route.js:147:13)
+      at authenticate (src/middleware/auth.ts:66:7)
+
+  console.error
+    Error: UnauthorizedError [AppError]: Invalid or expired token
+        at authenticate (/Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/middleware/auth.ts:78:10)
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 401,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at next (node_modules/express/lib/router/route.js:147:13)
+      at authenticate (src/middleware/auth.ts:78:5)
+
+PASS tests/auth.test.ts
+  POST /auth/request-code
+    ✓ sends a verification code and returns devCode in dev mode (99 ms)
+    ✓ stores the code in verification_codes table (68 ms)
+    ✓ rejects invalid phone format (69 ms)
+    ✓ replaces existing code on repeat request (87 ms)
+  POST /auth/verify-code
+    ✓ creates a new user on first verification (96 ms)
+    ✓ returns existing user on subsequent verification (74 ms)
+    ✓ rejects wrong verification code (72 ms)
+    ✓ deletes the verification code after successful verification (73 ms)
+    ✓ updates last_login_at timestamp (97 ms)
+  POST /auth/refresh
+    ✓ issues new token pair with valid social refresh token (73 ms)
+    ✓ rejects admin refresh token on social refresh endpoint (68 ms)
+    ✓ rejects access token used as refresh token (69 ms)
+    ✓ returns 401 with explicit error for malformed refresh token (75 ms)
+    ✓ rejects refresh for banned user (72 ms)
+  POST /admin/auth/refresh
+    ✓ returns 401 with explicit error for malformed refresh token (74 ms)
+    ✓ returns 401 for social-family token sent to admin refresh endpoint (74 ms)
+    ✓ returns 200 for valid admin refresh token (157 ms)
+  GET /auth/me
+    ✓ returns current user with valid token (66 ms)
+    ✓ rejects request without token (70 ms)
+    ✓ rejects expired token (176 ms)
+  POST /auth/logout
+    ✓ returns success with valid token (80 ms)
+  DELETE /auth/me (account deletion)
+    ✓ deletes user and all associated data (85 ms)
+    ✓ cleans up verification_codes before deleting user (88 ms)
+    ✓ cascades to posts, connections, tickets (79 ms)
+
+  console.error
+    Error: UnauthorizedError [AppError]: Invalid token family
+        at authenticate (/Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/middleware/auth.ts:59:13)
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 401,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at next (node_modules/express/lib/router/route.js:147:13)
+      at authenticate (src/middleware/auth.ts:66:7)
+
+  console.error
+    Error: UnauthorizedError [AppError]: Admin access required
+        at authenticateAdmin (/Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/middleware/admin-auth.ts:59:13)
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 401,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at authenticateAdmin (src/middleware/admin-auth.ts:66:7)
+
+  console.error
+    Error: UnauthorizedError [AppError]: Invalid token type
+        at authenticate (/Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/middleware/auth.ts:43:13)
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 401,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at next (node_modules/express/lib/router/route.js:147:13)
+      at authenticate (src/middleware/auth.ts:66:7)
+
+  console.error
+    Error: UnauthorizedError [AppError]: Invalid token type
+        at authenticateAdmin (/Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/middleware/admin-auth.ts:43:13)
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 401,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at authenticateAdmin (src/middleware/admin-auth.ts:66:7)
+
+  console.error
+    Error: UnauthorizedError [AppError]: Missing authorization header
+        at authenticate (/Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/middleware/auth.ts:28:13)
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 401,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at next (node_modules/express/lib/router/route.js:147:13)
+      at authenticate (src/middleware/auth.ts:66:7)
+
+  console.error
+    Error: UnauthorizedError [AppError]: Missing authorization header
+        at authenticate (/Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/middleware/auth.ts:28:13)
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 401,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at next (node_modules/express/lib/router/route.js:147:13)
+      at authenticate (src/middleware/auth.ts:66:7)
+
+  console.error
+    Error: UnauthorizedError [AppError]: Missing authorization header
+        at authenticate (/Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/middleware/auth.ts:28:13)
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 401,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at next (node_modules/express/lib/router/route.js:147:13)
+      at authenticate (src/middleware/auth.ts:66:7)
+
+  console.error
+    Error: UnauthorizedError [AppError]: Invalid or expired token
+        at authenticate (/Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/middleware/auth.ts:78:10)
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 401,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at next (node_modules/express/lib/router/route.js:147:13)
+      at authenticate (src/middleware/auth.ts:78:5)
+
+  console.error
+    Error: UnauthorizedError [AppError]: Invalid credentials
+        at /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/routes/admin-auth.ts:69:13
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 401,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at src/routes/admin-auth.ts:103:5
+
+  console.error
+    Error: UnauthorizedError [AppError]: Invalid credentials
+        at /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/routes/admin-auth.ts:53:13
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 401,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at src/routes/admin-auth.ts:103:5
+
+PASS tests/middleware.test.ts
+  Token Family Separation
+    ✓ social token can access social routes (GET /auth/me) (156 ms)
+    ✓ admin token CANNOT access social auth routes (GET /auth/me) (74 ms)
+    ✓ social token CANNOT access admin routes (GET /admin/dashboard) (86 ms)
+    ✓ admin token CAN access admin routes (GET /admin/dashboard) (85 ms)
+  Token Type Validation
+    ✓ refresh token rejected on authenticated social routes (78 ms)
+    ✓ refresh token rejected on admin routes (114 ms)
+  Missing / Malformed Auth Headers
+    ✓ rejects request with no Authorization header (67 ms)
+    ✓ rejects request with empty Bearer token (93 ms)
+    ✓ rejects request with non-Bearer auth scheme (65 ms)
+    ✓ rejects request with garbage token (63 ms)
+  Optional Auth (GET /posts)
+    ✓ works without any token (69 ms)
+    ✓ works with a valid token (adds user context) (80 ms)
+    ✓ works with an invalid token (ignores it, no error) (66 ms)
+  Admin Auth (POST /admin/auth/login)
+    ✓ returns admin tokens with valid credentials (230 ms)
+    ✓ rejects invalid password (209 ms)
+    ✓ rejects non-existent email (89 ms)
+
+  console.error
+    Error: BadRequestError [AppError]: Validation failed
+        at /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/middleware/validation.ts:42:14
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 400,
+      errors: { 'body.phone': [ 'Invalid phone number format' ] }
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at next (node_modules/express/lib/router/route.js:147:13)
+      at src/middleware/validation.ts:42:9
+
+  console.log
+    [SMS-DEV] Verification code generated for ****0191
+
+      at src/routes/auth.ts:122:15
+
+  console.error
+    Error: BadRequestError [AppError]: Verification code expired
+        at /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/routes/auth.ts:187:15
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 400,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at src/routes/auth.ts:278:5
+
+PASS tests/audit-security.test.ts
+  Security Audit Logging
+    ✓ logs validation_failed for bad phone format in request-code (80 ms)
+    ✓ logs verification_code_expired when verification code is expired (78 ms)
+    ✓ logs a single invalid_refresh_token event for rejected social refresh tokens (82 ms)
+    ✓ logs ban action for privileged admin user mutation (148 ms)
+    ✓ logs connection create and delete audit events (73 ms)
+  Migration 007: audit_log immutability & admin cascade fix
+    ✓ deleting an admin user promotes audit_log actor_type to system (bug 1 fix) (145 ms)
+    ✓ deleting a social user promotes audit_log actor_type to system (existing user cascade path) (75 ms)
+    ✓ rejects a direct UPDATE on audit_log that mutates non-FK columns alongside a FK null (bug 2 fix) (135 ms)
+
+  console.error
+    Error: NotFoundError [AppError]: Comment not found
+        at /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/routes/posts.ts:273:13
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 404,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at Immediate.next (node_modules/express/lib/router/index.js:280:10)
+      at Immediate._onImmediate (node_modules/express/lib/router/index.js:646:15)
+
+  console.error
+    Error: ForbiddenError [AppError]: Cannot delete this comment
+        at /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/api/src/routes/posts.ts:279:13
+        at processTicksAndRejections (node:internal/process/task_queues:103:5) {
+      statusCode: 403,
+      errors: undefined
+    }
+
+      49 |   _next: NextFunction
+      50 | ) {
+    > 51 |   console.error('Error:', err);
+         |           ^
+      52 |
+      53 |   if (err instanceof AppError) {
+      54 |     return res.status(err.statusCode).json({
+
+      at errorHandler (src/utils/errors.ts:51:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at Immediate.next (node_modules/express/lib/router/index.js:280:10)
+      at Immediate._onImmediate (node_modules/express/lib/router/index.js:646:15)
+
+PASS tests/posts.test.ts
+  Posts route SQL parameterization
+    ✓ does not interpolate request data into SQL template literals (70 ms)
+  DELETE /posts/:id/comments/:commentId
+    ✓ returns 404 when comment does not exist on post (81 ms)
+    ✓ returns 403 when non-author non-admin tries to delete comment (84 ms)
+    ✓ returns 200 and deletes when author deletes own comment (70 ms)
+    ✓ returns 200 when admin deletes any comment (71 ms)
+  DELETE /posts/:id/like
+    ✓ returns 200 with success payload (74 ms)
+
+PASS tests/health.test.ts
+  GET /health
+    ✓ returns 200 with status ok when database is reachable (8 ms)
+    ✓ includes a valid ISO timestamp (1 ms)
+  GET /specialties
+    ✓ returns empty array when no specialties exist (74 ms)
+    ✓ returns only active specialties sorted by sort_order (69 ms)
+
+PASS tests/schema.test.ts
+  Phase 0 schema migration (004_phase0_foundation)
+    ✓ admin_role enum contains platformAdmin, moderator, and eventOps (12 ms)
+    ✓ user_role enum does not contain venueStaff (3 ms)
+    ✓ platform_config table exists and has exactly 8 default seed rows (3 ms)
+    ✓ platform_config seed rows have expected keys (4 ms)
+    ✓ platform_config has correct schema (key, value JSONB, description, updated_by, updated_at) (6 ms)
+    ✓ platform_config is idempotent — re-applying seed does not duplicate rows (3 ms)
+    ✓ llm_usage_log table exists (3 ms)
+    ✓ llm_usage_log accepts inserts and returns a uuid id (3 ms)
+    ✓ llm_usage_log error and token fields are nullable (3 ms)
+    ✓ users table has fcm_token column (nullable TEXT) (4 ms)
+    ✓ users table has primary_specialty_id column (nullable VARCHAR(50)) (3 ms)
+    ✓ users.primary_specialty_id has FK to specialties with ON DELETE SET NULL (12 ms)
+    ✓ tickets table has wristband_issued_at column (nullable TIMESTAMPTZ) (4 ms)
+
+Test Suites: 7 passed, 7 total
+Tests:       145 passed, 145 total
+Snapshots:   0 total
+Time:        17.383 s, estimated 19 s
+Ran all test suites.
+
+🛑 Stopping PostgreSQL test container...
+✅ Container stopped
+
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
+[0;32m[OK][0m Phase 1 passed.
+
+
+[1m[2/7][0m Flutter widget tests
+[0;36m[INFO][0m social-app →
+00:00 +0: loading /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/unit/validators_test.dart                                                                                   00:01 +0: loading /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/unit/validators_test.dart                                                                                   00:01 +0: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/unit/validators_test.dart: Phone number validation accepts valid US E.164 phone number                              00:01 +1: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/unit/validators_test.dart: Phone number validation accepts valid US E.164 phone number                              00:01 +1: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/unit/validators_test.dart: Phone number validation accepts 10-digit local format (no country code)                  00:01 +2: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/unit/validators_test.dart: Phone number validation accepts 10-digit local format (no country code)                  00:01 +2: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/unit/validators_test.dart: Phone number validation accepts 11-digit format with leading 1                           00:01 +3: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/unit/validators_test.dart: Phone number validation accepts 11-digit format with leading 1                           00:01 +3: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/unit/validators_test.dart: Phone number validation accepts formatted numbers with dashes (strips punctuation)       00:01 +4: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/unit/validators_test.dart: Phone number validation accepts formatted numbers with dashes (strips punctuation)       00:01 +4: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/unit/validators_test.dart: Phone number validation rejects too-short numbers                                        00:01 +5: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/unit/validators_test.dart: Phone number validation rejects too-short numbers                                        00:01 +5: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/unit/validators_test.dart: Phone number validation rejects empty string                                             00:01 +6: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/unit/validators_test.dart: Phone number validation rejects empty string                                             00:01 +6: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/unit/validators_test.dart: Phone number normalization normalizes 10-digit number to E.164                           00:01 +7: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/unit/validators_test.dart: Phone number normalization normalizes 10-digit number to E.164                           00:01 +7: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/unit/validators_test.dart: Phone number normalization normalizes 11-digit number with leading 1 to E.164            00:01 +8: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/unit/validators_test.dart: Phone number normalization normalizes 11-digit number with leading 1 to E.164            00:01 +8: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/unit/validators_test.dart: Phone number normalization passes through already-normalized E.164 number                00:01 +9: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/unit/validators_test.dart: Phone number normalization passes through already-normalized E.164 number                00:01 +9: loading /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/widgets/auth/phone_entry_screen_test.dart                                                                   00:01 +9: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/widgets/auth/phone_entry_screen_test.dart: PhoneEntryScreen renders phone input and Continue button                 00:02 +9: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/widgets/auth/phone_entry_screen_test.dart: PhoneEntryScreen renders phone input and Continue button                 00:02 +10: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/widgets/auth/phone_entry_screen_test.dart: PhoneEntryScreen renders phone input and Continue button                00:02 +11: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/widgets/auth/phone_entry_screen_test.dart: PhoneEntryScreen renders phone input and Continue button                00:02 +12: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/widgets/events/events_list_screen_test.dart: ... shows loading indicator on first frame before API completes       00:02 +13: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/widgets/events/events_list_screen_test.dart: ... shows loading indicator on first frame before API completes       00:02 +13: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/widgets/events/events_list_screen_test.dart: EventsListScreen shows loading indicator on first frame before API completes
+[API] GET http://localhost:3000/events?status=published&upcoming=true&limit=20&offset=0 → 400
+[API] Error body: 
+[API] GET http://localhost:3000/events/my-tickets → 400
+[API] Error body: 
+00:02 +14: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/widgets/events/events_list_screen_test.dart: ... shows loading indicator on first frame before API completes       00:02 +15: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/widgets/events/events_list_screen_test.dart: ... shows loading indicator on first frame before API completes       00:02 +16: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/widgets/community/community_feed_screen_test.dart: CommunityFeedScreen renders without crashing                    00:02 +16: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/widgets/events/events_list_screen_test.dart: EventsListScreen renders without crashing after API resolves (smoke test)
+[API] GET http://localhost:3000/events?status=published&upcoming=true&limit=20&offset=0 → 400
+[API] Error body: 
+[API] GET http://localhost:3000/events/my-tickets → 400
+[API] Error body: 
+00:02 +17: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/widgets/community/community_feed_screen_test.dart: CommunityFeedScreen renders without crashing                    00:02 +18: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/widgets/community/community_feed_screen_test.dart: CommunityFeedScreen renders without crashing                    00:02 +18: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/widgets/events/events_list_screen_test.dart: EventsListScreen renders on first pump before API resolves (smoke test)
+[API] GET http://localhost:3000/events?status=published&upcoming=true&limit=20&offset=0 → 400
+[API] Error body: 
+[API] GET http://localhost:3000/events/my-tickets → 400
+[API] Error body: 
+00:02 +19: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/widgets/community/community_feed_screen_test.dart: CommunityFeedScreen renders without crashing                    00:02 +19: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/widgets/events/events_list_screen_test.dart: EventsListScreen renders without crashing (including error state)     
+[API] GET http://localhost:3000/events?status=published&upcoming=true&limit=20&offset=0 → 400
+[API] Error body: 
+[API] GET http://localhost:3000/events/my-tickets → 400
+[API] Error body: 
+00:02 +20: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/settings_screen_test.dart: Delete Account button is visible for authenticated users                                00:02 +21: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/settings_screen_test.dart: Delete Account button is visible for authenticated users                                00:02 +22: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/settings_screen_test.dart: Delete Account button is visible for authenticated users                                00:02 +23: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/settings_screen_test.dart: Delete Account button is visible for authenticated users                                00:02 +24: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/settings_screen_test.dart: Delete Account button is visible for authenticated users                                00:02 +25: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/settings_screen_test.dart: Delete Account button is visible for authenticated users                                00:02 +26: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/settings_screen_test.dart: Delete Account button is visible for authenticated users                                00:02 +27: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/widgets/community/community_feed_screen_test.dart: CommunityFeedScreen shows AppBar with title                     00:02 +28: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/settings_screen_test.dart: Delete Account opens confirmation dialog                                                00:02 +29: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/settings_screen_test.dart: Delete Account opens confirmation dialog                                                00:02 +29: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/settings_screen_test.dart: Cancel dismisses dialog without deleting account                                        00:02 +30: /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/social-app/test/settings_screen_test.dart: Cancel dismisses dialog without deleting account                                        00:02 +30: All tests passed!                                                                                                                                                                           
+
+[0;36m[INFO][0m admin-app →
+00:00 +0: loading /Users/jmsimpson/Documents/GitHub/IndustryNight/packages/admin-app/test/widget_test.dart                                                                                             00:00 +0: Web admin app smoke test                                                                                                                                                                     00:01 +0: Web admin app smoke test                                                                                                                                                                     00:01 +1: Web admin app smoke test                                                                                                                                                                     00:01 +1: All tests passed!                                                                                                                                                                            
+[0;32m[OK][0m Phase 2 passed.
+
+
+[1m[3/7][0m Local E2E (localhost:3000)
+[0;36m[INFO][0m Starting postgres:16 container on port 58162...
+[0;36m[INFO][0m Waiting for postgres to be ready...
+[0;32m[OK][0m Postgres ready.
+[0;36m[INFO][0m Running migrations against local container...
+[1/3] Skipping port-forward (--skip-k8s)
+
+[2/3] Checking migration state...
+  0 applied, 7 pending:
+
+    ○ 001_baseline_schema.sql
+    ○ 002_audit_security_foundation.sql
+    ○ 003_events_posh_event_url.sql
+    ○ 004_phase0_foundation.sql
+    ○ 005_fix_audit_log_user_delete_cascade.sql
+    ○ 006_fix_audit_log_admin_delete_cascade.sql
+    ○ 007_fix_audit_log_immutability_full_row.sql
+
+[3/3] Applying pending migrations...
+  Applying 001_baseline_schema.sql...
+  ✓ 001_baseline_schema.sql
+  Applying 002_audit_security_foundation.sql...
+  ✓ 002_audit_security_foundation.sql
+  Applying 003_events_posh_event_url.sql...
+  ✓ 003_events_posh_event_url.sql
+  Applying 004_phase0_foundation.sql...
+  ✓ 004_phase0_foundation.sql
+  Applying 005_fix_audit_log_user_delete_cascade.sql...
+  ✓ 005_fix_audit_log_user_delete_cascade.sql
+  Applying 006_fix_audit_log_admin_delete_cascade.sql...
+  ✓ 006_fix_audit_log_admin_delete_cascade.sql
+  Applying 007_fix_audit_log_immutability_full_row.sql...
+  ✓ 007_fix_audit_log_immutability_full_row.sql
+
+  Done. 7 migrations applied.
+
+[0;32m[OK][0m Migrations applied.
+[0;36m[INFO][0m Starting local API against local postgres...
+[INFO] Waiting for API to become healthy .
+[0;32m[OK][0m API ready (5s).
+
+> industrynight-api@1.0.0 test:e2e
+> jest --config jest.e2e.config.ts --runInBand
+
+  console.log
+    
+    E2E target: http://localhost:3000
+
+      at Object.<anonymous> (tests/e2e/e2e.test.ts:30:11)
+
+  console.log
+    Test phone:  +15555559423
+
+      at Object.<anonymous> (tests/e2e/e2e.test.ts:31:11)
+
+PASS tests/e2e/e2e.test.ts
+  GET /health
+    ✓ returns 200 with status ok (20 ms)
+  GET /specialties
+    ✓ returns 200 with a specialties array (8 ms)
+  Auth flow (magic prefix)
+    ✓ request-code returns devCode for magic prefix phone (12 ms)
+    ✓ verify-code creates new user and returns tokens (21 ms)
+    ✓ verify-code with wrong code returns 400 (7 ms)
+    ✓ re-authenticate returns existing user (isNewUser = false) (12 ms)
+  GET /auth/me
+    ✓ returns current user with valid token (3 ms)
+    ✓ returns 401 without token (3 ms)
+    ✓ returns 401 with garbage token (2 ms)
+  POST /auth/refresh
+    ✓ issues new tokens with valid refresh token (4 ms)
+    ✓ returns 401 with explicit error for invalid refresh token (2 ms)
+    ✓ rejects access token used as refresh token (2 ms)
+  GET /events
+    ✓ returns 401 without auth token (2 ms)
+    ✓ returns 200 with valid auth token (4 ms)
+  GET /posts
+    ✓ returns 200 without auth (2 ms)
+    ✓ returns 200 with auth (2 ms)
+  GET /sponsors
+    ✓ returns 401 without auth token (2 ms)
+    ✓ returns 200 with valid auth token (3 ms)
+  GET /discounts
+    ✓ returns 401 without auth token (3 ms)
+    ✓ returns 200 with valid auth token (2 ms)
+  Admin route token family guard
+    ✓ rejects social token on admin dashboard (4 ms)
+    ✓ rejects social refresh token on admin refresh (4 ms)
+  POST /auth/logout
+    ✓ returns 200 with valid token (3 ms)
+  Cleanup: delete test user
+    ✓ deletes the test user account via DELETE /auth/me (14 ms)
+    ✓ confirms test user no longer exists (12 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       25 passed, 25 total
+Snapshots:   0 total
+Time:        1.301 s, estimated 2 s
+Ran all test suites.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
+./scripts/closeout-test.sh: line 335: 28447 Terminated: 15          ( cd "$PROJECT_ROOT/packages/api" && DB_HOST=localhost DB_PORT="$pg_port" DB_USER=postgres DB_NAME=industrynight DB_PASSWORD="$pg_password" DB_SSL=false ENABLE_MAGIC_TEST_PREFIX=true JWT_SECRET=closeout-test-jwt-secret-32-chars-ok npm run dev > "$api_log" 2>&1 )
+[0;32m[OK][0m Phase 3 passed.
+
+[1m══════════════════════════════════════════════════[0m
+[1m  SANITY GATE — review local results before AWS ops[0m
+[1m══════════════════════════════════════════════════[0m
+
+  [[0;32mPASS[0m]  Phase 1 — Jest unit tests
+  [[0;32mPASS[0m]  Phase 2 — Flutter widget tests
+  [[0;32mPASS[0m]  Phase 3 — Local E2E (localhost:3000)
+
+[1m  Proceed with AWS operations (dev)? [y/N]: [0my
+
+[0;36m[INFO][0m AWS phases confirmed — proceeding.
+
+
+[1m[4/7][0m DB migration
+[0;36m[INFO][0m DB_PASSWORD not set — fetching from Secrets Manager (industrynight/database-dev)...
+[0;32m[OK][0m DB_PASSWORD loaded from Secrets Manager.
+[1/3] Checking DB tunnel...
+  Port-forward already open, using existing tunnel.
+[2/3] Checking migration state...
+  All migrations already applied.
+
+[0;32m[OK][0m Phase 4 passed.
+
+
+[1m[5/7][0m API deploy
+[1m=== Industry Night API Deploy ===[0m
+  Environment: [0;36mDEV[0m (development)
+  Image:       047593684855.dkr.ecr.us-east-1.amazonaws.com/industrynight-api:dev
+  Namespace:   industrynight-dev
+  Smoke tests: enabled
+
+[1/4] Authenticating with ECR...
+Login Succeeded
+
+[2/4] Building Docker image...
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 920B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/node:20-alpine
+#2 ...
+
+#3 [auth] library/node:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/node:20-alpine
+#2 DONE 0.6s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 89B done
+#4 DONE 0.0s
+
+#5 [builder 1/6] FROM docker.io/library/node:20-alpine@sha256:b88333c42c23fbd91596ebd7fd10de239cedab9617de04142dde7315e3bc0afa
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 1.60kB done
+#6 DONE 0.0s
+
+#7 [builder 2/6] WORKDIR /app
+#7 CACHED
+
+#8 [builder 5/6] COPY . .
+#8 CACHED
+
+#9 [production 6/8] COPY --from=builder /app/src ./src
+#9 CACHED
+
+#10 [production 4/8] RUN npm ci --only=production
+#10 CACHED
+
+#11 [builder 4/6] RUN npm ci
+#11 CACHED
+
+#12 [production 5/8] COPY --from=builder /app/dist ./dist
+#12 CACHED
+
+#13 [builder 3/6] COPY package*.json ./
+#13 CACHED
+
+#14 [builder 6/6] RUN npm run build
+#14 CACHED
+
+#15 [production 7/8] RUN addgroup -g 1001 -S nodejs
+#15 CACHED
+
+#16 [production 8/8] RUN adduser -S nodejs -u 1001
+#16 CACHED
+
+#17 exporting to image
+#17 exporting layers done
+#17 writing image sha256:3da250002a74ec7b57d9d3aebc19ddcdfd096386119c4d013edefed605bf8f8f done
+#17 naming to 047593684855.dkr.ecr.us-east-1.amazonaws.com/industrynight-api:dev done
+#17 DONE 0.0s
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/so2nm29oe7cet5lntalfgr4ye
+
+[3/4] Pushing to ECR...
+The push refers to repository [047593684855.dkr.ecr.us-east-1.amazonaws.com/industrynight-api]
+4d9a15d1544c: Preparing
+a4a8f52d0dee: Preparing
+573590c288f1: Preparing
+fa9b997f6018: Preparing
+e0d7745e42d3: Preparing
+a41a6377590f: Preparing
+7b4e608dd964: Preparing
+ce29895978ec: Preparing
+6e7f71700cfd: Preparing
+ad8a028fb847: Preparing
+989e799e6349: Preparing
+a41a6377590f: Waiting
+ce29895978ec: Waiting
+6e7f71700cfd: Waiting
+7b4e608dd964: Waiting
+ad8a028fb847: Waiting
+989e799e6349: Waiting
+fa9b997f6018: Layer already exists
+573590c288f1: Layer already exists
+a4a8f52d0dee: Layer already exists
+e0d7745e42d3: Layer already exists
+4d9a15d1544c: Layer already exists
+ce29895978ec: Layer already exists
+7b4e608dd964: Layer already exists
+6e7f71700cfd: Layer already exists
+a41a6377590f: Layer already exists
+ad8a028fb847: Layer already exists
+989e799e6349: Layer already exists
+dev: digest: sha256:6e4b285bd49dfef09baf47d78e43cc6ea8edb5c20a150ebd759e7437403ac7a2 size: 2617
+
+[4/4] Rolling out...
+deployment.apps/industrynight-api restarted
+Waiting for deployment "industrynight-api" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "industrynight-api" rollout to finish: 1 old replicas are pending termination...
+deployment "industrynight-api" successfully rolled out
+
+=== Deploy complete ===
+NAME                                 READY   STATUS        RESTARTS   AGE
+industrynight-api-5668f7f8d7-79d2v   1/1     Terminating   0          27m
+industrynight-api-7676df6889-9t7xl   1/1     Running       0          8s
+
+[5/5] Running API smoke tests...
+=== API Smoke Tests (dev) ===
+Base URL: https://dev-api.industrynight.net
+
+[0;32m[OK][0m Health (HTTP 200)
+[0;32m[OK][0m Specialties (HTTP 200)
+[0;32m[OK][0m Markets (HTTP 200)
+
+[0;36m[INFO][0m Running auth request-code smoke check...
+[0;32m[OK][0m Auth request-code (HTTP 200)
+
+[0;36m[INFO][0m Skipping admin smoke check (set SMOKE_ADMIN_EMAIL and SMOKE_ADMIN_PASSWORD to enable)
+
+[0;32m[OK][0m All smoke tests passed
+[0;32m[OK][0m Phase 5 passed.
+
+
+[1m[6/7][0m AWS E2E
+[0;36m[INFO][0m Target: https://dev-api.industrynight.net
+
+> industrynight-api@1.0.0 test:e2e
+> jest --config jest.e2e.config.ts --runInBand
+
+  console.log
+    
+    E2E target: https://dev-api.industrynight.net
+
+      at Object.<anonymous> (tests/e2e/e2e.test.ts:30:11)
+
+  console.log
+    Test phone:  +15555555510
+
+      at Object.<anonymous> (tests/e2e/e2e.test.ts:31:11)
+
+PASS tests/e2e/e2e.test.ts
+  GET /health
+    ✓ returns 200 with status ok (116 ms)
+  GET /specialties
+    ✓ returns 200 with a specialties array (50 ms)
+  Auth flow (magic prefix)
+    ✓ request-code returns devCode for magic prefix phone (54 ms)
+    ✓ verify-code creates new user and returns tokens (125 ms)
+    ✓ verify-code with wrong code returns 400 (142 ms)
+    ✓ re-authenticate returns existing user (isNewUser = false) (180 ms)
+  GET /auth/me
+    ✓ returns current user with valid token (57 ms)
+    ✓ returns 401 without token (52 ms)
+    ✓ returns 401 with garbage token (56 ms)
+  POST /auth/refresh
+    ✓ issues new tokens with valid refresh token (67 ms)
+    ✓ returns 401 with explicit error for invalid refresh token (55 ms)
+    ✓ rejects access token used as refresh token (50 ms)
+  GET /events
+    ✓ returns 401 without auth token (51 ms)
+    ✓ returns 200 with valid auth token (59 ms)
+  GET /posts
+    ✓ returns 200 without auth (58 ms)
+    ✓ returns 200 with auth (58 ms)
+  GET /sponsors
+    ✓ returns 401 without auth token (53 ms)
+    ✓ returns 200 with valid auth token (55 ms)
+  GET /discounts
+    ✓ returns 401 without auth token (53 ms)
+    ✓ returns 200 with valid auth token (58 ms)
+  Admin route token family guard
+    ✓ rejects social token on admin dashboard (57 ms)
+    ✓ rejects social refresh token on admin refresh (53 ms)
+  POST /auth/logout
+    ✓ returns 200 with valid token (53 ms)
+  Cleanup: delete test user
+    ✓ deletes the test user account via DELETE /auth/me (182 ms)
+    ✓ confirms test user no longer exists (189 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       25 passed, 25 total
+Snapshots:   0 total
+Time:        2.933 s
+Ran all test suites.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
+[0;32m[OK][0m Phase 6 passed.
+
+
+[1m[7/7][0m Smoke test
+[0;36m[INFO][0m Using DB_PASSWORD from environment.
+[0;36m[INFO][0m Creating ephemeral smoke admin (smoke-test@industrynight.internal)...
+  Port-forward already open, using existing tunnel.
+  Smoke admin created: smoke-test@industrynight.internal
+[0;32m[OK][0m Smoke admin created.
+=== API Smoke Tests (dev) ===
+Base URL: https://dev-api.industrynight.net
+
+[0;32m[OK][0m Health (HTTP 200)
+[0;32m[OK][0m Specialties (HTTP 200)
+[0;32m[OK][0m Markets (HTTP 200)
+
+[0;36m[INFO][0m Running auth request-code smoke check...
+[0;32m[OK][0m Auth request-code (HTTP 200)
+
+[0;36m[INFO][0m Running admin auth/dashboard smoke check...
+[0;32m[OK][0m Admin dashboard (HTTP 200)
+
+[0;32m[OK][0m All smoke tests passed
+[0;36m[INFO][0m Removing ephemeral smoke admin (smoke-test@industrynight.internal)...
+  Port-forward already open, using existing tunnel.
+  Smoke admin deleted: smoke-test@industrynight.internal
+[0;32m[OK][0m Smoke admin removed.
+[0;32m[OK][0m Phase 7 passed.
+
+[1m══════════════════════════════════════════════════[0m
+[1m  CLOSEOUT SUMMARY — A0[0m
+[1m══════════════════════════════════════════════════[0m
+  [[0;32mPASS[0m]  Phase 1 — Jest unit tests
+  [[0;32mPASS[0m]  Phase 2 — Flutter widget tests
+  [[0;32mPASS[0m]  Phase 3 — Local E2E (localhost:3000)
+  [[0;32mPASS[0m]  Phase 4 — DB migration
+  [[0;32mPASS[0m]  Phase 5 — API deploy
+  [[0;32mPASS[0m]  Phase 6 — AWS E2E
+  [[0;32mPASS[0m]  Phase 7 — Smoke test
+
+  [0;32m[1mRESULT: PASS[0m — all phases completed.
+
+  Log: /Users/jmsimpson/Documents/GitHub/IndustryNight/test_logs/A0_closeout_test_2026-03-25_163434.log
+[1m══════════════════════════════════════════════════[0m
+
