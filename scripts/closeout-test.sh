@@ -311,7 +311,19 @@ import socket; s=socket.socket(); s.bind(('',0)); print(s.getsockname()[1]); s.c
   local pg_password="closeout_test_pw"
   local pg_container="closeout-pg-$$"
   local api_log
-  api_log="$(mktemp /tmp/closeout-api-XXXXXX.log)"
+
+  # macOS mktemp requires X's at the end of the template (no suffix after
+  # them). We previously used XXXXXX.log which macOS treated as a literal
+  # filename, leaving a stale file that caused "File exists" on next run.
+  # Drop the .log extension — the temp file is a log regardless of extension.
+  # Also remove the known stale literal name that the previous buggy call
+  # would have created, so a crashed previous run can't block us.
+  rm -f /tmp/closeout-api-XXXXXX.log 2>/dev/null || true
+  api_log="$(mktemp /tmp/closeout-api-XXXXXX)" || {
+    log_error "mktemp failed — cannot create API log file. Phase 3 skipped."
+    RESULTS[3]="SKIP"
+    return 0
+  }
 
   # ── Cleanup helper (called on early return) ───────────────────────────────
   local_e2e_cleanup() {
