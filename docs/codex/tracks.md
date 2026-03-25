@@ -183,7 +183,7 @@ Update this table as prompts complete.
 | Prompt | A/B | Status | Winner | Log | Review | Notes |
 |--------|-----|--------|--------|-----|--------|-------|
 | C0 | ⚡ | ✅ Merged | Claude | docs/codex/log/C0-control-decision.md | docs/codex/reviews/C0-adversarial-review.md | Winner-only control-session apply executed on AWS dev; C0 schema gate complete |
-| A0 | ⚡ | 🟠 Under adversarial review | GPT | — | docs/codex/reviews/A0-adversarial-review.md | Winner identified; carry-forward execution in progress |
+| A0 | ⚡ | 🟠 PR #54 open — pending merge | GPT | docs/codex/log/A0-control-decision.md | docs/codex/reviews/A0-adversarial-review.md | Closeout test PASS (145 Jest / 30 Flutter / 25 E2E); awaiting Jeff merge |
 | B0 | ⚡ | ⬜ Not started | — | — | — | |
 | C1 | — | ⬜ Not started | — | — | — | Waiting for C0 |
 | C2 | — | ⬜ Not started | — | — | — | Waiting for C0 |
