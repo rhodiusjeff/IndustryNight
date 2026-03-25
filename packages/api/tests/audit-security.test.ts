@@ -41,7 +41,7 @@ describe('Security Audit Logging', () => {
   });
 
   it('logs verification_code_expired when verification code is expired', async () => {
-    const phone = '+15559999091';
+    const phone = '+15555550191';  // Magic test prefix
 
     const codeRes = await request(app)
       .post('/auth/request-code')
@@ -219,5 +219,126 @@ describe('Security Audit Logging', () => {
       userAId: expect.any(String),
       userBId: expect.any(String),
     });
+  });
+});
+
+// ─── Migration 007 Regression Tests ──────────────────────────────────────────
+//
+// Validates the two bugs fixed in migration 007:
+//
+// Bug 1: DELETE FROM admin_users would 500 because the audit_log trigger
+//        failed to promote actor_type → 'system' in the admin_actor_id cascade
+//        path (migration 006 only NULLed admin_actor_id, leaving actor_type='admin',
+//        which satisfies none of the ck_audit_log_actor_identity branches).
+//
+// Bug 2: A crafted UPDATE on audit_log that changed non-FK columns alongside
+//        a FK-null could theoretically bypass the subset-column check in
+//        migrations 005/006. Migration 007 hardens this with a full-row
+//        NEW IS DISTINCT FROM OLD comparison.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('Migration 007: audit_log immutability & admin cascade fix', () => {
+  it('deleting an admin user promotes audit_log actor_type to system (bug 1 fix)', async () => {
+    const pool = getTestPool();
+
+    // Create an admin user and a social user to act as the entity.
+    const admin = await createAdminUser();
+    const user = await createUser();
+
+    // Insert an audit_log row with actor_type='admin' and admin_actor_id set.
+    const insertRes = await pool.query(
+      `INSERT INTO audit_log
+         (action, entity_type, entity_id, actor_type, admin_actor_id, result, request_id)
+       VALUES ('update', 'user', $1, 'admin', $2, 'success', uuid_generate_v4())
+       RETURNING id`,
+      [user.id, admin.id]
+    );
+    const logId: string = insertRes.rows[0].id;
+
+    // This DELETE should NOT throw — migration 007 ensures the cascade is
+    // permitted and that actor_type is promoted to 'system'.
+    await expect(
+      pool.query(`DELETE FROM admin_users WHERE id = $1`, [admin.id])
+    ).resolves.not.toThrow();
+
+    // Verify the audit_log row was correctly tombstoned.
+    const auditRes = await pool.query(
+      `SELECT actor_type, actor_id, admin_actor_id FROM audit_log WHERE id = $1`,
+      [logId]
+    );
+
+    expect(auditRes.rows).toHaveLength(1);
+    expect(auditRes.rows[0]).toMatchObject({
+      actor_type: 'system',
+      actor_id: null,
+      admin_actor_id: null,
+    });
+  });
+
+  it('deleting a social user promotes audit_log actor_type to system (existing user cascade path)', async () => {
+    const pool = getTestPool();
+
+    // Create a social user.
+    const user = await createUser();
+
+    // Insert an audit_log row with actor_type='user' and actor_id set.
+    const insertRes = await pool.query(
+      `INSERT INTO audit_log
+         (action, entity_type, entity_id, actor_type, actor_id, result, request_id)
+       VALUES ('update', 'user', $1, 'user', $1, 'success', uuid_generate_v4())
+       RETURNING id`,
+      [user.id]
+    );
+    const logId: string = insertRes.rows[0].id;
+
+    // Manually delete the verification_code first (required by schema — phone PK).
+    await pool.query(`DELETE FROM verification_codes WHERE phone = $1`, [user.phone]);
+
+    // DELETE should not throw.
+    await expect(
+      pool.query(`DELETE FROM users WHERE id = $1`, [user.id])
+    ).resolves.not.toThrow();
+
+    // Verify tombstone.
+    const auditRes = await pool.query(
+      `SELECT actor_type, actor_id, admin_actor_id FROM audit_log WHERE id = $1`,
+      [logId]
+    );
+
+    expect(auditRes.rows).toHaveLength(1);
+    expect(auditRes.rows[0]).toMatchObject({
+      actor_type: 'system',
+      actor_id: null,
+      admin_actor_id: null,
+    });
+  });
+
+  it('rejects a direct UPDATE on audit_log that mutates non-FK columns alongside a FK null (bug 2 fix)', async () => {
+    const pool = getTestPool();
+
+    const admin = await createAdminUser();
+    const user = await createUser();
+
+    // Insert a baseline audit_log row.
+    const insertRes = await pool.query(
+      `INSERT INTO audit_log
+         (action, entity_type, entity_id, actor_type, admin_actor_id, result, request_id)
+       VALUES ('update', 'user', $1, 'admin', $2, 'success', uuid_generate_v4())
+       RETURNING id`,
+      [user.id, admin.id]
+    );
+    const logId: string = insertRes.rows[0].id;
+
+    // A crafted UPDATE that NULLs admin_actor_id (mimicking cascade) BUT also
+    // changes metadata — should be rejected by the full-row comparison.
+    await expect(
+      pool.query(
+        `UPDATE audit_log
+           SET admin_actor_id = NULL,
+               actor_type = 'system',
+               metadata = '{"tampered": true}'
+         WHERE id = $1`,
+        [logId]
+      )
+    ).rejects.toThrow('audit_log is immutable');
   });
 });

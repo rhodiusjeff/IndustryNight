@@ -67,6 +67,7 @@ npm-debug.log*
 # Testing
 coverage/
 .nyc_output/
+test_logs/
 
 # Secrets (never commit!)
 *.pem

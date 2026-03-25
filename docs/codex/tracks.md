@@ -162,6 +162,18 @@ TODAY — Start all three in parallel (all are ⚡ A/B):
 
 ---
 
+## Track X — Exception / Operational Tracks
+
+**Purpose:** Infrastructure, consolidation, and operational interruptions that don't fit the product track model. Single-model (no A/B), control-agent-owned, verified by infrastructure tests rather than adversarial review.
+
+| Prompt | Title | Model | A/B | Effort | Depends On |
+|--------|-------|-------|-----|--------|------------|
+| X1 | Schema Consolidation | control-agent | — | Small | A0 merged |
+
+**Track X completion:** Ongoing — new X-tracks added as operational needs arise.
+
+---
+
 ## Post-Track Completion Gate (Preproduction)
 
 When all tracks are complete (preproduction), execute this finalization sequence:

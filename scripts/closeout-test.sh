@@ -38,6 +38,11 @@ LOCAL_ONLY=false
 LOG_FILE=""
 LOCAL_API_PID=""
 
+# Ephemeral smoke admin — created before phase 7, deleted after (success or failure)
+SMOKE_ADMIN_EMAIL="smoke-test@industrynight.internal"
+SMOKE_ADMIN_PASSWORD=""  # generated per-run
+SMOKE_ADMIN_CREATED=false
+
 # --------------------------------------------------------------------------
 # Usage
 # --------------------------------------------------------------------------
@@ -163,6 +168,7 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 # Trap: print summary on Ctrl-C
 # --------------------------------------------------------------------------
 cleanup() {
+  teardown_smoke_admin  # no-op if never created; safe to call multiple times
   if [[ -n "$LOCAL_API_PID" ]]; then
     kill "$LOCAL_API_PID" 2>/dev/null || true
     LOCAL_API_PID=""
@@ -287,6 +293,22 @@ phase3_local_e2e() {
     return 0
   fi
 
+  # ── Pre-flight: ensure port 3000 is free ─────────────────────────────────
+  local stale_pid
+  stale_pid=$(lsof -ti :3000 2>/dev/null || true)
+  if [[ -n "$stale_pid" ]]; then
+    log_warn "Port 3000 already in use (PID $stale_pid) — terminating stale process..."
+    echo "$stale_pid" | xargs kill 2>/dev/null || true
+    sleep 2
+    stale_pid=$(lsof -ti :3000 2>/dev/null || true)
+    if [[ -n "$stale_pid" ]]; then
+      log_error "Port 3000 still in use after termination attempt — phase 3 skipped."
+      RESULTS[3]="SKIP"
+      return 0
+    fi
+    log_info "Port 3000 cleared."
+  fi
+
   # ── Pick a free port for postgres ────────────────────────────────────────
   local pg_port
   pg_port=$(python3 -c "
@@ -295,13 +317,33 @@ import socket; s=socket.socket(); s.bind(('',0)); print(s.getsockname()[1]); s.c
   local pg_password="closeout_test_pw"
   local pg_container="closeout-pg-$$"
   local api_log
-  api_log="$(mktemp /tmp/closeout-api-XXXXXX.log)"
+
+  # macOS mktemp requires X's at the end of the template (no suffix after
+  # them). We previously used XXXXXX.log which macOS treated as a literal
+  # filename, leaving a stale file that caused "File exists" on next run.
+  # Drop the .log extension — the temp file is a log regardless of extension.
+  # Also remove the known stale literal name that the previous buggy call
+  # would have created, so a crashed previous run can't block us.
+  rm -f /tmp/closeout-api-XXXXXX.log 2>/dev/null || true
+  api_log="$(mktemp /tmp/closeout-api-XXXXXX)" || {
+    log_error "mktemp failed — cannot create API log file. Phase 3 skipped."
+    RESULTS[3]="SKIP"
+    return 0
+  }
 
   # ── Cleanup helper (called on early return) ───────────────────────────────
   local_e2e_cleanup() {
     if [[ -n "$LOCAL_API_PID" ]]; then
+      # Kill direct children (ts-node-dev → node) before the subshell
+      pkill -P "$LOCAL_API_PID" 2>/dev/null || true
       kill "$LOCAL_API_PID" 2>/dev/null || true
       LOCAL_API_PID=""
+    fi
+    # Belt-and-suspenders: flush any process still holding port 3000
+    local _port_pids
+    _port_pids=$(lsof -ti :3000 2>/dev/null || true)
+    if [[ -n "$_port_pids" ]]; then
+      echo "$_port_pids" | xargs kill 2>/dev/null || true
     fi
     docker rm -f "$pg_container" >/dev/null 2>&1 || true
     rm -f "$api_log"
@@ -450,6 +492,51 @@ sanity_gate() {
   log_info "AWS phases confirmed — proceeding."
 }
 
+# Create an ephemeral smoke-test admin account before phase 7.
+# Uses a random password generated fresh each run — never stored anywhere.
+setup_smoke_admin() {
+  fetch_db_password || return 0  # soft failure: skip admin smoke if no DB creds
+
+  # Generate a random 24-char alphanumeric password (no special chars to avoid
+  # shell quoting landmines in the env var forwarding to api-smoke.sh).
+  SMOKE_ADMIN_PASSWORD="$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom 2>/dev/null | head -c 24 || true)"
+  if [[ -z "$SMOKE_ADMIN_PASSWORD" ]]; then
+    log_warn "Could not generate random password — admin smoke check will be skipped."
+    return 0
+  fi
+
+  log_info "Creating ephemeral smoke admin ($SMOKE_ADMIN_EMAIL)..."
+  if DB_PASSWORD="$DB_PASSWORD" \
+     node "$PROJECT_ROOT/scripts/seed-smoke-admin.js" \
+       --create \
+       --email "$SMOKE_ADMIN_EMAIL" \
+       --password "$SMOKE_ADMIN_PASSWORD"; then
+    SMOKE_ADMIN_CREATED=true
+    log_success "Smoke admin created."
+  else
+    log_warn "Smoke admin creation failed — admin smoke check will be skipped."
+  fi
+}
+
+# Delete the ephemeral smoke-test admin account. Idempotent: safe to call
+# multiple times (SMOKE_ADMIN_CREATED guards against duplicate calls).
+teardown_smoke_admin() {
+  if [[ "$SMOKE_ADMIN_CREATED" != true ]]; then
+    return 0
+  fi
+  log_info "Removing ephemeral smoke admin ($SMOKE_ADMIN_EMAIL)..."
+  if DB_PASSWORD="${DB_PASSWORD:-}" \
+     node "$PROJECT_ROOT/scripts/seed-smoke-admin.js" \
+       --delete \
+       --email "$SMOKE_ADMIN_EMAIL" 2>/dev/null; then
+    log_success "Smoke admin removed."
+  else
+    log_warn "Smoke admin cleanup failed — manually run:"
+    log_warn "  psql ... -c \"DELETE FROM admin_users WHERE email = '$SMOKE_ADMIN_EMAIL';\""
+  fi
+  SMOKE_ADMIN_CREATED=false
+}
+
 # Fetch DB_PASSWORD from Secrets Manager if not already in environment.
 fetch_db_password() {
   if [[ -n "${DB_PASSWORD:-}" ]]; then
@@ -499,7 +586,25 @@ phase6_aws_e2e() {
 }
 
 phase7_smoke() {
-  "$PROJECT_ROOT/scripts/api-smoke.sh" --env "$IN_ENV"
+  # Provision an ephemeral admin account solely for this smoke check.
+  # It is deleted in teardown_smoke_admin(), which also runs via the EXIT trap.
+  setup_smoke_admin
+
+  local admin_email="" admin_password=""
+  if [[ "$SMOKE_ADMIN_CREATED" == true ]]; then
+    admin_email="$SMOKE_ADMIN_EMAIL"
+    admin_password="$SMOKE_ADMIN_PASSWORD"
+  fi
+
+  local smoke_exit=0
+  SMOKE_TEST_PHONE="${SMOKE_TEST_PHONE:-}" \
+  SMOKE_ADMIN_EMAIL="$admin_email" \
+  SMOKE_ADMIN_PASSWORD="$admin_password" \
+    "$PROJECT_ROOT/scripts/api-smoke.sh" --env "$IN_ENV" || smoke_exit=$?
+
+  teardown_smoke_admin
+
+  return $smoke_exit
 }
 
 # --------------------------------------------------------------------------
