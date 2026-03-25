@@ -534,8 +534,51 @@ phase6_aws_e2e() {
   API_BASE_URL="$aws_url" npm run test:e2e
 }
 
+# Fetch admin smoke credentials from Secrets Manager if not already set.
+# Expects keys SMOKE_ADMIN_EMAIL and SMOKE_ADMIN_PASSWORD in the same
+# secret used for DB creds (industrynight/database-{env}).
+fetch_smoke_admin_creds() {
+  if [[ -n "${SMOKE_ADMIN_EMAIL:-}" && -n "${SMOKE_ADMIN_PASSWORD:-}" ]]; then
+    log_info "Using SMOKE_ADMIN_EMAIL/PASSWORD from environment."
+    return 0
+  fi
+
+  log_info "SMOKE_ADMIN_EMAIL not set — checking Secrets Manager ($SECRETS_ID)..."
+
+  local secret_json
+  if ! secret_json=$(aws_cmd secretsmanager get-secret-value \
+    --secret-id "$SECRETS_ID" \
+    --query 'SecretString' \
+    --output text 2>&1); then
+    log_warn "Could not reach Secrets Manager — admin smoke check will be skipped."
+    return 0
+  fi
+
+  local email password
+  email=$(echo "$secret_json" | python3 -c \
+    "import json,sys; o=json.load(sys.stdin); print(o.get('SMOKE_ADMIN_EMAIL',''))" 2>/dev/null || true)
+  password=$(echo "$secret_json" | python3 -c \
+    "import json,sys; o=json.load(sys.stdin); print(o.get('SMOKE_ADMIN_PASSWORD',''))" 2>/dev/null || true)
+
+  if [[ -n "$email" && -n "$password" ]]; then
+    export SMOKE_ADMIN_EMAIL="$email"
+    export SMOKE_ADMIN_PASSWORD="$password"
+    log_success "Admin smoke creds loaded from Secrets Manager."
+  else
+    log_warn "SMOKE_ADMIN_EMAIL/PASSWORD not found in $SECRETS_ID — admin smoke check will be skipped."
+    log_warn "To enable: add keys SMOKE_ADMIN_EMAIL and SMOKE_ADMIN_PASSWORD to the secret, or export them before running this script."
+  fi
+}
+
 phase7_smoke() {
-  "$PROJECT_ROOT/scripts/api-smoke.sh" --env "$IN_ENV"
+  # Forward SMOKE_TEST_PHONE from the loaded environment (dev.env defines it
+  # as a magic-prefix number; prod leaves it unset — set it manually for prod).
+  fetch_smoke_admin_creds
+
+  SMOKE_TEST_PHONE="${SMOKE_TEST_PHONE:-}" \
+  SMOKE_ADMIN_EMAIL="${SMOKE_ADMIN_EMAIL:-}" \
+  SMOKE_ADMIN_PASSWORD="${SMOKE_ADMIN_PASSWORD:-}" \
+    "$PROJECT_ROOT/scripts/api-smoke.sh" --env "$IN_ENV"
 }
 
 # --------------------------------------------------------------------------
