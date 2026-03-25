@@ -74,7 +74,7 @@ BEGIN
     END IF;
 
     -- Apply the intended tombstoned actor identity.
-    NEW.admin_actor_id := NULL;
+    NEW.admin_actor_id := v_actor_id;
     NEW.actor_type     := v_actor_type;
     RETURN NEW;
   END IF;
