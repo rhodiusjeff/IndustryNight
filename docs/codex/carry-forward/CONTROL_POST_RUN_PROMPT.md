@@ -11,8 +11,11 @@ Inputs
 - Test outputs
 - Review artifacts (adversarial review for A/B)
 - Any merge or hotfix notes
+- Local review gate evidence (required)
+- GitHub PR review gate evidence (required)
 
 Instructions
+0. Verify review gates first. If either review gate is missing, output "blocked" and list missing evidence.
 1. Evaluate acceptance criteria outcome and classify: pass, pass with deviations, or blocked.
 2. Extract objective lessons only. Separate implementation lessons from process lessons.
 3. For A/B prompts, record model-specific strengths and failure patterns.
@@ -24,6 +27,7 @@ Instructions
 
 Output format
 - Outcome classification
+- Review gate status (local + GitHub)
 - Top 3 lessons
 - Forward-only file update plan
 - Risks and mitigations for next prompt

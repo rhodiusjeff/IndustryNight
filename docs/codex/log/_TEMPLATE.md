@@ -49,6 +49,31 @@
 
 ---
 
+## Review Gate Evidence (Required)
+
+### Local Dev Review
+
+- Reviewer:
+- Date:
+- Outcome: pass | fail
+- Findings summary:
+
+### GitHub PR Review
+
+- PR URL:
+- Reviewer(s):
+- Copilot review used: yes | no
+- Outcome: pass | fail
+- Findings summary:
+
+### Findings Disposition
+
+| Finding | Severity | Disposition (fixed/accepted/deferred) | Evidence link |
+|---|---|---|---|
+| [item] | [high/med/low] | [status] | [PR/commit/log link] |
+
+---
+
 ## Jeff's Interrogative Session (Optional)
 
 If this section is skipped, record product-owner guidance (if any) in the carry-forward report.
