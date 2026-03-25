@@ -162,6 +162,18 @@ TODAY — Start all three in parallel (all are ⚡ A/B):
 
 ---
 
+## Track X — Exception / Operational Tracks
+
+**Purpose:** Infrastructure, consolidation, and operational interruptions that don't fit the product track model. Single-model (no A/B), control-agent-owned, verified by infrastructure tests rather than adversarial review.
+
+| Prompt | Title | Model | A/B | Effort | Depends On |
+|--------|-------|-------|-----|--------|------------|
+| X1 | Schema Consolidation | control-agent | — | Small | A0 merged |
+
+**Track X completion:** Ongoing — new X-tracks added as operational needs arise.
+
+---
+
 ## Post-Track Completion Gate (Preproduction)
 
 When all tracks are complete (preproduction), execute this finalization sequence:
@@ -183,7 +195,8 @@ Update this table as prompts complete.
 | Prompt | A/B | Status | Winner | Log | Review | Notes |
 |--------|-----|--------|--------|-----|--------|-------|
 | C0 | ⚡ | ✅ Merged | Claude | docs/codex/log/C0-control-decision.md | docs/codex/reviews/C0-adversarial-review.md | Winner-only control-session apply executed on AWS dev; C0 schema gate complete |
-| A0 | ⚡ | 🟠 Under adversarial review | GPT | — | docs/codex/reviews/A0-adversarial-review.md | Winner identified; carry-forward execution in progress |
+| A0 | ⚡ | 🟠 PR #54 open | GPT | docs/codex/log/A0-control-decision.md | docs/codex/reviews/A0-adversarial-review.md | Winner identified; carry-forward execution complete; PR open awaiting merge |
+| X1 | — | ⬜ Not started | N/A | docs/codex/log/X1-control-decision.md | — | Waiting for A0 merge; collapse 001–007 → new 001_baseline_schema.sql |
 | B0 | ⚡ | ⬜ Not started | — | — | — | |
 | C1 | — | ⬜ Not started | — | — | — | Waiting for C0 |
 | C2 | — | ⬜ Not started | — | — | — | Waiting for C0 |
