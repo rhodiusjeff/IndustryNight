@@ -2,7 +2,11 @@ import { Pool } from 'pg';
 import { config } from './env';
 
 // SSL: required in dev/prod (defense in depth), disabled in test (testcontainers has no SSL)
-const sslConfig = config.nodeEnv === 'test' ? false : { rejectUnauthorized: false };
+// DB_SSL=false also disables SSL for local Docker postgres used in closeout-test.sh
+const sslConfig =
+  config.nodeEnv === 'test' || process.env.DB_SSL === 'false'
+    ? false
+    : { rejectUnauthorized: false };
 
 const pool = new Pool(
   config.database.url
