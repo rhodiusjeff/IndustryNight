@@ -85,14 +85,22 @@ When: after completion report and review are finalized
 - Task: Create completion-log artifacts for A0 claude/gpt runs with test output excerpts
 - Owner: control context
 - Due by prompt ID: before A1 sign-off
-- Status: open
+- Status: ✅ closed — `docs/codex/log/track-A/A0/control-decision.md` complete (PR #56)
 
 - Task: Ensure A1 prompt execution outputs include execution mode + cleanup sections in completion artifacts
 - Owner: executing agent + control context
 - Due by prompt ID: A1
-- Status: open
+- Status: ✅ closed — `docs/codex/log/_TEMPLATE.md` updated with Gate C section, Gate Checklist, and execution mode disclosure (PR #56 + A0-carry-forward branch)
+
+- Task: Apply lessons to docs/codex/README.md and docs/codex/log/_TEMPLATE.md
+- Owner: control context
+- Due by prompt ID: before A1
+- Status: ✅ closed — README updated with local-first mandatory + interrogative-optional policy; _TEMPLATE.md updated with Gate Checklist (A0-carry-forward branch, 2026-03-25)
 
 ## Sign-Off
 - Control sign-off: yes
 - Product owner sign-off: pending
 - Ready to proceed: yes
+
+## Carry-Forward Closure Notes (2026-03-25)
+All follow-up tasks resolved on branch `feature/A0-carry-forward`. This document is now a frozen historical artifact.

@@ -18,6 +18,8 @@
 Important:
 - Prompt execution output is provisional until control gates pass.
 - Review and closeout governance is control-owned (local review gate + GitHub review gate + validation evidence gate).
+- **Local-first execution is mandatory.** Verify with Jest testcontainers and local Flutter/widget tests before touching shared dev or AWS.
+- **Interrogative session is optional.** If skipped, capture any product-owner guidance in the carry-forward report instead.
 
 Control operator guide:
 - `docs/codex/guides/control_plane_user_manual.md`
