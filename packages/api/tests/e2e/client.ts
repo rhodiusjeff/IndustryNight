@@ -88,8 +88,8 @@ export async function authenticateTestPhone(phone: string): Promise<AuthTokens> 
 
   if (!codeRes.body.devCode) {
     throw new Error(
-      'No devCode in response. Magic prefix may be blocked in this environment, ' +
-      'or NODE_ENV=production is set.'
+      'No devCode in response. Magic test prefix may be disabled in this environment. ' +
+      'Ensure ENABLE_MAGIC_TEST_PREFIX=true is set (dev.env) or NODE_ENV=test (local Jest).'
     );
   }
 

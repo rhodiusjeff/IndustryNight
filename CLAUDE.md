@@ -526,10 +526,16 @@ cd packages/admin-app && flutter run -d chrome
 ```
 
 ### DevCode system (magic test phone prefix)
-Phone numbers starting with `+1555555` (NANPA reserved fictional prefix) always use local devCode verification, bypassing Twilio. This allows:
+Phone numbers starting with `+1555555` (NANPA reserved fictional prefix) use local devCode verification, bypassing Twilio. Controlled by `ENABLE_MAGIC_TEST_PREFIX`:
+- **`ENABLE_MAGIC_TEST_PREFIX=true`** (dev k8s via dev.env): magic prefix active
+- **`ENABLE_MAGIC_TEST_PREFIX=false`** (prod k8s via prod.env): magic prefix hard-blocked
+- **`NODE_ENV=test`** (local Jest): magic prefix active regardless of env var
+- **Not set / unrecognised value**: magic prefix inactive (safe default)
+
+Use cases:
 - **Automated tests:** Run without Twilio credentials
 - **Dev environment:** Use real Twilio for manual testing with real phones, use magic prefix for scripted tests
-- **Production:** Magic prefix is blocked (returns false from `isTestPhone()`)
+- **Production:** Hard-blocked — `isTestPhone()` returns false when `ENABLE_MAGIC_TEST_PREFIX=false`
 
 **Magic prefix behavior:**
 1. `POST /auth/request-code` with `+1555555xxxx` → generates 6-digit code, stores in `verification_codes`, returns `{ devCode: "123456" }`
@@ -554,7 +560,7 @@ Phone numbers starting with `+1555555` (NANPA reserved fictional prefix) always 
 
 2. **GoRouter singleton:** `GoRouter` must be created once in `initState()` of the app widget, NOT inside a `Consumer<AppState>` that rebuilds on every `notifyListeners()`. GoRouter's `refreshListenable` parameter handles auth state re-evaluation.
 
-3. **Magic test phone prefix:** Phone numbers `+1555555xxxx` always use local devCode verification (bypasses Twilio). Blocked in production. Used by automated tests.
+3. **Magic test phone prefix:** Phone numbers `+1555555xxxx` use local devCode verification when `ENABLE_MAGIC_TEST_PREFIX=true` (dev k8s) or `NODE_ENV=test` (local Jest). Hard-blocked when `ENABLE_MAGIC_TEST_PREFIX=false` (prod k8s). Do not assume it's active just because you're not in production — the env var must be explicitly set.
 
 4. **User deletion cascade:** `DELETE FROM users WHERE id = $1` cascades to all related tables. But you MUST delete `verification_codes` separately first (keyed by phone, not user ID).
 

@@ -46,7 +46,7 @@ void main() {
       expect(find.text('Continue'), findsOneWidget);
     });
 
-    testWidgets('shows error snackbar for invalid phone number', (tester) async {
+    testWidgets('does not submit with invalid phone number', (tester) async {
       usePortraitViewport(tester);
       await tester.pumpWidget(buildScreen());
       await tester.pumpAndSettle();
@@ -56,7 +56,7 @@ void main() {
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
 
-      // Should not call requestCode with invalid input
+      // Validation blocks submission — requestCode must not be called
       expect(appState.requestCodeCalls, 0);
     });
 

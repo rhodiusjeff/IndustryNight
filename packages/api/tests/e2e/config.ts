@@ -1,7 +1,7 @@
 /**
  * E2E Test Configuration
  *
- * Reads API_BASE_URL from environment. Defaults to dev if not set.
+ * Reads API_BASE_URL from environment. Required — throws if not set.
  * Run against deployed infrastructure:
  *   API_BASE_URL=https://dev-api.industrynight.net npm run test:e2e
  */

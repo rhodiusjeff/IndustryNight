@@ -9,7 +9,6 @@ import 'package:provider/provider.dart';
 class FakeAppState extends AppState {
   FakeAppState({
     this.fakeUser,
-    this.fakeEvents = const [],
     this.deleteResult = true,
     this.deleteError,
     this.isLoadingOverride = false,
@@ -21,7 +20,6 @@ class FakeAppState extends AppState {
         );
 
   final User? fakeUser;
-  final List<Event> fakeEvents;
   final bool deleteResult;
   final String? deleteError;
   final bool isLoadingOverride;

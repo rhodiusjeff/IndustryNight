@@ -17,21 +17,20 @@ void main() {
       });
     });
 
-    testWidgets('shows no upcoming events message when list is empty',
+    testWidgets('renders without crashing after API resolves (smoke test)',
         (tester) async {
-      final appState = FakeAppState(fakeEvents: []);
+      final appState = FakeAppState();
       await mockNetworkImagesFor(() async {
         await tester.pumpWidget(buildTestWidget(EventsListScreen(), appState));
         await tester.pumpAndSettle();
       });
 
-      // Either an empty state message or empty list — the screen renders
       expect(find.byType(EventsListScreen), findsOneWidget);
     });
 
-    testWidgets('shows Retry button on error state', (tester) async {
-      // Events screen manages its own loading state locally,
-      // so we just verify the screen renders without crashing
+    testWidgets('renders on first pump before API resolves (smoke test)',
+        (tester) async {
+      // Events screen manages its own loading state locally.
       final appState = FakeAppState();
       await mockNetworkImagesFor(() async {
         await tester.pumpWidget(buildTestWidget(EventsListScreen(), appState));
