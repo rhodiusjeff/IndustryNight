@@ -287,6 +287,22 @@ phase3_local_e2e() {
     return 0
   fi
 
+  # ── Pre-flight: ensure port 3000 is free ─────────────────────────────────
+  local stale_pid
+  stale_pid=$(lsof -ti :3000 2>/dev/null || true)
+  if [[ -n "$stale_pid" ]]; then
+    log_warn "Port 3000 already in use (PID $stale_pid) — terminating stale process..."
+    echo "$stale_pid" | xargs kill 2>/dev/null || true
+    sleep 2
+    stale_pid=$(lsof -ti :3000 2>/dev/null || true)
+    if [[ -n "$stale_pid" ]]; then
+      log_error "Port 3000 still in use after termination attempt — phase 3 skipped."
+      RESULTS[3]="SKIP"
+      return 0
+    fi
+    log_info "Port 3000 cleared."
+  fi
+
   # ── Pick a free port for postgres ────────────────────────────────────────
   local pg_port
   pg_port=$(python3 -c "
@@ -300,8 +316,16 @@ import socket; s=socket.socket(); s.bind(('',0)); print(s.getsockname()[1]); s.c
   # ── Cleanup helper (called on early return) ───────────────────────────────
   local_e2e_cleanup() {
     if [[ -n "$LOCAL_API_PID" ]]; then
+      # Kill direct children (ts-node-dev → node) before the subshell
+      pkill -P "$LOCAL_API_PID" 2>/dev/null || true
       kill "$LOCAL_API_PID" 2>/dev/null || true
       LOCAL_API_PID=""
+    fi
+    # Belt-and-suspenders: flush any process still holding port 3000
+    local _port_pids
+    _port_pids=$(lsof -ti :3000 2>/dev/null || true)
+    if [[ -n "$_port_pids" ]]; then
+      echo "$_port_pids" | xargs kill 2>/dev/null || true
     fi
     docker rm -f "$pg_container" >/dev/null 2>&1 || true
     rm -f "$api_log"
