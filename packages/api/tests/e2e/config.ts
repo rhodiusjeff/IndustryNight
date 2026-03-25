@@ -19,10 +19,10 @@ export function getBaseUrl(): string {
 
 /**
  * Generate a unique test phone number using magic prefix.
- * Uses timestamp to avoid collisions across concurrent or repeated runs.
- * Format: +1555555XXXX (10 digits after country code)
+ * Uses a random 4-digit suffix to avoid collisions across concurrent or repeated runs.
+ * Format: +1555555XXXX (10 digits after country code — NANPA maximum)
  */
 export function testPhone(suffix?: string): string {
-  const unique = suffix ?? String(Date.now()).slice(-4);
+  const unique = suffix ?? String(Math.floor(Math.random() * 10000)).padStart(4, '0');
   return `+1555555${unique.padStart(4, '0')}`;
 }

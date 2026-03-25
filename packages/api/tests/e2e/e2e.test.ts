@@ -241,9 +241,13 @@ describe('Cleanup: delete test user', () => {
   });
 
   it('confirms test user no longer exists', async () => {
-    // Auth should fail after deletion
-    const res = await api.get('/auth/me', auth.accessToken);
-    // Either 401 (token invalid after delete) or 404
-    expect([401, 404]).toContain(res.status);
+    // Re-authenticate from scratch. If the user was truly deleted,
+    // the API will auto-create a new account and return isNewUser=true.
+    const reAuth = await authenticateTestPhone(TEST_PHONE);
+    expect(reAuth.isNewUser).toBe(true);
+
+    // Clean up the re-created test account so the environment stays pristine.
+    const del = await api.delete('/auth/me', reAuth.accessToken);
+    expect(del.status).toBe(200);
   });
 });

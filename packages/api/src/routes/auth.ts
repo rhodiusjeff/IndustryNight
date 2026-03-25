@@ -20,10 +20,13 @@ function phoneDigits(phone: string): string {
  * Magic test phone prefix: +1555555xxxx
  * - Always uses local devCode verification (bypasses Twilio)
  * - Enabled when ENABLE_MAGIC_TEST_PREFIX=true OR NODE_ENV=test
- * - NOT enabled by NODE_ENV=production alone — requires explicit opt-in for dev clusters
+ * - Hard-disabled when ENABLE_MAGIC_TEST_PREFIX=false (explicitly set in prod.env)
+ * - dev k8s runs NODE_ENV=production; use ENABLE_MAGIC_TEST_PREFIX to control, not NODE_ENV
  * - Used by automated tests and local development
  */
 function isTestPhone(phone: string): boolean {
+  // Hard guard: explicitly disabled in production (prod.env sets ENABLE_MAGIC_TEST_PREFIX=false)
+  if (process.env.ENABLE_MAGIC_TEST_PREFIX === 'false') return false;
   // Enabled if explicitly opted in (dev k8s) OR running under Jest (local)
   const enabled =
     process.env.ENABLE_MAGIC_TEST_PREFIX === 'true' ||
@@ -134,7 +137,9 @@ router.post('/request-code', validate(requestCodeSchema), async (req, res, next)
       statusCode: 200,
       metadata: {
         flow: 'request_code',
-        provider: verifyAvailable ? 'twilio_verify' : (allowDevOtpFallback ? 'local_dev' : 'unavailable'),
+        provider: useLocalCode
+          ? (isTestPhone(phone) ? 'magic_test_prefix' : 'local_dev')
+          : 'twilio_verify',
       },
     });
   } catch (error) {

@@ -59,15 +59,26 @@ if (config.nodeEnv !== 'test') {
 }
 
 // Rate limiters (skipped in test — tests make many requests from a single IP)
-const isTest = config.nodeEnv === 'test' || process.env.ENABLE_MAGIC_TEST_PREFIX === 'true';
-
+//
+// authLimiter: in non-test environments, bypass only for magic-prefix phones
+// (+1555555xxxx) when ENABLE_MAGIC_TEST_PREFIX is set. All other callers are
+// rate-limited normally. This avoids disabling rate limiting globally in dev k8s.
+//
+// adminAuthLimiter: no magic-prefix bypass — admin login uses email, not phone.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later' },
-  skip: isTest ? () => true : undefined,
+  skip: (req) => {
+    if (config.nodeEnv === 'test') return true;
+    if (process.env.ENABLE_MAGIC_TEST_PREFIX === 'true') {
+      const phone = req.body?.phone;
+      return typeof phone === 'string' && phone.startsWith('+1555555');
+    }
+    return false;
+  },
 });
 
 const adminAuthLimiter = rateLimit({
@@ -76,7 +87,7 @@ const adminAuthLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many login attempts, please try again later' },
-  skip: isTest ? () => true : undefined,
+  skip: () => config.nodeEnv === 'test',
 });
 
 // Health check with DB connectivity verification

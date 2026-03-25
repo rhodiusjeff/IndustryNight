@@ -5,9 +5,10 @@ const config: Config = {
   preset: 'ts-jest',
   testEnvironment: 'node',
 
-  // Test files live in tests/ directory
+  // Test files live in tests/ directory (exclude tests/e2e/ — those use jest.e2e.config.ts)
   roots: ['<rootDir>/tests'],
   testMatch: ['**/*.test.ts'],
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/tests/e2e/'],
 
   // Global setup/teardown — starts and stops the PostgreSQL container
   globalSetup: '<rootDir>/tests/setup.ts',

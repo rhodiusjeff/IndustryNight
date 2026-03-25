@@ -46,6 +46,10 @@ class FakeAppState extends AppState {
   @override
   String? get error => deleteError;
 
+  // No-op: prevents MissingPluginException from SecureStorage in widget tests.
+  @override
+  Future<void> initialize() async {}
+
   @override
   Future<bool> deleteAccount() async {
     deleteCalls++;
