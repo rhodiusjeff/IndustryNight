@@ -58,7 +58,7 @@ const DB_CONFIG = {
   database: process.env.DB_NAME     || 'industrynight',
   user:     process.env.DB_USER     || 'industrynight',
   password: process.env.DB_PASSWORD,
-  ssl: { rejectUnauthorized: false },
+  ssl: process.env.DB_SSL === 'false' ? false : { rejectUnauthorized: false },
 };
 
 const NAMESPACE      = process.env.IN_NAMESPACE   || 'industrynight';
