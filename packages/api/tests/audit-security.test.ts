@@ -322,7 +322,7 @@ describe('Migration 007: audit_log immutability & admin cascade fix', () => {
     const insertRes = await pool.query(
       `INSERT INTO audit_log
          (action, entity_type, entity_id, actor_type, admin_actor_id, result, request_id)
-       VALUES ('update', 'user', $1, 'admin', $2, 'success', gen_random_uuid())
+       VALUES ('update', 'user', $1, 'admin', $2, 'success', uuid_generate_v4())
        RETURNING id`,
       [user.id, admin.id]
     );
