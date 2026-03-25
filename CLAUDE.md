@@ -525,19 +525,29 @@ cd packages/social-app && flutter run
 cd packages/admin-app && flutter run -d chrome
 ```
 
-### DevCode system (explicit fallback mode)
-When `AUTH_ALLOW_DEV_OTP_FALLBACK=true` **and** Twilio Verify is unavailable:
-1. Backend generates its own 6-digit code, stores it in `verification_codes` table
-2. Returns `{ message: "Verification code sent", devCode: "123456" }` on `/auth/request-code`
-3. Flutter `phone_entry_screen` captures `devCode` from response
-4. Passes it to `sms_verify_screen` which auto-fills the code field
-5. Auto-submits after a short delay
+### DevCode system (magic test phone prefix)
+Phone numbers starting with `+1555555` (NANPA reserved fictional prefix) use local devCode verification, bypassing Twilio. Controlled by `ENABLE_MAGIC_TEST_PREFIX`:
+- **`ENABLE_MAGIC_TEST_PREFIX=true`** (dev k8s via dev.env): magic prefix active
+- **`ENABLE_MAGIC_TEST_PREFIX=false`** (prod k8s via prod.env): magic prefix hard-blocked
+- **`NODE_ENV=test`** (local Jest): magic prefix active regardless of env var
+- **Not set / unrecognised value**: magic prefix inactive (safe default)
 
-When Twilio Verify is available (default behavior):
-- Twilio Verify API handles code generation, delivery, and verification
-- No codes stored in local DB; no `devCode` in response
+Use cases:
+- **Automated tests:** Run without Twilio credentials
+- **Dev environment:** Use real Twilio for manual testing with real phones, use magic prefix for scripted tests
+- **Production:** Hard-blocked — `isTestPhone()` returns false when `ENABLE_MAGIC_TEST_PREFIX=false`
 
-When Twilio Verify is unavailable and fallback is not enabled (default), `/auth/request-code` and `/auth/verify-code` return 503.
+**Magic prefix behavior:**
+1. `POST /auth/request-code` with `+1555555xxxx` → generates 6-digit code, stores in `verification_codes`, returns `{ devCode: "123456" }`
+2. `POST /auth/verify-code` with `+1555555xxxx` → checks local DB, not Twilio Verify
+
+**Real phone behavior (when Twilio configured):**
+1. `POST /auth/request-code` → Twilio Verify sends SMS, no `devCode` in response
+2. `POST /auth/verify-code` → Twilio Verify validates code
+
+**Fallback (no Twilio, real phone):**
+- If `AUTH_ALLOW_DEV_OTP_FALLBACK=true`: uses local devCode path
+- Otherwise: returns 503 "SMS verification is unavailable"
 
 ### iOS setup
 - Deployment target: iOS 14.0
@@ -550,7 +560,7 @@ When Twilio Verify is unavailable and fallback is not enabled (default), `/auth/
 
 2. **GoRouter singleton:** `GoRouter` must be created once in `initState()` of the app widget, NOT inside a `Consumer<AppState>` that rebuilds on every `notifyListeners()`. GoRouter's `refreshListenable` parameter handles auth state re-evaluation.
 
-3. **Twilio Verify default:** OTP uses Twilio Verify by default. Local `devCode` fallback only works when `AUTH_ALLOW_DEV_OTP_FALLBACK=true`.
+3. **Magic test phone prefix:** Phone numbers `+1555555xxxx` use local devCode verification when `ENABLE_MAGIC_TEST_PREFIX=true` (dev k8s) or `NODE_ENV=test` (local Jest). Hard-blocked when `ENABLE_MAGIC_TEST_PREFIX=false` (prod k8s). Do not assume it's active just because you're not in production — the env var must be explicitly set.
 
 4. **User deletion cascade:** `DELETE FROM users WHERE id = $1` cascades to all related tables. But you MUST delete `verification_codes` separately first (keyed by phone, not user ID).
 

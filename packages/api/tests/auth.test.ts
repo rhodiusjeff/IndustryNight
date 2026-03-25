@@ -4,9 +4,11 @@
  * Tests the complete social authentication lifecycle:
  *   request-code -> verify-code -> token issued -> refresh -> me -> logout -> delete
  *
- * In test mode, Twilio is not configured, so the auth system uses
- * dev mode (stores codes in verification_codes table, returns devCode
- * in the response). This is the same path used during local development.
+ * Uses magic test phone prefix (+1555555xxxx) which always routes to local
+ * devCode verification (bypasses Twilio). This allows:
+ *   - Automated tests to run without Twilio credentials
+ *   - Dev environment to use real Twilio for manual testing with real phones
+ *   - Magic prefix blocked in production for security
  *
  * Rate limiting is disabled in test mode (max: 0 = unlimited)
  * so tests can make unlimited requests without hitting 429.
@@ -27,11 +29,11 @@ describe('POST /auth/request-code', () => {
   it('sends a verification code and returns devCode in dev mode', async () => {
     const res = await request(app)
       .post('/auth/request-code')
-      .send({ phone: '+15551234567' });
+      .send({ phone: '+15555550001' });
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe('Verification code sent');
-    // Dev mode returns the code for testing convenience
+    // Magic test prefix (+1555555xxxx) always returns devCode
     expect(res.body.devCode).toBeDefined();
     expect(res.body.devCode).toHaveLength(6);
   });
@@ -39,12 +41,12 @@ describe('POST /auth/request-code', () => {
   it('stores the code in verification_codes table', async () => {
     const res = await request(app)
       .post('/auth/request-code')
-      .send({ phone: '+15551234567' });
+      .send({ phone: '+15555550001' });
 
     const pool = getTestPool();
     const result = await pool.query(
       'SELECT code FROM verification_codes WHERE phone = $1',
-      ['+15551234567']
+      ['+15555550001']
     );
 
     expect(result.rows).toHaveLength(1);
@@ -63,19 +65,19 @@ describe('POST /auth/request-code', () => {
     // First request
     const res1 = await request(app)
       .post('/auth/request-code')
-      .send({ phone: '+15551234567' });
+      .send({ phone: '+15555550002' });
 
     // Second request (should overwrite via ON CONFLICT)
     const res2 = await request(app)
       .post('/auth/request-code')
-      .send({ phone: '+15551234567' });
+      .send({ phone: '+15555550002' });
 
     expect(res1.body.devCode).not.toBe(res2.body.devCode);
 
     const pool = getTestPool();
     const result = await pool.query(
       'SELECT code FROM verification_codes WHERE phone = $1',
-      ['+15551234567']
+      ['+15555550002']
     );
     expect(result.rows).toHaveLength(1); // Only one row, not two
     expect(result.rows[0].code).toBe(res2.body.devCode);
@@ -87,34 +89,34 @@ describe('POST /auth/verify-code', () => {
     // Step 1: Request code
     const codeRes = await request(app)
       .post('/auth/request-code')
-      .send({ phone: '+15559999001' });
+      .send({ phone: '+15555550101' });
 
     // Step 2: Verify code
     const verifyRes = await request(app)
       .post('/auth/verify-code')
-      .send({ phone: '+15559999001', code: codeRes.body.devCode });
+      .send({ phone: '+15555550101', code: codeRes.body.devCode });
 
     expect(verifyRes.status).toBe(200);
     expect(verifyRes.body.isNewUser).toBe(true);
     expect(verifyRes.body.accessToken).toBeDefined();
     expect(verifyRes.body.refreshToken).toBeDefined();
     expect(verifyRes.body.user).toBeDefined();
-    expect(verifyRes.body.user.phone).toBe('+15559999001');
+    expect(verifyRes.body.user.phone).toBe('+15555550101');
     expect(verifyRes.body.user.source).toBe('app');
   });
 
   it('returns existing user on subsequent verification', async () => {
     // Create user first
-    await createUser({ phone: '+15559999002', name: 'Returning User' });
+    await createUser({ phone: '+15555550102', name: 'Returning User' });
 
     // Request + verify code
     const codeRes = await request(app)
       .post('/auth/request-code')
-      .send({ phone: '+15559999002' });
+      .send({ phone: '+15555550102' });
 
     const verifyRes = await request(app)
       .post('/auth/verify-code')
-      .send({ phone: '+15559999002', code: codeRes.body.devCode });
+      .send({ phone: '+15555550102', code: codeRes.body.devCode });
 
     expect(verifyRes.status).toBe(200);
     expect(verifyRes.body.isNewUser).toBe(false);
@@ -124,11 +126,11 @@ describe('POST /auth/verify-code', () => {
   it('rejects wrong verification code', async () => {
     await request(app)
       .post('/auth/request-code')
-      .send({ phone: '+15559999003' });
+      .send({ phone: '+15555550103' });
 
     const res = await request(app)
       .post('/auth/verify-code')
-      .send({ phone: '+15559999003', code: '000000' });
+      .send({ phone: '+15555550103', code: '000000' });
 
     expect(res.status).toBe(400);
     expect(res.body.message).toContain('Invalid');
@@ -137,16 +139,16 @@ describe('POST /auth/verify-code', () => {
   it('deletes the verification code after successful verification', async () => {
     const codeRes = await request(app)
       .post('/auth/request-code')
-      .send({ phone: '+15559999004' });
+      .send({ phone: '+15555550104' });
 
     await request(app)
       .post('/auth/verify-code')
-      .send({ phone: '+15559999004', code: codeRes.body.devCode });
+      .send({ phone: '+15555550104', code: codeRes.body.devCode });
 
     const pool = getTestPool();
     const result = await pool.query(
       'SELECT * FROM verification_codes WHERE phone = $1',
-      ['+15559999004']
+      ['+15555550104']
     );
     expect(result.rows).toHaveLength(0);
   });
@@ -154,11 +156,11 @@ describe('POST /auth/verify-code', () => {
   it('updates last_login_at timestamp', async () => {
     const codeRes = await request(app)
       .post('/auth/request-code')
-      .send({ phone: '+15559999005' });
+      .send({ phone: '+15555550105' });
 
     const verifyRes = await request(app)
       .post('/auth/verify-code')
-      .send({ phone: '+15559999005', code: codeRes.body.devCode });
+      .send({ phone: '+15555550105', code: codeRes.body.devCode });
 
     expect(verifyRes.body.user.last_login_at).toBeDefined();
   });

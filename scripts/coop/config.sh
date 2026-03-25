@@ -286,6 +286,7 @@ apply_k8s_manifest() {
       -e "s|__ENVIRONMENT__|${ENV_LABEL}|g" \
       -e "s|__HPA_MIN__|${K8S_HPA_MIN}|g" \
       -e "s|__HPA_MAX__|${K8S_HPA_MAX}|g" \
+      -e "s|__ENABLE_MAGIC_TEST_PREFIX__|${ENABLE_MAGIC_TEST_PREFIX}|g" \
       -e "s|\${AWS_ACCOUNT_ID}|${AWS_ACCOUNT}|g" \
       "$PROJECT_ROOT/$K8S_MANIFESTS_DIR/$file" | kube_cmd apply -f -
 }
