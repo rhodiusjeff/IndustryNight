@@ -2,7 +2,7 @@
 
 **Purpose:** High-level map of all implementation tracks, their sequences, dependencies, model assignments, and A/B test designations.
 
-**Last Updated:** March 22, 2026
+**Last Updated:** March 25, 2026
 
 **Legend:** ⚡ = A/B test (run both Claude + OpenAI models; adversarial panel review before merge)
 
@@ -194,8 +194,9 @@ Update this table as prompts complete.
 
 | Prompt | A/B | Status | Winner | Log | Review | Notes |
 |--------|-----|--------|--------|-----|--------|-------|
-| C0 | ⚡ | ✅ Merged | Claude | docs/codex/log/C0-control-decision.md | docs/codex/reviews/C0-adversarial-review.md | Winner-only control-session apply executed on AWS dev; C0 schema gate complete |
-| A0 | ⚡ | 🟠 PR #54 open — pending merge | GPT | docs/codex/log/A0-control-decision.md | docs/codex/reviews/A0-adversarial-review.md | Closeout test PASS (145 Jest / 30 Flutter / 25 E2E); awaiting Jeff merge |
+| C0 | ⚡ | ✅ Closed | Claude | docs/codex/log/track-C/C0/control-decision.md | docs/codex/reviews/C0-adversarial-review.md | Winner-only control-session apply executed on AWS dev; C0 schema gate complete |
+| A0 | ⚡ | ✅ Closed | GPT | docs/codex/log/track-A/A0/control-decision.md | docs/codex/reviews/A0-adversarial-review.md | Merged to integration 2026-03-25 (PR #54, commit 2f63641); all 4 gates green |
+| X1 | — | 🟡 Unblocked — ready to execute | N/A | — | — | A0 merged; collapse 001–007 → new 001_baseline_schema.sql; execution agent next |
 | B0 | ⚡ | ⬜ Not started | — | — | — | |
 | C1 | — | ⬜ Not started | — | — | — | Waiting for C0 |
 | C2 | — | ⬜ Not started | — | — | — | Waiting for C0 |
