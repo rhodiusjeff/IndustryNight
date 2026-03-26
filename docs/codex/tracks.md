@@ -2,7 +2,7 @@
 
 **Purpose:** High-level map of all implementation tracks, their sequences, dependencies, model assignments, and A/B test designations.
 
-**Last Updated:** March 26, 2026 (B0 winner declared — Jeff signoff received; X2 track approved and scoped)
+**Last Updated:** May 2026 (Track F/G added — global search + help system; E3 paid billing scope clarified)
 
 **Legend:** ⚡ = A/B test (run both Claude + OpenAI models; adversarial panel review before merge)
 
@@ -127,6 +127,47 @@ TODAY — Start all three in parallel (all are ⚡ A/B):
 
 **Track E completion:** Full jobs marketplace operational; verified hire confirmation pipeline live; professional ratings available.
 
+**E3 scope note (added May 2026):** Job Poster accounts are a **paid subscription type**. E3 scope includes: job poster registration flow, subscription tier selection, billing integration (Stripe or compatible) for recurring subscription charges, account dashboard, usage limits by tier. If billing infrastructure complexity warrants isolation, it may be split into E3 (account portal) + E4 (billing/subscription backend). Decision deferred to X2-A2 master plan.
+
+---
+
+## Track F — Global Search
+
+**Goal:** Implement cross-entity full-text search for the React admin console and social app — users, events, tickets, jobs, and customers searchable from a single entry point.
+
+| Prompt | Title | Claude | OpenAI | A/B | Effort | Depends On |
+|--------|-------|--------|--------|-----|--------|------------|
+| F0 | Search API + Postgres FTS Index | sonnet-4-6 | gpt-5.3-codex | — | Medium | C0, C1 |
+| F1 | Admin Search UI + Results Page | sonnet-4-6 | gpt-5.4 | — | Medium | F0, B3 |
+| F2 | Social App Search Wiring | sonnet-4-6 | gpt-5.3-codex | — | Small | F0, A2 |
+
+**Track F completion:** Operators can search across all entities from the admin console topbar; social app search routes through unified endpoint; Postgres `tsvector` indexes maintained automatically via trigger.
+
+**F0 scope:** Add `search_index` tsvector column (or separate FTS table) with triggers on `users`, `events`, `tickets` (future: `jobs`, `customers`). Single `GET /admin/search?q=&type=` endpoint. Auth-gated; no public search.
+
+**F1 scope:** React admin Search page (already mocked in admin-mockup-v2.html — topbar search + `/search` route). Facet filter chips (All / Users / Events / Tickets / Jobs / Customers). Keyboard shortcut (Cmd+K). Results grouped by entity type with direct link-out to detail pages.
+
+**Execution order:** F0 → F1 (admin) + F2 (social) in parallel.
+
+---
+
+## Track G — Help System
+
+**Goal:** Implement an in-app help and onboarding system for the React admin console, including contextual guides, a first-time setup checklist, and operator documentation.
+
+| Prompt | Title | Claude | OpenAI | A/B | Effort | Depends On |
+|--------|-------|--------|--------|-----|--------|------------|
+| G0 | Help Content Architecture + Static Pages | sonnet-4-6 | gpt-5.4 | — | Medium | B3 |
+| G1 | Contextual Tooltips + Onboarding Flow | sonnet-4-6 | gpt-5.4 | — | Medium | G0 |
+
+**Track G completion:** Operators have in-app documentation accessible from the sidebar Help nav item; first-time operators see a setup checklist; key screens have contextual tooltip hints.
+
+**G0 scope:** Static help content framework. Sidebar Help page with left-nav article browser (already mocked in admin-mockup-v2.html). Content sourced from markdown or inline JSX — no external CMS required for v1. On-load first-time checklist modal for brand-new admin accounts.
+
+**G1 scope:** Contextual `?` tooltip icons on form fields and complex UI sections (publish gate requirements, image hero selection, discount redemption tracking). "Walk me through this" micro-flows for event creation and customer setup.
+
+**Execution order:** G0 → G1.
+
 ---
 
 ## Recommended Execution Order
@@ -234,7 +275,12 @@ Update this table as prompts complete.
 | E0 | — | ⬜ Not started | — | — | — | Waiting for C0 |
 | E1 | — | ⬜ Not started | — | — | — | Waiting for E0, A1 |
 | E2 | — | ⬜ Not started | — | — | — | Waiting for E0, D0 |
-| E3 | — | ⬜ Not started | — | — | — | Waiting for E0 |
+| E3 | — | ⬜ Not started | — | — | — | Waiting for E0. Paid subscription billing included in scope (see Track E note). |
+| F0 | — | ⬜ Not started | — | — | — | Waiting for C0, C1 |
+| F1 | — | ⬜ Not started | — | — | — | Waiting for F0, B3 |
+| F2 | — | ⬜ Not started | — | — | — | Waiting for F0, A2 |
+| G0 | — | ⬜ Not started | — | — | — | Waiting for B3 |
+| G1 | — | ⬜ Not started | — | — | — | Waiting for G0 |
 
 **Status values:** ⬜ Not started → 🔵 In progress → 🟡 Claude done / GPT done → 🟠 Under adversarial review → ✅ Merged
 **Winner values:** Claude / GPT / Cherry-pick / N/A
