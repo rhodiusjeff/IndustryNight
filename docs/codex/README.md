@@ -36,6 +36,7 @@ Principles:
 - For A/B prompts, adjudicate first, then carry-forward.
 
 Artifacts:
+- Reports (instance outputs): `docs/codex/log/track-{X}/{ID}/post-run-carry-forward.md` — co-located with control decision and completion report
 - Template: `docs/codex/carry-forward/_TEMPLATE.md`
 - Prompt-level control run: `docs/codex/carry-forward/CONTROL_POST_RUN_PROMPT.md`
 - Track-level synthesis: `docs/codex/carry-forward/TRACK_SYNTHESIS_PROMPT.md`

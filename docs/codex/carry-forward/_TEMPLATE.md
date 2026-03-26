@@ -3,6 +3,7 @@
 Scope: one completed prompt (single-model or A/B adjudicated)
 Owner: control context
 When: after completion report and review are finalized
+Save location: `docs/codex/log/track-{X}/{ID}/post-run-carry-forward.md` (co-located with control-decision.md and completion-report.md)
 
 ## Header
 - Prompt ID:

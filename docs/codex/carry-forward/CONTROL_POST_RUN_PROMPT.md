@@ -15,6 +15,7 @@ Before running this prompt, verify you have:
 |-------|------------------|
 | Prompt spec | `docs/codex/track-{X}/{ID}-{name}.md` |
 | Completion report (execution agent) | `docs/codex/log/track-{X}/{ID}/completion-report.md` (or equivalent) |
+| Existing carry-forward report (if resuming) | `docs/codex/log/track-{X}/{ID}/post-run-carry-forward.md` |
 | Control decision log | `docs/codex/log/track-{X}/{ID}/control-decision.md` |
 | Adversarial review (A/B only) | `docs/codex/reviews/{ID}-adversarial-review.md` |
 | Carry-forward template | `docs/codex/carry-forward/_TEMPLATE.md` |
@@ -85,7 +86,7 @@ This prompt MUST produce:
 | Artifact | Path | Owner |
 |----------|------|-------|
 | Control decision log | `docs/codex/log/track-{X}/{ID}/control-decision.md` | Control agent |
-| Carry-forward report | `docs/codex/carry-forward/{ID}-post-run-carry-forward.md` | Control agent |
+| Carry-forward report | `docs/codex/log/track-{X}/{ID}/post-run-carry-forward.md` | Control agent |
 | Tracker row update | Flagged table for human operator (CODEX_TRACKER.xlsx) | Human operator |
 | Prompt patches | Listed in carry-forward patch plan | Control agent |
 
