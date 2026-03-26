@@ -126,10 +126,10 @@ AWS run 2 — fresh-schema proof (X1_closeout_test_2026-03-25_212313.log):
 ### GitHub PR Review
 
 - PR URL: https://github.com/rhodiusjeff/IndustryNight/pull/58
-- Reviewer(s): ⚠️ OPEN — no GitHub reviewer assigned / approved as of closeout
-- Copilot review used: unknown
-- Outcome: ⚠️ OPEN — PR is open and mergeable; no review decision recorded
-- Findings summary: Gate B is conditionally held. See disposition below.
+- Reviewer(s): GitHub Copilot
+- Copilot review used: yes
+- Outcome: pass (1 finding — fixed before merge)
+- Findings summary: Replacement character in X1 status cell in `tracks.md` (bad emoji encoding). Fixed in commit `e866e6d`.
 
 ### Findings Disposition
 
@@ -139,7 +139,7 @@ AWS run 2 — fresh-schema proof (X1_closeout_test_2026-03-25_212313.log):
 | `products_catalog.sql` added (unspecced seed file) | Low | Accepted — restores catalog data lost in schema-only dump; dev/test only; no API contract change | commit 25498ac |
 | `db-reset.js` updated (unspecced) | Low | Accepted — idempotency fix; correctness only; no schema change | commit 25498ac |
 | AWS validation via db-reset instead of live RDS re-deploy | Low | Accepted Risk — fresh-schema proof run (`_212313.log`) is stronger evidence than spec's live-RDS path | `_212313.log` |
-| Gate B: No GitHub PR reviewer | Med | **Conditionally held** — PR must receive at least one GitHub review before merge. Operator to assign reviewer and merge after approval. | PR #58 |
+| Gate B: No GitHub PR reviewer | Med | Fixed — GitHub Copilot review completed; 1 finding (emoji encoding) fixed in `e866e6d` before merge | PR #58, commit `e866e6d` |
 
 ---
 
@@ -148,7 +148,7 @@ AWS run 2 — fresh-schema proof (X1_closeout_test_2026-03-25_212313.log):
 | Gate | Requirement | Status |
 |------|-------------|--------|
 | A: Implementation Evidence | Branch + PR URL, commit scope, deviations disclosed | ✅ Green |
-| B: Review Gate | Local dev review complete + GitHub PR review complete; all findings dispositioned | ⚠️ Conditionally held — local review pass; GitHub PR review pending |
+| B: Review Gate | Local dev review complete + GitHub PR review complete; all findings dispositioned | ✅ Green — Copilot review pass; 1 finding fixed (`e866e6d`) |
 | C: Validation Gate | Runtime/smoke evidence declared with environment | ✅ Green — 3× logs verified independently; fresh-schema proof complete |
 | D: Control Evidence | Log entry complete, carry-forward finalized, tracker updated | ✅ Green (upon merge + signoff) |
 
@@ -156,11 +156,11 @@ AWS run 2 — fresh-schema proof (X1_closeout_test_2026-03-25_212313.log):
 
 ## Outcome
 
-**Ready for adversarial review / merge review:** ✅ Yes — pending GitHub PR review only
+**Ready for adversarial review / merge review:** ✅ Yes
 
-**Merge decision:** ☐ Merged to integration | waiting on Gate B
+**Merge decision:** ✅ Merged to integration
 
-**Date merged:** Pending
+**Date merged:** 2026-03-25
 
-**Notes:** Single-model prompt (no A/B adjudication needed). All acceptance criteria met. Deviations
-are low-risk and dispositioned. Blocking item: PR #58 needs a GitHub reviewer before merge.
+**Notes:** Single-model prompt (no A/B adjudication needed). All acceptance criteria met. All deviations
+are low-risk and dispositioned. Copilot review: 1 finding (emoji encoding), fixed pre-merge. All 4 gates green.

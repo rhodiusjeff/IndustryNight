@@ -196,7 +196,7 @@ Update this table as prompts complete.
 |--------|-----|--------|--------|-----|--------|-------|
 | C0 | ⚡ | ✅ Closed | Claude | docs/codex/log/track-C/C0/control-decision.md | docs/codex/reviews/C0-adversarial-review.md | Winner-only control-session apply executed on AWS dev; C0 schema gate complete |
 | A0 | ⚡ | ✅ Closed | GPT | docs/codex/log/track-A/A0/control-decision.md | docs/codex/reviews/A0-adversarial-review.md | Merged to integration 2026-03-25 (PR #54, commit 2f63641); all 4 gates green |
-| X1 | — | 🟡 Validated — pending merge (Gate B: PR #58 review required) | N/A | docs/codex/log/track-X/X1/control-decision.md | — | 145 Jest / 30 Flutter / 25 E2E + 7/7 AWS; fresh-schema proof complete; PR #58 open |
+| X1 | — | ✅ Closed | N/A | docs/codex/log/track-X/X1/control-decision.md | — | Merged 2026-03-25 (PR #58, e37e3cb); 145 Jest / 30 Flutter / 25 E2E + 7/7 AWS; fresh-schema proof complete |
 | B0 | ⚡ | ⬜ Not started | — | — | — | |
 | C1 | — | ⬜ Not started | — | — | — | Waiting for C0 |
 | C2 | — | ⬜ Not started | — | — | — | Waiting for C0 |
