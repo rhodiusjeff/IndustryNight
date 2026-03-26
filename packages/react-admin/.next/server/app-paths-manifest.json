@@ -1,0 +1,16 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/api/[...path]/route": "app/api/[...path]/route.js",
+  "/dev/components/page": "app/dev/components/page.js",
+  "/(dashboard)/analytics/page": "app/(dashboard)/analytics/page.js",
+  "/(dashboard)/events/page": "app/(dashboard)/events/page.js",
+  "/(dashboard)/event-ops/page": "app/(dashboard)/event-ops/page.js",
+  "/(dashboard)/jobs/page": "app/(dashboard)/jobs/page.js",
+  "/(dashboard)/customers/page": "app/(dashboard)/customers/page.js",
+  "/(dashboard)/users/page": "app/(dashboard)/users/page.js",
+  "/(dashboard)/posh-orders/page": "app/(dashboard)/posh-orders/page.js",
+  "/(dashboard)/page": "app/(dashboard)/page.js",
+  "/(dashboard)/settings/page": "app/(dashboard)/settings/page.js",
+  "/(dashboard)/moderation/page": "app/(dashboard)/moderation/page.js"
+}

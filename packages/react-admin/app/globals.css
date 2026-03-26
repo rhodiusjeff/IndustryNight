@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #121212;
+  --foreground: #ffffff;
+  --primary: #7c3aed;
+  --primary-light: #a855f7;
+  --accent: #ff3d8e;
+  --secondary: #1b9cfc;
+  --verification: #f1c40f;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --destructive: #ef4444;
+  --muted: #1e1e1e;
+  --muted-foreground: #a1a1aa;
+  --border: #2a2a2a;
+  --card: #1a1a1a;
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  @apply bg-background text-foreground font-sans antialiased;
+}
+
+.card-surface {
+  @apply rounded-xl border border-border bg-card;
+}
+
+.brand-gradient {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+}
