@@ -24,7 +24,7 @@ done
 if [[ "$ENV" == "prod" ]]; then
   API_URL="https://api.industrynight.net"
 else
-  API_URL="http://localhost:3000"
+  API_URL="https://dev-api.industrynight.net"
 fi
 
 ENV_FILE="$REACT_ADMIN_DIR/.env.local"
