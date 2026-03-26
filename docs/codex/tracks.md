@@ -2,7 +2,7 @@
 
 **Purpose:** High-level map of all implementation tracks, their sequences, dependencies, model assignments, and A/B test designations.
 
-**Last Updated:** March 25, 2026
+**Last Updated:** March 25, 2026 (B0 adversarial review complete; winner declared; pending pre-merge cleanup + stakeholder signoff)
 
 **Legend:** ⚡ = A/B test (run both Claude + OpenAI models; adversarial panel review before merge)
 
@@ -197,7 +197,7 @@ Update this table as prompts complete.
 | C0 | ⚡ | ✅ Closed | Claude | docs/codex/log/track-C/C0/control-decision.md | docs/codex/reviews/C0-adversarial-review.md | Winner-only control-session apply executed on AWS dev; C0 schema gate complete |
 | A0 | ⚡ | ✅ Closed | GPT | docs/codex/log/track-A/A0/control-decision.md | docs/codex/reviews/A0-adversarial-review.md | Merged to integration 2026-03-25 (PR #54, commit 2f63641); all 4 gates green |
 | X1 | — | ✅ Closed | N/A | docs/codex/log/track-X/X1/control-decision.md | — | Merged 2026-03-25 (PR #58, e37e3cb); 145 Jest / 30 Flutter / 25 E2E + 7/7 AWS; fresh-schema proof complete |
-| B0 | ⚡ | ⬜ Not started | — | — | — | |
+| B0 | ⚡ | 🔶 Reviewing | Claude (claude-sonnet-4-6) | — | docs/codex/reviews/B0-adversarial-review.md | Claude PR #63, GPT PR #62; winner declared pending Jeff signoff; **pre-merge cleanup required before merging #63**: (1) delete `docs/codex/log/track-B/B0/claude-completion.md` from branch (protocol violation — execution agent wrote in TC territory), (2) fix `playwright.config.ts` hardcoded fallback port |
 | C1 | — | ⬜ Not started | — | — | — | Waiting for C0 |
 | C2 | — | ⬜ Not started | — | — | — | Waiting for C0 |
 | A1 | — | ⬜ Not started | — | — | — | Waiting for C0, A0 |
