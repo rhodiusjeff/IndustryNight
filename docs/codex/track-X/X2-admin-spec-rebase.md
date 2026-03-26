@@ -68,9 +68,14 @@ Systematic code and document archaeology across all four source layers simultane
 - Every API call made by each screen (what endpoints are actually consumed)
 
 **Layer 3 — Backend API (ground truth for what exists)**
-- `packages/api/routes/admin.ts` — all admin endpoints
-- `packages/api/routes/auth.ts`, `users.ts`, `events.ts`, `markets.ts`, `sponsors.ts`, `discounts.ts`, `webhooks.ts`
+- `packages/api/src/routes/admin.ts` — all admin endpoints (markets endpoints are inline here, no separate markets.ts)
+- `packages/api/src/routes/auth.ts`, `users.ts`, `events.ts`, `sponsors.ts`, `discounts.ts`, `webhooks.ts`
 - Note which endpoints exist but are not consumed by any current admin UI
+
+**Layer 3b — React Admin scaffold (B0 Claude winner — not yet merged to integration)**
+- Local path: `/Users/jmsimpson/Documents/GitHub/IndustryNight-runs/B0-claude/packages/react-admin/`
+- Read: `app/` directory structure (routes), `lib/permissions.ts` (NAV_PERMISSIONS), `lib/api/client.ts`, `components/`
+- This is a single-machine exercise — reference local filesystem directly
 
 **Layer 4 — CODEX Prompts (ground truth for what is planned)**
 - All B-track prompts (B0–B3)
