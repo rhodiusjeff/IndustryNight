@@ -798,6 +798,78 @@ tr:hover .table-actions { opacity: 1; }
   border-color: rgba(124,58,237,0.3);
   color: var(--accent-light);
 }
+
+/* ─── EVENT DETAIL: SUB-TABS ─── */
+.sub-tabs { display: flex; gap: 6px; margin-bottom: 20px; }
+.sub-tab {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 6px;
+  font-size: 12px; font-weight: 500; cursor: pointer; user-select: none;
+  color: var(--text-secondary); background: var(--bg-elevated);
+  border: 1px solid var(--border); transition: all 0.12s ease;
+}
+.sub-tab:hover { color: var(--text-primary); }
+.sub-tab.active { background: rgba(124,58,237,0.15); border-color: rgba(124,58,237,0.3); color: var(--accent-light); }
+
+/* ─── EVENT DETAIL: IMAGE GRID & PARTNER CHIPS ─── */
+.event-img-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+.event-img-tile {
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: 8px; aspect-ratio: 16/9;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; font-size: 28px; cursor: pointer; transition: border-color 0.15s;
+}
+.event-img-tile:hover { border-color: var(--border-strong); }
+.hero-star { position: absolute; top: 6px; right: 6px; font-size: 14px; color: var(--accent-gold); }
+.partner-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: 8px;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  font-size: 12px; cursor: default; transition: border-color 0.15s;
+}
+.partner-chip:hover { border-color: var(--border-strong); }
+.partner-logo {
+  width: 24px; height: 24px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: white; flex-shrink: 0;
+}
+
+/* ─── WRISTBAND QUEUE ─── */
+.wb-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background 0.15s ease;
+}
+.wb-row:last-child { border-bottom: none; }
+.wb-row:not(.issued):hover { background: rgba(16,185,129,0.04); }
+.wb-row.issued { opacity: 0.45; cursor: default; }
+.btn-issue {
+  background: rgba(16,185,129,0.12); color: var(--success);
+  border: 1px solid rgba(16,185,129,0.25);
+  padding: 8px 14px; border-radius: 6px;
+  font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
+  white-space: nowrap; flex-shrink: 0; transition: all 0.15s ease;
+}
+.btn-issue:hover { background: rgba(16,185,129,0.22); }
+
+/* ─── TABLET RESPONSIVE (<=1023px) ─── */
+@media (max-width: 1023px) {
+  :root { --sidebar-w: 60px; }
+  .sidebar { overflow: hidden; }
+  .sidebar-section-label { display: none; }
+  .sidebar-logo div { display: none; }
+  .sidebar-logo { padding: 12px 8px; }
+  .nav-item { padding: 12px 8px; justify-content: center; font-size: 0; gap: 0; min-height: 44px; }
+  .nav-icon { width: 20px; height: 20px; opacity: 1; }
+  .nav-badge, .new-pill { display: none !important; }
+  .admin-name, .admin-role { display: none; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .grid-2 { grid-template-columns: 1fr; }
+  .event-img-grid { grid-template-columns: repeat(2, 1fr); }
+  .topbar-search { display: none; }
+  .tab { min-height: 44px; padding: 12px 16px; }
+  .sub-tab, .btn { min-height: 44px; }
+}
 </style>
 </head>
 <body>
@@ -1093,7 +1165,7 @@ tr:hover .table-actions { opacity: 1; }
               <td style="color:var(--text-secondary);">Soho Arts Club</td>
               <td>340</td><td>—</td><td>4</td>
               <td><span class="badge badge-published">Published</span></td>
-              <td><div class="table-actions"><button class="btn btn-ghost btn-sm">Edit</button><button class="btn btn-ghost btn-sm">View</button></div></td>
+              <td><div class="table-actions"><button class="btn btn-ghost btn-sm">Edit</button><button class="btn btn-ghost btn-sm" onclick="nav('eventdetail', null)">View</button></div></td>
             </tr>
             <tr>
               <td><div class="cell-user"><div class="event-thumb">📸</div><div><div class="cell-name">Industry Night Vol. 11</div><div class="cell-sub">5 images · code: 4492</div></div></div></td>
@@ -1113,6 +1185,214 @@ tr:hover .table-actions { opacity: 1; }
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- ═══ EVENT DETAIL ═══ -->
+    <div class="page" id="page-eventdetail">
+      <div class="page-header">
+        <div>
+          <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:4px;">
+            <span style="cursor:pointer;color:var(--accent-light);" onclick="nav('events', document.querySelector('[onclick*=\'events\']'))">← Events</span>
+          </div>
+          <div class="page-title">Industry Night Vol. 12</div>
+          <div class="page-sub" style="display:flex;align-items:center;gap:10px;">Apr 4, 2026 · Soho Arts Club · <span class="badge badge-published">Published</span></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary">Edit Event</button>
+          <button class="btn btn-danger">Unpublish</button>
+        </div>
+      </div>
+
+      <div class="tabs" id="ed-tabs">
+        <div class="tab active" onclick="switchEventDetailTab('details', this)">Details</div>
+        <div class="tab" onclick="switchEventDetailTab('media', this)">Images &amp; Partners <span class="tab-count">7</span></div>
+        <div class="tab" onclick="switchEventDetailTab('ops', this)"><span class="live-dot" style="margin-right:6px;"></span>Event Ops</div>
+      </div>
+
+      <!-- Tab: Details -->
+      <div id="ed-tab-details">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Event Info</span></div>
+            <div class="card-body">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 24px;">
+                <div><div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Date</div><div style="font-size:13px;font-weight:500;">Apr 4, 2026</div></div>
+                <div><div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Time</div><div style="font-size:13px;font-weight:500;">7:00 PM – 11:00 PM</div></div>
+                <div style="grid-column:1/-1;"><div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Venue</div><div style="font-size:13px;font-weight:500;">Soho Arts Club</div><div style="font-size:12px;color:var(--text-secondary);">110 Prince St, New York, NY 10012</div></div>
+                <div><div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Market</div><div style="font-size:13px;font-weight:500;">New York City</div></div>
+                <div><div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Capacity</div><div style="font-size:13px;font-weight:500;">400</div></div>
+                <div style="grid-column:1/-1;"><div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Posh Event ID</div><div style="font-size:12px;font-family:monospace;color:var(--accent-light);">posh-ev-vol12-apr2026</div></div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div class="card">
+              <div class="card-header"><span class="card-title">Publish Gate</span><span class="badge badge-published">✓ All clear</span></div>
+              <div class="card-body" style="padding:12px 20px;">
+                <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
+                  <div style="display:flex;align-items:center;gap:8px;"><span style="color:var(--success);">✓</span> Posh Event ID set</div>
+                  <div style="display:flex;align-items:center;gap:8px;"><span style="color:var(--success);">✓</span> Venue name set</div>
+                  <div style="display:flex;align-items:center;gap:8px;"><span style="color:var(--success);">✓</span> 3 images uploaded</div>
+                  <div style="display:flex;align-items:center;gap:8px;"><span style="color:var(--success);">✓</span> Market assigned (NYC)</div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><span class="card-title">Activation Code</span></div>
+              <div class="card-body" style="text-align:center;padding:24px 20px;">
+                <div style="font-size:48px;font-weight:700;font-family:monospace;letter-spacing:8px;color:var(--accent-light);">7821</div>
+                <div style="font-size:12px;color:var(--text-secondary);margin-top:8px;">Attendees enter this in the social app to check in</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:20px;">
+          <div class="card-header"><span class="card-title">Description</span><button class="btn btn-ghost btn-sm">Edit</button></div>
+          <div class="card-body"><div style="font-size:13px;line-height:1.7;color:var(--text-secondary);">Industry Night Vol. 12 returns to the iconic Soho Arts Club for an evening celebrating the city's most creative professionals. Photographers, stylists, makeup artists, and directors come together in one of New York's premier cultural spaces. Open bar, live DJ, and networking all night.</div></div>
+        </div>
+      </div>
+
+      <!-- Tab: Images & Partners -->
+      <div id="ed-tab-media" style="display:none;">
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header"><span class="card-title">Event Images <span class="tab-count">3 / 5</span></span><button class="btn btn-primary btn-sm">+ Upload</button></div>
+          <div class="card-body">
+            <div class="event-img-grid">
+              <div class="event-img-tile" title="Hero — shown first in social app">🎨<div class="hero-star">★</div><div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.75));border-radius:0 0 8px 8px;padding:6px 8px;font-size:10px;color:white;display:flex;justify-content:space-between;"><span>Hero ★</span><span style="cursor:pointer;color:rgba(255,120,120,1);">✕</span></div></div>
+              <div class="event-img-tile">📸<div style="position:absolute;top:6px;right:6px;cursor:pointer;opacity:0.7;font-size:14px;" title="Set as hero">☆</div></div>
+              <div class="event-img-tile">✨<div style="position:absolute;top:6px;right:6px;cursor:pointer;opacity:0.7;font-size:14px;" title="Set as hero">☆</div></div>
+              <div class="event-img-tile" style="border-style:dashed;opacity:0.4;flex-direction:column;gap:4px;"><div style="font-size:22px;">+</div><div style="font-size:11px;color:var(--text-secondary);">Add image</div></div>
+            </div>
+            <div style="font-size:12px;color:var(--text-tertiary);">★ Hero image is displayed first in the social app feed. Click ☆ on any image to promote it to hero.</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Partners <span class="tab-count">4</span></span><button class="btn btn-secondary btn-sm">+ Add Partner</button></div>
+          <div class="card-body">
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <div class="partner-chip"><div class="partner-logo" style="background:linear-gradient(135deg,#1a237e,#7C3AED);">VB</div><div><div style="font-size:12px;font-weight:600;">VibeBrand Co.</div><div style="font-size:10px;color:var(--text-secondary);">Platinum Sponsor</div></div><span style="margin-left:8px;color:var(--text-tertiary);cursor:pointer;">✕</span></div>
+              <div class="partner-chip"><div class="partner-logo" style="background:linear-gradient(135deg,#4a148c,#FF3D8E);">LS</div><div><div style="font-size:12px;font-weight:600;">LuxeStyle Agency</div><div style="font-size:10px;color:var(--text-secondary);">Gold Sponsor</div></div><span style="margin-left:8px;color:var(--text-tertiary);cursor:pointer;">✕</span></div>
+              <div class="partner-chip"><div class="partner-logo" style="background:linear-gradient(135deg,#0d47a1,#1B9CFC);">FJ</div><div><div style="font-size:12px;font-weight:600;">Flash Jones Studio</div><div style="font-size:10px;color:var(--text-secondary);">Vendor Space</div></div><span style="margin-left:8px;color:var(--text-tertiary);cursor:pointer;">✕</span></div>
+              <div class="partner-chip"><div class="partner-logo" style="background:linear-gradient(135deg,#1b5e20,#10B981);">MX</div><div><div style="font-size:12px;font-weight:600;">MixedMedia Co.</div><div style="font-size:10px;color:var(--text-secondary);">Silver Sponsor</div></div><span style="margin-left:8px;color:var(--text-tertiary);cursor:pointer;">✕</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Event Ops -->
+      <div id="ed-tab-ops" style="display:none;">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);">
+          <div class="stat-card"><div class="stat-label">Tickets Sold</div><div class="stat-value">340</div><div class="stat-delta" style="color:var(--text-secondary);">Posh + walk-in</div></div>
+          <div class="stat-card"><div class="stat-label">Checked In</div><div class="stat-value" style="color:var(--success);">187</div><div class="stat-delta">↑ 12 last 10 min</div></div>
+          <div class="stat-card"><div class="stat-label">Wristbands Issued</div><div class="stat-value" style="color:var(--accent-light);" id="ed-wb-count">142</div><div class="stat-delta" style="color:var(--text-secondary);">of 187 checked in</div></div>
+          <div class="stat-card"><div class="stat-label">Wristband Queue</div><div class="stat-value" style="color:var(--warning);" id="ed-pending-count">45</div><div class="stat-delta" style="color:var(--warning);">people waiting</div></div>
+        </div>
+
+        <div class="sub-tabs">
+          <div class="sub-tab active" onclick="switchEventOpsTab('activation', this)">📱 Activation Code</div>
+          <div class="sub-tab" onclick="switchEventOpsTab('checkin', this)">🚪 Check-in</div>
+          <div class="sub-tab" onclick="switchEventOpsTab('wristbands', this)">⌚ Wristbands <span class="tab-count" id="wb-pending-badge" style="background:rgba(245,158,11,0.2);color:var(--warning);">45</span></div>
+        </div>
+
+        <!-- Sub-tab: Activation Code -->
+        <div id="ed-ops-activation">
+          <div style="display:flex;gap:20px;">
+            <div class="card" style="flex:1;text-align:center;">
+              <div class="card-header" style="justify-content:center;"><span class="card-title">Activation Code</span></div>
+              <div class="card-body" style="padding:40px 24px;">
+                <div style="font-size:80px;font-weight:700;font-family:monospace;letter-spacing:12px;color:var(--accent-light);margin-bottom:16px;">7821</div>
+                <div style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">Attendees enter this code in the Industry Night app to check in to tonight's event</div>
+                <button class="btn btn-secondary">Copy Code</button>
+              </div>
+            </div>
+            <div class="card" style="flex:1;text-align:center;">
+              <div class="card-header" style="justify-content:center;"><span class="card-title">QR Code</span></div>
+              <div class="card-body" style="padding:32px 24px;">
+                <svg viewBox="0 0 120 120" width="200" height="200" style="margin:0 auto;display:block;" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" fill="#1E1E1E" rx="4"/><rect x="8" y="8" width="34" height="34" fill="none" stroke="#A855F7" stroke-width="3" rx="2"/><rect x="16" y="16" width="18" height="18" fill="#A855F7" rx="1"/><rect x="78" y="8" width="34" height="34" fill="none" stroke="#A855F7" stroke-width="3" rx="2"/><rect x="86" y="16" width="18" height="18" fill="#A855F7" rx="1"/><rect x="8" y="78" width="34" height="34" fill="none" stroke="#A855F7" stroke-width="3" rx="2"/><rect x="16" y="86" width="18" height="18" fill="#A855F7" rx="1"/><rect x="52" y="8" width="6" height="6" fill="#A855F7" rx="1"/><rect x="62" y="8" width="6" height="6" fill="#A855F7" rx="1"/><rect x="52" y="18" width="6" height="6" fill="#A855F7" rx="1"/><rect x="68" y="22" width="6" height="6" fill="#A855F7" rx="1"/><rect x="56" y="30" width="6" height="6" fill="#A855F7" rx="1"/><rect x="64" y="36" width="6" height="6" fill="#A855F7" rx="1"/><rect x="8" y="52" width="6" height="6" fill="#A855F7" rx="1"/><rect x="18" y="52" width="6" height="6" fill="#A855F7" rx="1"/><rect x="30" y="52" width="6" height="6" fill="#A855F7" rx="1"/><rect x="8" y="62" width="6" height="6" fill="#A855F7" rx="1"/><rect x="24" y="62" width="6" height="6" fill="#A855F7" rx="1"/><rect x="32" y="68" width="6" height="6" fill="#A855F7" rx="1"/><rect x="52" y="52" width="6" height="6" fill="#A855F7" rx="1"/><rect x="62" y="52" width="6" height="6" fill="#A855F7" rx="1"/><rect x="52" y="64" width="6" height="6" fill="#A855F7" rx="1"/><rect x="68" y="58" width="6" height="6" fill="#A855F7" rx="1"/><rect x="78" y="52" width="6" height="6" fill="#A855F7" rx="1"/><rect x="90" y="52" width="6" height="6" fill="#A855F7" rx="1"/><rect x="100" y="52" width="6" height="6" fill="#A855F7" rx="1"/><rect x="78" y="62" width="6" height="6" fill="#A855F7" rx="1"/><rect x="88" y="68" width="6" height="6" fill="#A855F7" rx="1"/><rect x="52" y="78" width="6" height="6" fill="#A855F7" rx="1"/><rect x="64" y="84" width="6" height="6" fill="#A855F7" rx="1"/><rect x="74" y="78" width="6" height="6" fill="#A855F7" rx="1"/><rect x="82" y="90" width="6" height="6" fill="#A855F7" rx="1"/><rect x="94" y="78" width="6" height="6" fill="#A855F7" rx="1"/><rect x="52" y="100" width="6" height="6" fill="#A855F7" rx="1"/><rect x="62" y="106" width="6" height="6" fill="#A855F7" rx="1"/><rect x="74" y="96" width="6" height="6" fill="#A855F7" rx="1"/><rect x="88" y="100" width="6" height="6" fill="#A855F7" rx="1"/><rect x="100" y="90" width="6" height="6" fill="#A855F7" rx="1"/><rect x="106" y="82" width="6" height="6" fill="#A855F7" rx="1"/></svg>
+                <div style="font-size:12px;color:var(--text-secondary);margin-top:12px;">Scan to open the social app check-in screen</div>
+                <button class="btn btn-secondary" style="margin-top:16px;">Download QR</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sub-tab: Check-in -->
+        <div id="ed-ops-checkin" style="display:none;">
+          <div class="grid-2">
+            <div class="card" style="max-height:480px;display:flex;flex-direction:column;">
+              <div class="card-header"><span class="card-title">Live Attendee Stream</span><div style="display:flex;gap:6px;"><div class="filter-chip active" style="font-size:11px;">All</div><div class="filter-chip" style="font-size:11px;">Unverified</div></div></div>
+              <div style="overflow-y:auto;flex:1;">
+                <div class="checkin-row"><div class="checkin-status in"></div><div class="avatar" style="background:linear-gradient(135deg,#7C3AED,#FF3D8E);width:28px;height:28px;font-size:10px;">KM</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">Kezia Monroe</div><div style="font-size:11px;color:var(--text-secondary);">Posh · PSH-88612 · 8:14 PM</div></div><span class="badge badge-verified" style="font-size:10px;">✓</span></div>
+                <div class="checkin-row"><div class="checkin-status in"></div><div class="avatar" style="background:linear-gradient(135deg,#0d47a1,#1B9CFC);width:28px;height:28px;font-size:10px;">TR</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">Tyrone Reid</div><div style="font-size:11px;color:var(--text-secondary);">Posh · PSH-88649 · 8:11 PM</div></div><span class="badge badge-verified" style="font-size:10px;">✓</span></div>
+                <div class="checkin-row"><div class="checkin-status in"></div><div class="avatar" style="background:linear-gradient(135deg,#880e4f,#FF3D8E);width:28px;height:28px;font-size:10px;">DN</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">Destiny Nguyen</div><div style="font-size:11px;color:var(--text-secondary);">Walk-in · 8:09 PM</div></div><span class="badge badge-unverified" style="font-size:10px;">App</span></div>
+                <div class="checkin-row"><div class="checkin-status in"></div><div class="avatar" style="background:linear-gradient(135deg,#1b5e20,#10B981);width:28px;height:28px;font-size:10px;">OA</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">Omar Adeyemi</div><div style="font-size:11px;color:var(--text-secondary);">Posh · PSH-88701 · 8:07 PM</div></div><span class="badge badge-verified" style="font-size:10px;">✓</span></div>
+                <div style="text-align:center;padding:14px;color:var(--text-tertiary);font-size:12px;">+ 183 more check-ins tonight</div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:16px;">
+              <div class="card"><div class="card-header"><span class="card-title">QR / Code Lookup</span></div><div class="card-body"><div style="display:flex;gap:8px;margin-bottom:12px;"><input style="flex:1;background:var(--bg-elevated);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text-primary);font-size:13px;font-family:inherit;" placeholder="Enter ticket ID or phone…"><button class="btn btn-primary">Look Up</button></div><div style="background:var(--bg-elevated);border-radius:6px;padding:12px;font-size:12px;color:var(--text-secondary);">Enter a Posh order ID, phone number, or scan QR to pull up ticket status.</div></div></div>
+              <div class="card"><div class="card-header"><span class="card-title">Check-in Pace</span></div><div class="card-body"><div class="chart-placeholder" style="height:120px;"><div class="chart-bars" style="height:80px;"><div class="chart-bar" style="height:20%;"></div><div class="chart-bar" style="height:35%;"></div><div class="chart-bar" style="height:60%;"></div><div class="chart-bar" style="height:80%;"></div><div class="chart-bar" style="height:95%;"></div><div class="chart-bar highlight" style="height:70%;"></div></div></div><div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;text-align:right;">7:00pm → 8:30pm · per 15-min window</div></div></div>
+              <button class="btn btn-primary" style="width:100%;justify-content:center;">+ Manual Check-In</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sub-tab: Wristbands -->
+        <div id="ed-ops-wristbands" style="display:none;">
+          <div class="tooltip-note">⚡ Queue auto-updates as attendees check in. Oldest check-ins shown first — these people have been waiting longest. Click a row to issue their wristband.</div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Wristband Queue</span>
+              <div style="display:flex;align-items:center;gap:16px;font-size:13px;">
+                <span>✓ Issued: <strong id="wb-issued-display" style="color:var(--success);">142</strong></span>
+                <span>⏳ Pending: <strong id="wb-pending-display" style="color:var(--warning);">45</strong></span>
+              </div>
+            </div>
+            <div id="wb-row-1" class="wb-row" onclick="issueWristband(1)">
+              <div style="font-size:11px;font-weight:700;color:var(--text-tertiary);width:24px;text-align:center;flex-shrink:0;">1</div>
+              <div class="avatar" style="background:linear-gradient(135deg,#7C3AED,#FF3D8E);width:36px;height:36px;font-size:12px;flex-shrink:0;">AW</div>
+              <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">Aisha Williams</div><div style="font-size:11px;color:var(--text-secondary);">Photographer · Checked in 7:48 PM <span style="color:var(--warning);">(42 min ago)</span></div></div>
+              <span class="badge badge-verified" style="font-size:10px;flex-shrink:0;">Posh</span>
+              <button class="btn-issue" onclick="event.stopPropagation();issueWristband(1)">Issue Wristband →</button>
+            </div>
+            <div id="wb-row-2" class="wb-row" onclick="issueWristband(2)">
+              <div style="font-size:11px;font-weight:700;color:var(--text-tertiary);width:24px;text-align:center;flex-shrink:0;">2</div>
+              <div class="avatar" style="background:linear-gradient(135deg,#0d47a1,#1B9CFC);width:36px;height:36px;font-size:12px;flex-shrink:0;">DV</div>
+              <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">Darius Vance</div><div style="font-size:11px;color:var(--text-secondary);">Hair Stylist · Checked in 7:53 PM <span style="color:var(--warning);">(37 min ago)</span></div></div>
+              <span class="badge badge-verified" style="font-size:10px;flex-shrink:0;">Posh</span>
+              <button class="btn-issue" onclick="event.stopPropagation();issueWristband(2)">Issue Wristband →</button>
+            </div>
+            <div id="wb-row-3" class="wb-row" onclick="issueWristband(3)">
+              <div style="font-size:11px;font-weight:700;color:var(--text-tertiary);width:24px;text-align:center;flex-shrink:0;">3</div>
+              <div class="avatar" style="background:linear-gradient(135deg,#880e4f,#EC4899);width:36px;height:36px;font-size:12px;flex-shrink:0;">SM</div>
+              <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">Simone Marcus</div><div style="font-size:11px;color:var(--text-secondary);">Makeup Artist · Checked in 7:58 PM <span style="color:var(--text-secondary);">(32 min ago)</span></div></div>
+              <span class="badge badge-unverified" style="font-size:10px;flex-shrink:0;">Walk-in</span>
+              <button class="btn-issue" onclick="event.stopPropagation();issueWristband(3)">Issue Wristband →</button>
+            </div>
+            <div id="wb-row-4" class="wb-row" onclick="issueWristband(4)">
+              <div style="font-size:11px;font-weight:700;color:var(--text-tertiary);width:24px;text-align:center;flex-shrink:0;">4</div>
+              <div class="avatar" style="background:linear-gradient(135deg,#1b5e20,#10B981);width:36px;height:36px;font-size:12px;flex-shrink:0;">LJ</div>
+              <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">Leon Jefferson</div><div style="font-size:11px;color:var(--text-secondary);">Director · Checked in 8:04 PM <span style="color:var(--text-secondary);">(26 min ago)</span></div></div>
+              <span class="badge badge-verified" style="font-size:10px;flex-shrink:0;">Posh</span>
+              <button class="btn-issue" onclick="event.stopPropagation();issueWristband(4)">Issue Wristband →</button>
+            </div>
+            <div class="wb-row issued">
+              <div style="width:24px;text-align:center;flex-shrink:0;color:var(--success);">✓</div>
+              <div class="avatar" style="background:linear-gradient(135deg,#2d1b69,#7C3AED);width:36px;height:36px;font-size:12px;flex-shrink:0;">KC</div>
+              <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;color:var(--text-secondary);">Kezia Monroe</div><div style="font-size:11px;color:var(--text-tertiary);">Photographer · Wristband issued 8:17 PM</div></div>
+              <span style="font-size:12px;color:var(--success);flex-shrink:0;">Wristband issued</span>
+            </div>
+            <div class="wb-row issued">
+              <div style="width:24px;text-align:center;flex-shrink:0;color:var(--success);">✓</div>
+              <div class="avatar" style="background:linear-gradient(135deg,#4a148c,#FF3D8E);width:36px;height:36px;font-size:12px;flex-shrink:0;">TR</div>
+              <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;color:var(--text-secondary);">Tyrone Reid</div><div style="font-size:11px;color:var(--text-tertiary);">Videographer · Wristband issued 8:15 PM</div></div>
+              <span style="font-size:12px;color:var(--success);flex-shrink:0;">Wristband issued</span>
+            </div>
+            <div style="text-align:center;padding:14px;color:var(--text-tertiary);font-size:12px;">+ 40 more pending · + 140 already issued · showing 4 oldest pending, 2 most recently issued</div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -2363,7 +2643,8 @@ function nav(pageId, el) {
     settings: 'Settings',
     search: 'Search',
     help: 'Help',
-    auditlog: 'Audit Log'
+    auditlog: 'Audit Log',
+    eventdetail: 'Vol. 12 · Event Detail'
   };
   document.getElementById('topbar-title').textContent = titles[pageId] || pageId;
 }
@@ -2399,6 +2680,46 @@ function switchSettingsTab(tab, el) {
     const el2 = document.getElementById('settings-tab-' + id);
     if (el2) el2.style.display = (id === tab) ? '' : 'none';
   });
+}
+
+function switchEventDetailTab(tab, el) {
+  document.querySelectorAll('#ed-tabs .tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  ['details','media','ops'].forEach(id => {
+    const p = document.getElementById('ed-tab-'+id);
+    if (p) p.style.display = (id===tab) ? '' : 'none';
+  });
+}
+
+function switchEventOpsTab(tab, el) {
+  document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  ['activation','checkin','wristbands'].forEach(id => {
+    const p = document.getElementById('ed-ops-'+id);
+    if (p) p.style.display = (id===tab) ? '' : 'none';
+  });
+}
+
+let wbPending = 45, wbIssued = 142;
+function issueWristband(rowId) {
+  const row = document.getElementById('wb-row-'+rowId);
+  if (!row || row.classList.contains('issued')) return;
+  row.classList.add('issued');
+  row.onclick = null;
+  const btn = row.querySelector('.btn-issue');
+  if (btn) btn.style.display = 'none';
+  const badge = row.querySelector('.badge');
+  if (badge) badge.style.display = 'none';
+  const sp = document.createElement('span');
+  sp.style.cssText = 'font-size:12px;color:var(--success);font-weight:500;flex-shrink:0;';
+  sp.textContent = 'Wristband issued';
+  row.appendChild(sp);
+  wbPending = Math.max(0, wbPending-1);
+  wbIssued++;
+  [['wb-pending-display',wbPending],['wb-issued-display',wbIssued],['wb-pending-badge',wbPending],['ed-pending-count',wbPending],['ed-wb-count',wbIssued]].forEach(([elId,val]) => {
+    const el = document.getElementById(elId); if (el) el.textContent = val;
+  });
+  if (wbPending === 0) { const el = document.getElementById('ed-pending-count'); if (el) el.style.color='var(--success)'; }
 }
 
 function toggleAuditRow(id) {
