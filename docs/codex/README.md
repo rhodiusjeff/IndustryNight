@@ -36,7 +36,7 @@ Principles:
 - For A/B prompts, adjudicate first, then carry-forward.
 
 Artifacts:
-- Reports (instance outputs): `docs/codex/log/track-{X}/{ID}/post-run-carry-forward.md` — co-located with control decision and completion report
+- Reports (instance outputs): `docs/codex/log/track-{X}/{ID}/post-run-carry-forward.md` — co-located with TC control decision and agent completion report(s)
 - Template: `docs/codex/carry-forward/_TEMPLATE.md`
 - Prompt-level control run: `docs/codex/carry-forward/CONTROL_POST_RUN_PROMPT.md`
 - Track-level synthesis: `docs/codex/carry-forward/TRACK_SYNTHESIS_PROMPT.md`
@@ -210,46 +210,7 @@ Two families are recommended: Anthropic (Claude) and OpenAI (GPT-5.x-Codex / GPT
 
 ---
 
-## Completion Report
-
-> Filled in by the executing agent after implementation is complete. Required before calling for review.
-
-**Branch:** `feature/[prompt-id]-[short-name]-[claude|gpt]` (A/B) or `feature/[prompt-id]-[short-name]` (non-A/B)
-**Model used:** [actual model string]
-**Date completed:** [ISO date]
-
-### What I implemented exactly as specced
-[bullet list]
-
-### What I deviated from the spec and why
-[bullet list, or "None"]
-
-### What I deferred or left incomplete
-[bullet list, or "None"]
-
-### Technical debt introduced
-[bullet list with file locations, or "None"]
-
-### What the next prompt in this track should know
-[bullet list of gotchas, decisions made, patterns established]
-
----
-
-## Interrogative Session (Optional)
-
-> Optional product-owner input after the Completion Report is written. If skipped, control context notes can be captured directly in carry-forward artifacts.
-
-**Q1: Does the implemented behavior match your mental model of this feature?**
-> Jeff: [answer]
-
-**Q2: Is there anything that feels wrong that the acceptance criteria wouldn't catch — UX, naming, flow, edge cases?**
-> Jeff: [answer]
-
-**Q3: Any concerns you want flagged before this goes to adversarial review or merge?**
-> Jeff: [answer]
-
-**Ready for review:** [ ] Yes — proceed to adversarial panel (if A/B) or merge review
-```
+> **Completion Report:** The executing agent writes a separate `{lane}-completion.md` file to `docs/codex/log/track-{X}/{ID}/` using `docs/codex/log/_TEMPLATE.md`. For non-A/B prompts the file is named `completion.md`. This file does NOT go in the prompt spec. See **Log Directory Convention** below.
 
 ---
 
@@ -290,20 +251,37 @@ feature/C0-schema-foundation-gpt
 **Execution sequence for A/B prompts:**
 1. Create `feature/{prompt-id}-{short-name}-claude` and `feature/{prompt-id}-{short-name}-gpt` off `integration`
 2. Run the prompt on each model branch independently (same prompt, same context, different model)
-3. Both models fill in Completion Report on their branch
-4. Optional interrogative session on each branch (if skipped, capture any product-owner guidance in control/carry-forward artifacts)
-5. Adversarial panel (Option B — four role evaluators) runs against both; writes `docs/codex/reviews/{prompt-id}-adversarial-review.md`
-6. Product owner picks winner (or cherry-picks specific parts)
-7. Winning branch squash-merges to `integration`; other branch archived
-8. Update CODEX_TRACKER.xlsx with outcome + rationale
+3. Each model writes `{lane}-completion.md` to `docs/codex/log/track-{X}/{ID}/` using `docs/codex/log/_TEMPLATE.md` (e.g. `claude-completion.md`, `gpt-completion.md`)
+4. Adversarial panel (Option B — four role evaluators) runs against both; writes `docs/codex/reviews/{prompt-id}-adversarial-review.md`
+5. Product owner picks winner (or cherry-picks specific parts)
+6. Winning branch squash-merges to `integration`; other branch archived
+7. Update CODEX_TRACKER.xlsx with outcome + rationale
 
 **For non-A/B prompts:**
 1. Create `feature/{prompt-id}-{short-name}` off `integration`
 2. Run with the model designated in the prompt header by default
 3. Product owner may override to the `Alternate Model` at execution time based on latest A/B evidence and operational context
-4. Fill Completion Report (+ optional Interrogative Session)
+4. Agent writes `completion.md` to `docs/codex/log/track-{X}/{ID}/` using `docs/codex/log/_TEMPLATE.md`
 5. Merge review (single reviewer, not full adversarial panel)
 6. Squash-merge to `integration`
+
+---
+
+## Log Directory Convention
+
+Every executed prompt produces two co-located files in `docs/codex/log/track-{X}/{ID}/`:
+
+| File | Written by | Purpose |
+|------|-----------|---------|
+| `{lane}-completion.md` (A/B) or `completion.md` (non-A/B) | **Execution agent** | Self-report: deviations, decisions, technical debt, carry-forward notes for next prompt |
+| `control-decision.md` | **Track Control Agent** | Gate verdicts, finding dispositions, tracker updates, stakeholder signoff |
+
+**Rules:**
+- Execution agents write ONLY their `{lane}-completion.md`. They do NOT touch `control-decision.md` or any other TC-owned artifact.
+- Track Control writes ONLY `control-decision.md`. TC may read agent completion reports but does not edit them.
+- Both files are required before a prompt can be marked Closed.
+- Prompt spec files do NOT contain completion reports. The spec is a reusable template; the log directory captures run-specific outputs.
+- Existing prompt specs that contain a `## Completion Report` section are considered stale. That section is ignored at runtime; agents write to the log directory instead. Stale sections will be removed during X2-C spec cleanup.
 
 ---
 

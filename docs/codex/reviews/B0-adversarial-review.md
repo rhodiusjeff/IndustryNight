@@ -21,7 +21,7 @@
 
 **Note on Claude model:** Rate limiting forced switch from claude-opus-4-6 (specced) to claude-sonnet-4-6. Matchup is Sonnet vs Codex, not Opus vs Codex.
 
-**Protocol violation — Claude lane:** Claude created `docs/codex/log/track-B/B0/claude-completion.md` on its feature branch. `docs/codex/log/` is Track Control territory. The canonical Completion Report WAS correctly filed in the spec (line 714). This is an unauthorized duplicate. Pre-merge cleanup required: `git rm` before merge.
+**Protocol update (2026-03-26):** Claude created `docs/codex/log/track-B/B0/claude-completion.md` on its feature branch. This was initially flagged as a protocol violation. Following review, the pattern has been **legitimized and adopted as official protocol** — execution agents are expected to write `{lane}-completion.md` to the log directory; TC writes `control-decision.md`. The file stays. Pre-merge blocker #1 is retracted.
 
 ---
 
@@ -228,8 +228,8 @@ These must be resolved before merging `feature/B0-react-scaffold-claude` → `in
 
 | # | Issue | Severity | Required Action |
 |---|-------|----------|-----------------|
-| 1 | Protocol violation: `docs/codex/log/track-B/B0/claude-completion.md` created by execution agent — Track Control territory | **BLOCKING** | `git rm docs/codex/log/track-B/B0/claude-completion.md` on the branch; push; confirm removed in PR diff |
-| 2 | `client.ts` proxy bypass: `const API_BASE = process.env.NEXT_PUBLIC_API_URL` is still on `origin/feature/B0-react-scaffold-claude`. The proxy routing fix (`const API_BASE = '/api'`) was described in Evaluator 1 but **was never committed**. App works in dev because CORS is permissive. | **BLOCKING** | Either (a) commit `const API_BASE = '/api'` to client.ts and remove `NEXT_PUBLIC_API_URL` from .env.local.template, OR (b) explicitly document that direct API routing is the chosen pattern and CORS must include the admin domain. Option (a) is strongly preferred. |
+| ~~1~~ | ~~Protocol violation: `claude-completion.md` in log dir~~ | ~~BLOCKING~~ | **Retracted 2026-03-26** — pattern legitimized as official protocol. File stays. |
+| 2 | `client.ts` proxy bypass: `const API_BASE = process.env.NEXT_PUBLIC_API_URL` is still on `origin/feature/B0-react-scaffold-claude`. The proxy routing fix (`const API_BASE = '/api'`) was described in Evaluator 1 but **was never committed**. App works in dev because CORS is permissive. | **BLOCKING** | Commit `const API_BASE = '/api'` to client.ts and remove `NEXT_PUBLIC_API_URL` from .env.local.template. Decision: Next.js server on EKS confirmed; proxy pattern is correct. |
 | 3 | `session.ts` cookie missing `max-age`: `document.cookie = \`accessToken=${tokens.accessToken}; path=/; SameSite=Strict\`` has no expiry — cookie is a session cookie. If the tab closes, the user is re-authenticated on next open but the backend JWT is still valid for 15 min. Mismatched lifetimes. | High | Add `max-age=900; Secure` to the cookie string. Make `Secure` conditional on `!isDev` to avoid breaking localhost dev. |
 | 4 | `playwright.config.ts` fallback to `localhost:3630`: `baseURL: process.env.PLAYWRIGHT_BASE_URL \|\| 'http://localhost:3630'` — spec required `PLAYWRIGHT_BASE_URL` to be explicit (no fallback). Hardcoded fallback masks CI config errors. | Medium | Remove `\|\| 'http://localhost:3630'`; throw if `PLAYWRIGHT_BASE_URL` is unset in CI. |
 | 5 | `packages/react-admin/.gitignore` — confirm it exists and covers `.env.local`, `node_modules/`, `.next/`, `test-results/`, `playwright-report/`. | Low | If absent, create it before merge. |
