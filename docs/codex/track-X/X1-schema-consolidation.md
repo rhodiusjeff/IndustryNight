@@ -89,6 +89,8 @@ mv 007_fix_audit_log_immutability_full_row.sql archive/
 
 Always verify actual filenames first with `ls packages/database/migrations/` before running — if new migrations have been added since this was written, include them in the archive step too.
 
+> **Note:** `migrations/archive/` already exists and contains 4 pre-codex legacy files (`001_initial_schema.sql`, `002_add_sponsors.sql`, `003_admin_users.sql`, `004_event_enhancements.sql`). Do not delete or rename those. The mv commands above will not collide with them.
+
 **Step 6: Place new consolidated file**
 ```bash
 cp /tmp/schema_dump_x1.sql packages/database/migrations/001_baseline_schema.sql
@@ -169,7 +171,7 @@ gh pr create \
 **Step 14: After merge — update tracker and write decision log**
 Update [docs/codex/tracks.md](../tracks.md): X1 row → `✅ Merged`.
 
-Create `docs/codex/log/X1-control-decision.md` with:
+Create `docs/codex/log/track-X/X1/control-decision.md` with:
 - Migration files archived and new filename
 - Closeout test results summary (phases 1–7, pass counts)
 - Raw log filename (`test_logs/X1_closeout_test_YYYY-MM-DD_HHMMSS.log` — git-ignored, local only)
