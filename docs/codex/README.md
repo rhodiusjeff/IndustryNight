@@ -46,8 +46,11 @@ Recommended sequence:
 1. Prompt completes and tests are verified.
 2. Control context runs the post-run carry-forward prompt and writes a carry-forward report.
 3. Only forward targets are patched (unexecuted prompts and shared templates/protocol docs).
-4. After full track completion, control context runs track synthesis.
-5. At phase end, control context runs phase consolidation for replay readiness planning.
+4. **All governance artifacts (control-decision.md, tracks.md, carry-forward, downstream patches)
+   are committed to the feature branch before PR merge.** Stakeholder is notified when ready.
+5. Stakeholder merges the PR.
+6. After full track completion, control context runs track synthesis.
+7. At phase end, control context runs phase consolidation for replay readiness planning.
 
 ---
 

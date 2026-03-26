@@ -90,6 +90,9 @@ Rules:
 - Do not mix feature fixes and control docs in the same branch.
 - Keep one prompt scope per execution branch unless explicitly approved.
 - If contamination occurs, stop and re-isolate before proceeding.
+- **Never push governance artifacts directly to `integration` after a PR has merged.**
+  If the governance commit is missed pre-merge, open a new branch + PR for it. Direct pushes
+  that bypass branch protection are a process violation regardless of content.
 
 ---
 
@@ -124,15 +127,28 @@ No orphan findings at closeout.
 
 ## 7. Closeout Checklist (Control)
 
+**PR merge sequencing rule (critical):**
+All governance artifact edits (control-decision.md, tracks.md, downstream prompt spec patches,
+carry-forward report) must be committed to the **feature branch before the PR merges**.
+Never commit governance artifacts directly to `integration` after merge — that bypasses branch
+protection. The correct flow:
+1. Execution agent hands off evidence.
+2. Control agent prepares all governance artifacts and commits them to the feature branch.
+3. Stakeholder is notified: "All artifacts ready — you may merge PR #N."
+4. Stakeholder merges.
+5. Control agent pulls integration and does a final read-only verification only.
+
 Before marking Closed:
 
-1. Integration includes required merge commits.
-2. All review findings dispositioned.
-3. Validation evidence linked.
-4. Prompt log complete.
-5. Carry-forward report finalized.
-6. Tracker row updated.
-7. Stakeholder signoff captured.
+1. All governance artifacts committed to feature branch (pre-merge).
+2. Stakeholder confirms merge.
+3. Integration includes required merge commits (verified post-merge).
+4. All review findings dispositioned.
+5. Validation evidence linked.
+6. Prompt log complete.
+7. Carry-forward report finalized.
+8. Tracker row updated.
+9. Stakeholder signoff captured.
 
 ---
 
