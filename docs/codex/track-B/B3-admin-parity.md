@@ -19,6 +19,18 @@
 
 ---
 
+## A0 Mopup Handoff (Control Session)
+
+The A0 mopup branch (PR #54, merged 2026-03-25) added the following API endpoints that are **already live** in `packages/api/src/`. Build the React UI for these — do NOT re-implement the API layer:
+
+- **Customer contacts CRUD** — API fully implemented at `/admin/customers/:id/contacts` (GET list, POST create, PATCH update, DELETE). B3 needs to build the UI panel in the customer detail screen.
+- **Customer media uploads** — API fully implemented at `/admin/customers/:id/media` (GET list, POST upload with sharp validation, DELETE). B3 needs to build the UI upload/gallery panel.
+- **Markets API** — API fully implemented at `/admin/markets` (GET list, POST create, PATCH update) and `/markets` (public). B3 needs to build a Markets management screen (`/markets`) in the React admin.
+- **Customer-market associations** — already wired in customer create/update via `marketIds` array. The customer form UI must include a market multi-select field.
+- **Event publish gate** — now requires market assignment in addition to Posh event ID, venue name, and at least 1 image. The event form must expose market selection and the publish validation must surface `"Cannot publish: Market must be assigned"` if missing.
+
+---
+
 ## Context
 
 Read these before implementing:

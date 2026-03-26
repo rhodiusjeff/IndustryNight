@@ -6,7 +6,7 @@
 **Alternate Model:** gpt-5.3-codex ← preferred if running inside OpenAI Codex platform; terminal-first workflow (curl, node test runner, jest output parsing) is where GPT-5.3-Codex's Terminal-Bench advantage is most tangible
 **A/B Test:** No
 **Estimated Effort:** Small–Medium (3–5 hours)
-**Dependencies:** C0 (schema migrations must be applied first; `post_reports` table created in this prompt)
+**Dependencies:** C0 (schema migrations must be applied first; `post_reports` table created in this prompt), X1 (schema consolidation must be complete so migration numbering is clean — next migration after X1 is `002_*.sql`)
 
 ## Execution Mode (Required)
 
@@ -26,6 +26,25 @@
   - `platform_config` and `llm_usage_log` tables exist
   - `users.fcm_token`, `users.primary_specialty_id`, and `tickets.wristband_issued_at` columns exist
 - Do not edit C0 migration in this prompt. Any schema adjustment discovered in C1 must be a new migration file.
+
+---
+
+### A0 Mopup Handoff (Control Session)
+
+The A0 mopup branch (PR #54, merged 2026-03-25) added the following API endpoints that were **not in A0's original scope** but are now live in `packages/api/src/`. Do not re-implement these:
+
+- **Markets API** — fully implemented:
+  - `GET /markets` — public; lists active markets
+  - `GET /admin/markets` — admin; lists all markets with pagination
+  - `POST /admin/markets` — create market (`name`, `city`, `state`, `country`)
+  - `PATCH /admin/markets/:id` — update market
+  - Covered in `customers.test.ts` — do not add duplicate coverage
+- **Event publish gate** — now requires market assignment in addition to `poshEventId`, `venueName`, and at least 1 image. The API returns `"Cannot publish: Market must be assigned"` when `market_id` is null on status → published transition. Any C1 test that exercises the publish gate must include a valid `market_id`.
+- **Customer contacts CRUD** — fully implemented at `/admin/customers/:id/contacts`
+- **Customer media uploads** — fully implemented at `/admin/customers/:id/media`
+- **Customer-market associations** — already wired; `marketIds` array on customer create/update links customers to markets (many-to-many)
+
+Migration numbering: X1 consolidates 001–007 into a single new `001_baseline_schema.sql` before C1 executes. The `post_reports` migration should be named **`002_post_reports.sql`** (not `005_`). Verify the current migrations folder state before creating the file.
 
 ---
 
@@ -61,7 +80,7 @@ Implement all 8 missing API endpoints required by the social app screens and adm
 - [ ] `PATCH /admin/events/:id/attendees/:ticketId/wristband` updates wristband_issued_at
 - [ ] `GET /admin/posh-exceptions` returns only unmatched posh_orders (user_id IS NULL)
 - [ ] `PATCH /admin/posh-exceptions/:orderId/resolve` links order to user
-- [ ] `post_reports` migration created as `005_post_reports.sql` in `packages/database/migrations/`
+- [ ] `post_reports` migration created as `002_post_reports.sql` in `packages/database/migrations/` (assumes X1 has merged; verify folder state first)
 - [ ] All new route files created in `packages/api/src/routes/` (e.g., `checkin.ts`, additions to `admin.ts`)
 - [ ] Admin endpoints require `authenticateAdmin` middleware and appropriate role checks
 - [ ] Social endpoints require `authenticate` middleware
