@@ -28,12 +28,16 @@ export function saveSession(tokens: AuthTokens, user: AdminUser): void {
   localStorage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken)
   localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken)
   localStorage.setItem(USER_KEY, JSON.stringify(user))
+  // Set a client-side cookie so Next.js middleware can detect auth state
+  document.cookie = `accessToken=${tokens.accessToken}; path=/; SameSite=Strict`
 }
 
 export function clearSession(): void {
   localStorage.removeItem(ACCESS_TOKEN_KEY)
   localStorage.removeItem(REFRESH_TOKEN_KEY)
   localStorage.removeItem(USER_KEY)
+  // Clear the middleware cookie
+  document.cookie = 'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict'
 }
 
 export function isAuthenticated(): boolean {

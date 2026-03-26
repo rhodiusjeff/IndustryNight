@@ -41,11 +41,9 @@ export default function DashboardLayout({
   }
 
   if (!checked || !user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
+    // Returning null while the useEffect redirect fires avoids showing
+    // a stale spinner on the login page as the redirect takes effect
+    return null
   }
 
   return (
