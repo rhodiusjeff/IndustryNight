@@ -122,6 +122,9 @@ git show --stat <sha>
 
 Do NOT run: `flutter build`, `npm`, `dart`, `node`, `docker`, `kubectl`, or any build/deploy/test commands. Those belong to execution agents.
 
+**Direct push to `integration` is prohibited without explicit permission.**
+All changes — including docs, governance artifacts, and checklist edits — must go through a feature branch and PR. `integration` and `master` are protected branches. The only exception is when the human operator has given explicit permission in the current conversation for a specific commit. Do not infer permission from prior sessions or precedent.
+
 ---
 
 ## Output Style
