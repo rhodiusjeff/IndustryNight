@@ -94,9 +94,16 @@ TODAY — Start all three in parallel (all are ⚡ A/B):
 | C1 | Missing API Endpoints | sonnet-4-6 | gpt-5.3-codex | — | Small | C0 |
 | C2 | Push Notifications (FCM) | sonnet-4-6 | gpt-5.3-codex | — | Medium | C0 |
 | C3 | Image Assets Architecture | opus-4-6 | gpt-5.4 | ⚡ | Large | C0 |
-| C4 | Platform Config + API Key Status | sonnet-4-6 | gpt-5.4-mini | — | Small | C0 |
+| C4 | Platform Config + Audit Log Reader + API Key Status | sonnet-4-6 | gpt-5.4-mini | — | Small | C0 |
 
 **Track C completion:** All known backend gaps filled; push notifications live; image asset system operational.
+
+**C4 scope note (updated May 2026):** C4 now explicitly includes:
+- `GET /admin/audit-log` endpoint with filters (action, actor_type, result, date range) + cursor pagination — reads from existing `audit_log` table
+- Audit log React page (top-level System nav, filter bar, expandable rows showing old/new values, IP, route, request_id, failure_reason, result)
+- Platform config UI (AI moderation thresholds, SIEM forwarding stub toggle — CloudWatch Logs target, retention setting)
+- API key status dashboard
+- Completing audit instrumentation coverage: event CRUD, customer/product/discount CRUD, admin logout — all calls to `tryLogSecurityEventFromRequest` missing today
 
 ---
 

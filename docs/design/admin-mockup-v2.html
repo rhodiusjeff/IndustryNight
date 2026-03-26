@@ -907,6 +907,10 @@ tr:hover .table-actions { opacity: 1; }
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M6 6a2 2 0 114 0c0 1.5-2 2-2 3.5M8 12.5v.5"/></svg>
       Help
     </div>
+    <div class="nav-item role-platform-only" onclick="nav('auditlog',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1.5" width="12" height="13" rx="1.5"/><path d="M5 5h6M5 8h6M5 11h3"/></svg>
+      Audit Log
+    </div>
     <div class="nav-item role-platform-only" onclick="nav('adminusers',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="2.5"/><path d="M1 13c0-2.8 2.2-5 5-5"/><circle cx="12" cy="11" r="3"/><path d="M12 9.5V11l1 1"/></svg>
       Admin Users
@@ -1990,6 +1994,179 @@ tr:hover .table-actions { opacity: 1; }
       </div>
     </div>
 
+    <!-- ═══ AUDIT LOG ═══ -->
+    <div class="page" id="page-auditlog">
+      <div class="page-header">
+        <div><div class="page-title">Audit Log</div><div class="page-sub">All admin and system actions — who did what, when, and with what result</div></div>
+        <button class="btn btn-secondary btn-sm">Export CSV</button>
+      </div>
+
+      <!-- Filter bar -->
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <div class="filter-chip active">All Actions</div>
+          <div class="filter-chip">login</div>
+          <div class="filter-chip">create</div>
+          <div class="filter-chip">update</div>
+          <div class="filter-chip">delete</div>
+          <div class="filter-chip">ban / unban</div>
+          <div class="filter-chip">verify / reject</div>
+          <div class="filter-chip">checkin</div>
+        </div>
+        <div style="display:flex;gap:6px;margin-left:auto;">
+          <div class="filter-chip">All Results</div>
+          <div class="filter-chip" style="color:#e57373;">Failures only</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <div class="filter-chip">All Actors</div>
+          <div class="filter-chip">Admin</div>
+          <div class="filter-chip">User</div>
+          <div class="filter-chip">System</div>
+        </div>
+        <input type="text" placeholder="Date range…" style="padding:6px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);font-size:12px;width:160px;">
+      </div>
+
+      <!-- Table -->
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:140px;">Actor</th>
+              <th style="width:80px;">Type</th>
+              <th style="width:90px;">Action</th>
+              <th>Entity</th>
+              <th style="width:80px;">Result</th>
+              <th style="width:110px;">IP Address</th>
+              <th style="width:140px;">Time</th>
+              <th style="width:32px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Row 1 — admin action, success, expandable -->
+            <tr style="cursor:pointer;" onclick="toggleAuditRow('ar1')">
+              <td style="font-size:12px;font-weight:500;">Jeff Rhodes</td>
+              <td><span class="badge badge-draft" style="font-size:10px;">admin</span></td>
+              <td><span class="badge badge-published" style="font-size:10px;">create</span></td>
+              <td style="font-size:12px;color:var(--text-secondary);">events · <span style="color:var(--text-primary);">Industry Night Vol. 12</span></td>
+              <td><span style="font-size:11px;color:#4caf50;">● success</span></td>
+              <td style="font-size:11px;color:var(--text-tertiary);">98.143.22.17</td>
+              <td style="font-size:11px;color:var(--text-secondary);">Mar 26 · 10:14 AM</td>
+              <td style="font-size:11px;color:var(--text-tertiary);">›</td>
+            </tr>
+            <tr id="ar1" style="display:none;background:var(--bg-primary);">
+              <td colspan="8" style="padding:12px 16px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:12px;">
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Route</div><code style="font-size:11px;">POST /admin/events</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Request ID</div><code style="font-size:11px;">req_8f3a2c11</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">User Agent</div><div style="color:var(--text-secondary);">Chrome 131 / macOS</div></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Old Values</div><div style="color:var(--text-tertiary);">—</div></div>
+                  <div style="grid-column:span 2;"><div style="color:var(--text-tertiary);margin-bottom:4px;">New Values</div><code style="font-size:11px;">{ "name": "Industry Night Vol. 12", "status": "draft", "poshEventId": null }</code></div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Row 2 — verify -->
+            <tr style="cursor:pointer;" onclick="toggleAuditRow('ar2')">
+              <td style="font-size:12px;font-weight:500;">Jeff Rhodes</td>
+              <td><span class="badge badge-draft" style="font-size:10px;">admin</span></td>
+              <td><span class="badge badge-completed" style="font-size:10px;">verify</span></td>
+              <td style="font-size:12px;color:var(--text-secondary);">users · <span style="color:var(--text-primary);">Kezia Monroe</span></td>
+              <td><span style="font-size:11px;color:#4caf50;">● success</span></td>
+              <td style="font-size:11px;color:var(--text-tertiary);">98.143.22.17</td>
+              <td style="font-size:11px;color:var(--text-secondary);">Mar 26 · 9:48 AM</td>
+              <td style="font-size:11px;color:var(--text-tertiary);">›</td>
+            </tr>
+            <tr id="ar2" style="display:none;background:var(--bg-primary);">
+              <td colspan="8" style="padding:12px 16px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:12px;">
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Route</div><code style="font-size:11px;">PATCH /admin/users/:id</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Request ID</div><code style="font-size:11px;">req_7b91ef44</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">User Agent</div><div style="color:var(--text-secondary);">Chrome 131 / macOS</div></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Old Values</div><code style="font-size:11px;">{ "verificationStatus": "pending" }</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">New Values</div><code style="font-size:11px;">{ "verificationStatus": "verified" }</code></div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Row 3 — failed login -->
+            <tr style="cursor:pointer;" onclick="toggleAuditRow('ar3')">
+              <td style="font-size:12px;color:var(--text-tertiary);">unknown</td>
+              <td><span class="badge badge-review" style="font-size:10px;">admin</span></td>
+              <td><span class="badge badge-cancelled" style="font-size:10px;">login</span></td>
+              <td style="font-size:12px;color:var(--text-secondary);">admin_users · <span style="color:var(--text-primary);">jeff@industrynight.net</span></td>
+              <td><span style="font-size:11px;color:#e57373;">✕ failure</span></td>
+              <td style="font-size:11px;color:#e57373;">203.0.113.42</td>
+              <td style="font-size:11px;color:var(--text-secondary);">Mar 26 · 9:02 AM</td>
+              <td style="font-size:11px;color:var(--text-tertiary);">›</td>
+            </tr>
+            <tr id="ar3" style="display:none;background:var(--bg-primary);">
+              <td colspan="8" style="padding:12px 16px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:12px;">
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Route</div><code style="font-size:11px;">POST /admin/auth/login</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Request ID</div><code style="font-size:11px;">req_2d04ac77</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">User Agent</div><div style="color:var(--text-secondary);">curl/8.1.2</div></div>
+                  <div style="grid-column:span 3;"><div style="color:var(--text-tertiary);margin-bottom:4px;">Failure Reason</div><div style="color:#e57373;">invalid_credentials</div></div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Row 4 — system checkin -->
+            <tr style="cursor:pointer;" onclick="toggleAuditRow('ar4')">
+              <td style="font-size:12px;color:var(--text-tertiary);">System</td>
+              <td><span class="badge badge-draft" style="font-size:10px;">system</span></td>
+              <td><span class="badge badge-review" style="font-size:10px;">checkin</span></td>
+              <td style="font-size:12px;color:var(--text-secondary);">tickets · <span style="color:var(--text-primary);">PSH-88612</span></td>
+              <td><span style="font-size:11px;color:#4caf50;">● success</span></td>
+              <td style="font-size:11px;color:var(--text-tertiary);">10.0.1.4</td>
+              <td style="font-size:11px;color:var(--text-secondary);">Apr 4 · 8:14 PM</td>
+              <td style="font-size:11px;color:var(--text-tertiary);">›</td>
+            </tr>
+            <tr id="ar4" style="display:none;background:var(--bg-primary);">
+              <td colspan="8" style="padding:12px 16px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:12px;">
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Route</div><code style="font-size:11px;">POST /events/:id/checkin</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Request ID</div><code style="font-size:11px;">req_5e19bb02</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Metadata</div><code style="font-size:11px;">{ "eventId": "evt_vol12", "method": "qr_scan" }</code></div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Row 5 — ban -->
+            <tr style="cursor:pointer;" onclick="toggleAuditRow('ar5')">
+              <td style="font-size:12px;font-weight:500;">Jeff Rhodes</td>
+              <td><span class="badge badge-draft" style="font-size:10px;">admin</span></td>
+              <td><span class="badge badge-cancelled" style="font-size:10px;">ban</span></td>
+              <td style="font-size:12px;color:var(--text-secondary);">users · <span style="color:var(--text-primary);">@darius.throwaway</span></td>
+              <td><span style="font-size:11px;color:#4caf50;">● success</span></td>
+              <td style="font-size:11px;color:var(--text-tertiary);">98.143.22.17</td>
+              <td style="font-size:11px;color:var(--text-secondary);">Mar 25 · 2:31 PM</td>
+              <td style="font-size:11px;color:var(--text-tertiary);">›</td>
+            </tr>
+            <tr id="ar5" style="display:none;background:var(--bg-primary);">
+              <td colspan="8" style="padding:12px 16px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:12px;">
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Route</div><code style="font-size:11px;">PATCH /admin/users/:id</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Request ID</div><code style="font-size:11px;">req_9c33fd81</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">User Agent</div><div style="color:var(--text-secondary);">Chrome 131 / macOS</div></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Old Values</div><code style="font-size:11px;">{ "banned": false }</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">New Values</div><code style="font-size:11px;">{ "banned": true }</code></div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination stub -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;">
+        <div style="font-size:12px;color:var(--text-tertiary);">Showing 1–25 of 1,847 events</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary btn-sm" disabled>← Prev</button>
+          <button class="btn btn-secondary btn-sm">Next →</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ═══ SETTINGS (v2 — sub-tab layout) ═══ -->
     <div class="page" id="page-settings">
       <div class="page-header">
@@ -2063,45 +2240,13 @@ tr:hover .table-actions { opacity: 1; }
 
           <!-- Audit Log -->
           <div id="settings-tab-audit" style="display:none;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-              <div style="font-size:16px;font-weight:600;">Audit Log</div>
-              <button class="btn btn-secondary btn-sm">Export</button>
-            </div>
-            <div class="table-container">
-              <div class="table-toolbar">
-                <div class="filter-chip active">All Actions</div>
-                <div class="filter-chip">Login</div>
-                <div class="filter-chip">Create</div>
-                <div class="filter-chip">Update</div>
-                <div class="filter-chip">Ban</div>
-                <div class="filter-chip">Delete</div>
+            <div class="card" style="display:flex;align-items:center;gap:16px;padding:20px 24px;">
+              <svg width="32" height="32" viewBox="0 0 16 16" fill="none" stroke="var(--accent-purple)" stroke-width="1.5"><rect x="2" y="1.5" width="12" height="13" rx="1.5"/><path d="M5 5h6M5 8h6M5 11h3"/></svg>
+              <div style="flex:1;">
+                <div style="font-size:14px;font-weight:600;margin-bottom:2px;">Audit Log has moved</div>
+                <div style="font-size:13px;color:var(--text-secondary);">Full audit log viewer is now a top-level page in the System section.</div>
               </div>
-              <table>
-                <thead><tr><th>Actor</th><th>Action</th><th>Target</th><th>Notes</th><th>Time</th></tr></thead>
-                <tbody>
-                  <tr>
-                    <td style="font-size:12px;">Jeff Rhodes</td>
-                    <td><span class="badge badge-published">create</span></td>
-                    <td style="font-size:12px;color:var(--text-secondary);">events / Vol. 12</td>
-                    <td style="font-size:12px;color:var(--text-tertiary);">—</td>
-                    <td style="font-size:12px;color:var(--text-secondary);">Mar 26 · 10:14 AM</td>
-                  </tr>
-                  <tr>
-                    <td style="font-size:12px;">Jeff Rhodes</td>
-                    <td><span class="badge badge-completed">update</span></td>
-                    <td style="font-size:12px;color:var(--text-secondary);">users / Kezia Monroe</td>
-                    <td style="font-size:12px;color:var(--text-tertiary);">verificationStatus → verified</td>
-                    <td style="font-size:12px;color:var(--text-secondary);">Mar 26 · 9:48 AM</td>
-                  </tr>
-                  <tr>
-                    <td style="font-size:12px;">System</td>
-                    <td><span class="badge badge-review">checkin</span></td>
-                    <td style="font-size:12px;color:var(--text-secondary);">tickets / PSH-88612</td>
-                    <td style="font-size:12px;color:var(--text-tertiary);">Vol. 12 event</td>
-                    <td style="font-size:12px;color:var(--text-secondary);">Apr 4 · 8:14 PM</td>
-                  </tr>
-                </tbody>
-              </table>
+              <button class="btn btn-primary btn-sm" onclick="nav('auditlog', document.querySelector('[onclick=\'nav(\'auditlog\',this)\']'))">Open Audit Log &rarr;</button>
             </div>
           </div>
 
@@ -2132,9 +2277,20 @@ tr:hover .table-actions { opacity: 1; }
                 </div>
               </div>
             </div>
+            <div style="margin-top:16px;">
+              <div class="card">
+                <div class="card-header"><span class="card-title">Security Log Forwarding</span><span class="badge badge-draft" style="margin-left:8px;">Future</span></div>
+                <div class="card-body">
+                  <div style="display:flex;flex-direction:column;gap:10px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">CloudWatch Logs export</span><span style="font-size:12px;color:var(--text-tertiary);">Not configured</span></div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">External SIEM forwarding</span><span style="font-size:12px;color:var(--text-tertiary);">Not configured</span></div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">Audit log retention</span><div class="filter-chip active">12 months</div></div>
+                    <div style="font-size:11px;color:var(--text-tertiary);">When configured, audit_log rows stream nightly to CloudWatch Logs Insights. External SIEM (Splunk, Datadog) can subscribe to the CloudWatch log group.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-
-          <!-- API Key Status -->
           <div id="settings-tab-api" style="display:none;">
             <div style="font-size:16px;font-weight:600;margin-bottom:16px;">API Key Status</div>
             <div class="table-container">
@@ -2206,7 +2362,8 @@ function nav(pageId, el) {
     adminusers: 'Admin Users',
     settings: 'Settings',
     search: 'Search',
-    help: 'Help'
+    help: 'Help',
+    auditlog: 'Audit Log'
   };
   document.getElementById('topbar-title').textContent = titles[pageId] || pageId;
 }
@@ -2242,6 +2399,11 @@ function switchSettingsTab(tab, el) {
     const el2 = document.getElementById('settings-tab-' + id);
     if (el2) el2.style.display = (id === tab) ? '' : 'none';
   });
+}
+
+function toggleAuditRow(id) {
+  const row = document.getElementById(id);
+  if (row) row.style.display = row.style.display === 'none' ? '' : 'none';
 }
 
 let selectMode = false;
