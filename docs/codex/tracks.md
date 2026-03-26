@@ -2,7 +2,7 @@
 
 **Purpose:** High-level map of all implementation tracks, their sequences, dependencies, model assignments, and A/B test designations.
 
-**Last Updated:** March 25, 2026 (B0 adversarial review complete; winner declared; pending pre-merge cleanup + stakeholder signoff)
+**Last Updated:** March 26, 2026 (B0 winner declared — Jeff signoff received; X2 track approved and scoped)
 
 **Legend:** ⚡ = A/B test (run both Claude + OpenAI models; adversarial panel review before merge)
 
@@ -169,8 +169,24 @@ TODAY — Start all three in parallel (all are ⚡ A/B):
 | Prompt | Title | Model | A/B | Effort | Depends On |
 |--------|-------|-------|-----|--------|------------|
 | X1 | Schema Consolidation | control-agent | — | Small | A0 merged |
+| X2-A1 | Admin Ground-Truth Research | control-agent | — | Small | None |
+| X2-A2 | Master Plan v3 + User Story Spec | control-agent | — | Medium | X2-A1 + Jeff review |
+| X2-B | CODEX Phase Rework + Track Patches | control-agent | — | Medium | X2-A2 + Jeff review |
+| X2-C | Apply Patches + Archive Stale Docs | control-agent | — | Small | X2-B + Jeff review |
 
 **Track X completion:** Ongoing — new X-tracks added as operational needs arise.
+
+**X2 Dependency:** B1 cannot start until X2-C is complete. C1, C2, A1 can run in parallel with X2 (no B-track dependency).
+
+**X2 Governance decisions (2026-03-26):**
+- Review gate at each sub-prompt: Jeff go/no-go; no-go = iterate until satisfied
+- Output: `docs/product/master_plan_v3.md` (new file) + `docs/codex/track-X/admin-user-stories.md`; stale docs archived across all of `docs/`
+- Research scope: all docs + live code (`packages/admin-app/`, `packages/api/`, `packages/react-admin/`, all CODEX prompts); **no code changes**
+- Design reference: B0 Claude winner working app treated as the new mockup; `docs/design/admin-mockup.html` included in reconciliation
+- User story granularity: one story per workflow (not per screen interaction)
+- Completed tracks are read-only; gaps addressed by new downstream prompts only
+- B0 re-run decision deferred to X2-B
+- Spec sync check added to carry-forward template in X2-C
 
 ---
 
@@ -197,11 +213,15 @@ Update this table as prompts complete.
 | C0 | ⚡ | ✅ Closed | Claude | docs/codex/log/track-C/C0/control-decision.md | docs/codex/reviews/C0-adversarial-review.md | Winner-only control-session apply executed on AWS dev; C0 schema gate complete |
 | A0 | ⚡ | ✅ Closed | GPT | docs/codex/log/track-A/A0/control-decision.md | docs/codex/reviews/A0-adversarial-review.md | Merged to integration 2026-03-25 (PR #54, commit 2f63641); all 4 gates green |
 | X1 | — | ✅ Closed | N/A | docs/codex/log/track-X/X1/control-decision.md | — | Merged 2026-03-25 (PR #58, e37e3cb); 145 Jest / 30 Flutter / 25 E2E + 7/7 AWS; fresh-schema proof complete |
-| B0 | ⚡ | 🔶 Reviewing | Claude (claude-sonnet-4-6) | — | docs/codex/reviews/B0-adversarial-review.md | Claude PR #63, GPT PR #62; winner declared pending Jeff signoff; **pre-merge cleanup required before merging #63**: (1) delete `docs/codex/log/track-B/B0/claude-completion.md` from branch (protocol violation — execution agent wrote in TC territory), (2) fix `playwright.config.ts` hardcoded fallback port |
+| B0 | ⚡ | 🔶 Reviewing | Claude (claude-sonnet-4-6) | — | docs/codex/reviews/B0-adversarial-review.md | Winner: Claude. **Jeff signoff received 2026-03-26.** Pre-merge cleanup required before merging PR #63: (1) `git rm docs/codex/log/track-B/B0/claude-completion.md` — protocol violation by execution agent; (2) commit `client.ts` proxy fix (`API_BASE = '/api'`) — fix works but not on origin; (3) fix `playwright.config.ts` hardcoded fallback port. **B1 blocked until X2-C complete.** |
+| X2-A1 | — | ⬜ Not started | — | — | — | Ground-truth research: docs + code archaeology |
+| X2-A2 | — | ⬜ Not started | — | — | — | Waiting for X2-A1 + Jeff review |
+| X2-B | — | ⬜ Not started | — | — | — | Waiting for X2-A2 + Jeff review |
+| X2-C | — | ⬜ Not started | — | — | — | Waiting for X2-B + Jeff review |
 | C1 | — | ⬜ Not started | — | — | — | Waiting for C0 |
 | C2 | — | ⬜ Not started | — | — | — | Waiting for C0 |
 | A1 | — | ⬜ Not started | — | — | — | Waiting for C0, A0 |
-| B1 | — | ⬜ Not started | — | — | — | Waiting for C0, B0 |
+| B1 | — | ⬜ Not started | — | — | — | Waiting for C0, B0, **X2-C** |
 | B2 | — | ⬜ Not started | — | — | — | Waiting for B1, C2 |
 | A2 | — | ⬜ Not started | — | — | — | Waiting for A1 |
 | C3 | ⚡ | ⬜ Not started | — | — | — | Waiting for C0 |
