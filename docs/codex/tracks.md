@@ -214,7 +214,7 @@ Update this table as prompts complete.
 | A0 | ⚡ | ✅ Closed | GPT | docs/codex/log/track-A/A0/control-decision.md | docs/codex/reviews/A0-adversarial-review.md | Merged to integration 2026-03-25 (PR #54, commit 2f63641); all 4 gates green |
 | X1 | — | ✅ Closed | N/A | docs/codex/log/track-X/X1/control-decision.md | — | Merged 2026-03-25 (PR #58, e37e3cb); 145 Jest / 30 Flutter / 25 E2E + 7/7 AWS; fresh-schema proof complete |
 | B0 | ⚡ | 🔶 Reviewing | Claude (claude-sonnet-4-6) | — | docs/codex/reviews/B0-adversarial-review.md | Winner: Claude. **Jeff signoff received 2026-03-26.** PR #63 parked pending X2-B re-run verdict. If merged as-is: 2 remaining pre-merge items (client.ts proxy fix, playwright fallback port). **B1 blocked until X2-C complete.** |
-| X2-A1 | — | ⬜ Not started | — | — | — | Ground-truth research: docs + code archaeology |
+| X2-A1 | — | 🔶 Reviewing | — | — | — | Inventory complete: `docs/codex/track-X/X2-A1-inventory.md`. **Awaiting Jeff review.** 3 product decisions required (Tickets nav, Images nav, Markets nav). |
 | X2-A2 | — | ⬜ Not started | — | — | — | Waiting for X2-A1 + Jeff review |
 | X2-B | — | ⬜ Not started | — | — | — | Waiting for X2-A2 + Jeff review |
 | X2-C | — | ⬜ Not started | — | — | — | Waiting for X2-B + Jeff review |
