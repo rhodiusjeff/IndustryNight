@@ -8,6 +8,22 @@
 **Estimated Effort:** Medium (1-2 days)
 **Dependencies:** None — runs in parallel with C0 and A0. However, complete C0 before starting B1.
 
+## Lane Variables (set by execution handoff — do not infer)
+
+Each lane receives these values in its startup handoff brief. Treat them as authoritative:
+
+| Variable | Claude lane | GPT lane |
+|----------|-------------|----------|
+| `LANE` | `claude` | `gpt` |
+| `BRANCH` | `feature/B0-react-scaffold-claude` | `feature/B0-react-scaffold-gpt` |
+| `WORKTREE` | `../IndustryNight-runs/B0-claude` | `../IndustryNight-runs/B0-gpt` |
+| `DEV_PORT` | `3630` | `3631` |
+| `TEST_PORT` | `3630` | `3631` |
+
+`DEV_PORT` / `TEST_PORT` are used only during local testing in this worktree. The committed
+`run-react-admin.sh` always defaults to port **3630** (canonical). During lane testing, override
+with `PORT=$TEST_PORT npm run dev` — do not commit the override.
+
 ## Execution Mode (Required)
 
 - [ ] Stage 1 (required): execute and validate locally first (local Postgres + local API + local admin/mobile against local endpoint).
@@ -302,7 +318,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REACT_ADMIN_DIR="$SCRIPT_DIR/../packages/react-admin"
 ENV="dev"
-PORT=3630
+PORT=${PORT:-3630}  # Allow PORT env override for lane testing; default 3630
 
 # Parse flags
 while [[ "$#" -gt 0 ]]; do
@@ -344,7 +360,104 @@ export NODE_OPTIONS='--inspect'
 "$(dirname "${BASH_SOURCE[0]}")/run-react-admin.sh" "$@"
 ```
 
-### Dashboard Stats Type
+### Test Script: test-react-admin.sh
+
+Create `scripts/test-react-admin.sh` as the standalone test runner for the React admin.
+This is committed as part of B0 output and is the basis for future `closeout-test.sh` integration.
+
+```bash
+#!/bin/bash
+# scripts/test-react-admin.sh
+# Standalone test runner for packages/react-admin/
+# Usage: ./scripts/test-react-admin.sh [LANE_ID] [--port 3630] [--skip-e2e] [--skip-build]
+
+set -uo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REACT_ADMIN_DIR="$PROJECT_ROOT/packages/react-admin"
+LOG_DIR="$PROJECT_ROOT/test_logs"
+mkdir -p "$LOG_DIR"
+
+LANE_ID="${1:-B0}"
+PORT=3630
+SKIP_E2E=false
+SKIP_BUILD=false
+shift 2>/dev/null || true
+
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    --port) PORT="$2"; shift ;;
+    --skip-e2e) SKIP_E2E=true ;;
+    --skip-build) SKIP_BUILD=true ;;
+  esac
+  shift
+done
+
+TIMESTAMP=$(date +"%Y-%m-%d_%H%M%S")
+LOG_FILE="$LOG_DIR/${LANE_ID}_react-admin_${TIMESTAMP}.log"
+exec > >(tee -a "$LOG_FILE") 2>&1
+
+PASS=0; FAIL=0
+phase() { echo; echo "[Phase $1] $2"; }
+ok()   { echo "[PASS] $1"; PASS=$((PASS+1)); }
+fail() { echo "[FAIL] $1"; FAIL=$((FAIL+1)); }
+
+phase 1 "TypeScript type check"
+cd "$REACT_ADMIN_DIR"
+if npm run type-check; then ok "type-check"; else fail "type-check"; fi
+
+phase 2 "Unit tests (Vitest)"
+if npm test -- --run; then ok "unit tests"; else fail "unit tests"; fi
+
+if [ "$SKIP_E2E" = false ]; then
+  phase 3 "E2E tests (Playwright, port $PORT)"
+  PLAYWRIGHT_BASE_URL="http://localhost:$PORT" npx playwright test
+  if [ $? -eq 0 ]; then ok "E2E tests"; else fail "E2E tests"; fi
+else
+  echo "[SKIP] Phase 3 — E2E skipped"
+fi
+
+if [ "$SKIP_BUILD" = false ]; then
+  phase 4 "Production build check"
+  if npm run build; then ok "build"; else fail "build"; fi
+else
+  echo "[SKIP] Phase 4 — build skipped"
+fi
+
+echo
+echo "======================================"
+echo "  RESULT: $PASS passed, $FAIL failed"
+echo "  Log: $LOG_FILE"
+echo "======================================"
+[ "$FAIL" -eq 0 ]
+```
+
+The E2E phase requires the app to be running at `$PORT` before calling this script.
+Lane agents should start the app with `PORT=$TEST_PORT npm run dev &` and wait for it
+before running `./scripts/test-react-admin.sh $LANE --port $TEST_PORT`.
+
+---
+
+### Playwright Config
+
+Configure Playwright so `baseURL` reads from env rather than hardcoded port:
+
+```typescript
+// packages/react-admin/playwright.config.ts
+import { defineConfig } from '@playwright/test'
+
+export default defineConfig({
+  testDir: './e2e',
+  use: {
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3630',
+  },
+  webServer: {
+    command: `PORT=${process.env.PORT || 3630} npm run dev`,
+    url: `http://localhost:${process.env.PORT || 3630}`,
+    reuseExistingServer: true,  // uses already-running server if available
+  },
+})
+```
 
 ```typescript
 // types/admin.ts
@@ -430,12 +543,12 @@ describe('StatCard', () => {
 import { test, expect } from '@playwright/test'
 
 test('unauthenticated user is redirected to login', async ({ page }) => {
-  await page.goto('http://localhost:3630/');
+  await page.goto('/');
   await expect(page).toHaveURL(/\/login/);
 });
 
 test('login with invalid credentials shows error', async ({ page }) => {
-  await page.goto('http://localhost:3630/login');
+  await page.goto('/login');
   await page.fill('[name=email]', 'wrong@example.com');
   await page.fill('[name=password]', 'wrongpassword');
   await page.click('button[type=submit]');
@@ -443,11 +556,11 @@ test('login with invalid credentials shows error', async ({ page }) => {
 });
 
 test('login with valid credentials redirects to dashboard', async ({ page }) => {
-  await page.goto('http://localhost:3630/login');
+  await page.goto('/login');
   await page.fill('[name=email]', process.env.TEST_ADMIN_EMAIL!);
   await page.fill('[name=password]', process.env.TEST_ADMIN_PASSWORD!);
   await page.click('button[type=submit]');
-  await expect(page).toHaveURL('http://localhost:3630/');
+  await expect(page).toHaveURL('/');
   await expect(page.locator('h1')).toContainText('Dashboard');
 });
 ```
@@ -474,6 +587,8 @@ echo "✓ B0 smoke tests passed"
 
 - [ ] `packages/react-admin/` committed with all scaffold files
 - [ ] `scripts/run-react-admin.sh` and `scripts/debug-react-admin.sh` created, executable, and committed
+- [ ] `scripts/test-react-admin.sh` created, executable, and committed
+- [ ] `packages/react-admin/playwright.config.ts` uses `PLAYWRIGHT_BASE_URL` env var (not hardcoded port)
 - [ ] `npm run dev` in `packages/react-admin/` starts on port 3630 without errors
 - [ ] Login form renders at `/login`; dashboard renders at `/` after login
 - [ ] Role-gated sidebar: eventOps sees only 3 sections, moderator sees only 3, platformAdmin sees all
