@@ -1,12 +1,15 @@
 #!/bin/bash
 # scripts/run-react-admin.sh
 # Start React Admin in development mode
-# Usage: ./scripts/run-react-admin.sh [--env dev|prod]
+# Usage: ./scripts/run-react-admin.sh [--env local|dev|prod]
+#   local  → http://localhost:3000  (local API, default)
+#   dev    → https://dev-api.industrynight.net
+#   prod   → https://api.industrynight.net
 
 set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REACT_ADMIN_DIR="$SCRIPT_DIR/../packages/react-admin"
-ENV="dev"
+ENV="local"
 PORT=${PORT:-3630}  # Allow PORT env override for lane testing; default 3630
 
 # Parse flags
@@ -21,6 +24,8 @@ done
 # Set API URL based on environment
 if [ "$ENV" = "prod" ]; then
   API_URL="https://api.industrynight.net"
+elif [ "$ENV" = "dev" ]; then
+  API_URL="https://dev-api.industrynight.net"
 else
   API_URL="http://localhost:3000"
 fi

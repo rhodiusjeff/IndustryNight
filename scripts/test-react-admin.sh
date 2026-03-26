@@ -113,7 +113,7 @@ else
   if [ "$ENV" = "prod" ]; then
     AWS_API_URL="https://api.industrynight.net"
   else
-    AWS_API_URL="https://dev-api.industrynight.net"
+    AWS_API_URL="https://dev-api.industrynight.net"  # default to dev AWS API
   fi
 
   echo "[INFO] Starting React admin on port $PORT (AWS API: $AWS_API_URL)..."
