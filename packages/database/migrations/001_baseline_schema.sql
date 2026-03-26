@@ -532,7 +532,7 @@ CREATE TABLE public.events (
 --
 
 CREATE TABLE public.llm_usage_log (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     feature text NOT NULL,
     model text NOT NULL,
     input_tokens integer,

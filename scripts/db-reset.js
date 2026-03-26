@@ -6,7 +6,7 @@
  *   1. Enables maintenance mode (ALB returns 503 to all traffic)
  *   2. Scales API deployment to 0 (kills pods, drops all DB connections)
  *   3. Re-establishes kubectl port-forward to db-proxy (scale-down kills it)
- *   4. Drops ALL tables, types, and extensions in the database
+ *   4. Drops ALL tables, types, and trigger functions (extensions are preserved)
  *   5. Runs all migrations from packages/database/migrations/ (in filename order)
  *   6. Runs seed data (specialties.sql, then products_catalog.sql, then dev_seed.sql)
  *   7. Scales API deployment back up
