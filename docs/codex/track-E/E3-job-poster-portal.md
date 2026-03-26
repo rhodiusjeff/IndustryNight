@@ -22,6 +22,7 @@
 
 Read these before writing any code:
 
+- `docs/codex/EXECUTION_CONTEXT.md` — living operational context: test infrastructure, migration conventions, API ground truth, deployment patterns (read before touching any code)
 - `CLAUDE.md` — full project reference (tech stack, infrastructure, deployment patterns)
 - `docs/codex/track-B/B0-scaffold-design-system.md` — style reference for Next.js structure, Tailwind design system, auth patterns
 - `docs/codex/track-E/E0-job-board-api.md` — job board backend API spec; understand `/jobs`, `/applicants`, `/applications`, `/ratings` endpoints

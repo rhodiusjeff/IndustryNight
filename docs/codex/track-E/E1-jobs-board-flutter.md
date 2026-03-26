@@ -22,6 +22,7 @@
 
 Read these before writing any code:
 
+- `docs/codex/EXECUTION_CONTEXT.md` — living operational context: test infrastructure, migration conventions, API ground truth, deployment patterns (read before touching any code)
 - `CLAUDE.md` — full project reference (key gotchas section especially: #5 theme classes, #6 build_runner, #13 GoRouter refreshListenable + push/pop)
 - `docs/product/requirements.md` — Jobs Board feature requirements and user stories
 - `docs/codex/track-E/E0-jobs-board-backend.md` — backend API spec, database schema, endpoints
@@ -30,6 +31,8 @@ Read these before writing any code:
 - `packages/social-app/lib/providers/app_state.dart` — AppState structure for integrating new APIs
 - `packages/social-app/lib/config/routes.dart` — GoRouter routing (add /jobs and /my-applications)
 - `packages/social-app/lib/features/profile/screens/settings_screen.dart` — reference for settings screen structure
+
+> **Flutter Widget Test Gotcha:** `FakeAppState.initialize()` MUST be a no-op override in all widget tests. Without this, `SecureStorage` throws `MissingPluginException` in test context. See `EXECUTION_CONTEXT.md` §1 and the reference test at `packages/social-app/test/features/settings/settings_screen_test.dart`.
 
 ---
 

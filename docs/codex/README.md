@@ -18,6 +18,8 @@
 Important:
 - Prompt execution output is provisional until control gates pass.
 - Review and closeout governance is control-owned (local review gate + GitHub review gate + validation evidence gate).
+- **Local-first execution is mandatory.** Verify with Jest testcontainers and local Flutter/widget tests before touching shared dev or AWS.
+- **Interrogative session is optional.** If skipped, capture any product-owner guidance in the carry-forward report instead.
 
 Control operator guide:
 - `docs/codex/guides/control_plane_user_manual.md`
@@ -34,6 +36,7 @@ Principles:
 - For A/B prompts, adjudicate first, then carry-forward.
 
 Artifacts:
+- Reports (instance outputs): `docs/codex/log/track-{X}/{ID}/post-run-carry-forward.md` — co-located with control decision and completion report
 - Template: `docs/codex/carry-forward/_TEMPLATE.md`
 - Prompt-level control run: `docs/codex/carry-forward/CONTROL_POST_RUN_PROMPT.md`
 - Track-level synthesis: `docs/codex/carry-forward/TRACK_SYNTHESIS_PROMPT.md`

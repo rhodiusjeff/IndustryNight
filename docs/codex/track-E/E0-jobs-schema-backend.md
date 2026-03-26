@@ -6,7 +6,7 @@
 **Alternate Model:** gpt-5.3-codex ← preferred if running inside OpenAI Codex platform; terminal-first workflow (psql, node scripts, migration verification) is where GPT-5.3-Codex's Terminal-Bench advantage is most tangible
 **A/B Test:** No
 **Estimated Effort:** Medium (6–8 hours)
-**Dependencies:** C0 (Phase 0 schema migrations), C2 (platform_config feature flagging system)
+**Dependencies:** C0 (Phase 0 schema migrations), C2 (platform_config feature flagging system), X1 (schema consolidation — must be merged before E0 executes; migration numbering depends on X1 output)
 
 ## Execution Mode (Required)
 
@@ -22,6 +22,7 @@
 
 Read these before writing any SQL or TypeScript:
 
+- `docs/codex/EXECUTION_CONTEXT.md` — living operational context: test infrastructure, migration conventions, API ground truth, deployment patterns (read before touching any code)
 - `CLAUDE.md` — full project reference (database design, JWT token families, enum types, existing tables)
 - `docs/product/master_plan_v2.md` — Section 3.6 "Jobs Board" (feature overview, probation lifecycle, three account types)
 - `docs/product/requirements.md` — Jobs Board requirements and acceptance criteria

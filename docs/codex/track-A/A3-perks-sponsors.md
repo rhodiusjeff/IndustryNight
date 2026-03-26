@@ -22,6 +22,7 @@
 
 Read these before writing any code:
 
+- `docs/codex/EXECUTION_CONTEXT.md` — living operational context: test infrastructure, migration conventions, API ground truth, deployment patterns (read before touching any code)
 - `CLAUDE.md` — full project reference, especially the Perks / Sponsors architecture section
 - `docs/product/requirements.md` — customer/sponsor business model and discount tier system
 - `packages/api/src/routes/discounts.ts` — social-facing endpoints: GET /discounts, POST /discounts/:id/redeem
@@ -31,6 +32,8 @@ Read these before writing any code:
 - `packages/shared/lib/models/discount_redemption.dart` — DiscountRedemption model (userId, discountId, redeemedAt)
 - `packages/shared/lib/api/perks_api.dart` — PerksApi client (verify it exists and is complete)
 - `packages/social-app/lib/features/perks/` — existing screens (if any)
+
+> **Flutter Widget Test Gotcha:** `FakeAppState.initialize()` MUST be a no-op override in all widget tests. Without this, `SecureStorage` throws `MissingPluginException` in test context. See `EXECUTION_CONTEXT.md` §1 and the reference test at `packages/social-app/test/features/settings/settings_screen_test.dart`.
 
 ---
 

@@ -22,6 +22,7 @@
 
 Read these before writing any code:
 
+- `docs/codex/EXECUTION_CONTEXT.md` — living operational context: test infrastructure, migration conventions, API ground truth, deployment patterns (read before touching any code)
 - `CLAUDE.md` — database section (post_moderation_queue schema), LLM pipeline architecture overview
 - `docs/product/requirements.md` — Section 5 "Community Moderation" (automated screening vs human review)
 - `packages/api/src/services/` — existing services pattern (sms.ts, storage.ts, posh.ts for reference)

@@ -113,6 +113,17 @@ _or:_ Not provided for this run.
 
 ---
 
+## Gate Checklist (Control fills this at closeout)
+
+| Gate | Requirement | Status |
+|------|-------------|--------|
+| A: Implementation Evidence | Branch + PR URL, commit scope, deviations disclosed | ☐ Green / ☐ Blocked: [reason] |
+| B: Review Gate | Local dev review complete + GitHub PR review complete; all findings dispositioned | ☐ Green / ☐ Blocked: [reason] |
+| C: Validation Gate | Runtime/smoke evidence declared with environment | ☐ Green / ☐ Blocked: [reason] |
+| D: Control Evidence | Log entry complete, carry-forward finalized, tracker updated | ☐ Green / ☐ Blocked: [reason] |
+
+---
+
 ## Outcome
 
 **Ready for adversarial review / merge review:** ☐ Yes ☐ No — pending: [reason]

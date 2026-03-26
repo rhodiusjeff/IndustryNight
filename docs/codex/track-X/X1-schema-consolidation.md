@@ -22,6 +22,8 @@ Seven incremental migrations have accumulated since project start. Each is corre
 
 This must happen **after A0** (which fixes audit_log cascade and adds test infrastructure) and **before** any track that adds new migrations.
 
+**X1 must complete and merge before C1, C2, or E0 are executed.** Those tracks each create new migration files; if they run before X1, the migration numbering becomes inconsistent and the consolidation purpose is defeated. Coordinate sequencing explicitly — do not run C1/C2/E0 until X1 is merged to `integration`.
+
 ---
 
 ## Execution Plan
@@ -71,19 +73,21 @@ Prepend:
 ### Phase 2 — Replace migration files
 
 **Step 5: Archive old migrations**
+
+The actual migration filenames at time of X1 execution (verified March 2026):
 ```bash
 cd packages/database/migrations
 mkdir -p archive
 mv 001_baseline_schema.sql archive/001_baseline_schema_original.sql
-mv 002_event_images.sql archive/
-mv 003_customers_products.sql archive/
-mv 004_drop_event_image_url.sql archive/
-mv 005_posh_orders.sql archive/
-mv 006_discount_redemptions.sql archive/
-mv 007_audit_log_cascade.sql archive/
+mv 002_audit_security_foundation.sql archive/
+mv 003_events_posh_event_url.sql archive/
+mv 004_phase0_foundation.sql archive/
+mv 005_fix_audit_log_user_delete_cascade.sql archive/
+mv 006_fix_audit_log_admin_delete_cascade.sql archive/
+mv 007_fix_audit_log_immutability_full_row.sql archive/
 ```
 
-*(Adjust filenames to match actual files — check `packages/database/migrations/` before running.)*
+Always verify actual filenames first with `ls packages/database/migrations/` before running — if new migrations have been added since this was written, include them in the archive step too.
 
 **Step 6: Place new consolidated file**
 ```bash

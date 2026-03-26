@@ -22,6 +22,7 @@
 
 Read these before writing any code:
 
+- `docs/codex/EXECUTION_CONTEXT.md` — living operational context: test infrastructure, migration conventions, API ground truth, deployment patterns (read before touching any code)
 - `CLAUDE.md` — project reference (database section, analytics tables inventory, architecture decisions)
 - `docs/product/master_plan_v2.md` — Section 5.x "Analytics Pipeline" (DuckDB decision, influence scoring algorithm)
 - `packages/database/migrations/001_baseline_schema.sql` — analytics tables schema (analytics_connections_daily, analytics_users_daily, analytics_events, analytics_influence)

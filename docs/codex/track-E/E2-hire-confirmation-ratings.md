@@ -22,6 +22,7 @@
 
 Read these before writing any code:
 
+- `docs/codex/EXECUTION_CONTEXT.md` — living operational context: test infrastructure, migration conventions, API ground truth, deployment patterns (read before touching any code)
 - `CLAUDE.md` — full project reference, especially gotchas #6 (build_runner), #12 (dialog context), #13 (GoRouter refreshListenable), #14 (JWT auto-refresh)
 - `docs/product/requirements.md` — product overview of Jobs Board track
 - `packages/database/migrations/001_baseline_schema.sql` — job_applications table schema (created in E0)
@@ -30,6 +31,8 @@ Read these before writing any code:
 - `packages/social-app/lib/features/jobs/screens/my_applications_screen.dart` — list of user's applications (E1)
 - `packages/shared/lib/api/jobs_api.dart` — JobsApi client
 - `docs/codex/track-D/D0-moderation-pipeline.md` — moderation endpoint for screening short text (rating comments)
+
+> **Flutter Widget Test Gotcha:** `FakeAppState.initialize()` MUST be a no-op override in all widget tests. Without this, `SecureStorage` throws `MissingPluginException` in test context. See `EXECUTION_CONTEXT.md` §1 and the reference test at `packages/social-app/test/features/settings/settings_screen_test.dart`.
 
 ---
 
