@@ -1,717 +1,1890 @@
--- Industry Night Baseline Schema
--- Version: 001 (v3 — orders, contacts, markets, media)
--- Description: Complete schema — all tables, enums, triggers, and indexes
--- Date: 2026-03-04
+-- 001_baseline_schema.sql
+-- Consolidated baseline schema (replaces 001-007 incremental migrations)
+-- Generated from dev RDS as of X1 execution on 2026-03-25
+-- Do not edit incrementally -- create 002_*.sql for future changes
+
 --
--- Changes from v2:
---   - Added markets table (geographic foundation, managed reference data)
---   - Added market_id FK on events (ON DELETE RESTRICT)
---   - Added orders + order_items (transactional grouping, replaces customer_products in Phase 4)
---   - Added customer_contacts (multi-contact per customer)
---   - Added customer_media (brand assets) + partner_media (deal-specific creative)
---   - Added customer_markets junction (many-to-many)
---   - Added order_status, contact_role, media_placement enums
---   - Kept customer_products + contact_email/contact_phone/logo_url transitionally (removed in Phase 4)
+--
 
--- ============================================================
--- EXTENSION
--- ============================================================
+-- Dumped from database version 16.4
+-- Dumped by pg_dump version 18.2
 
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+--
+-- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner: -
+--
 
--- ============================================================
--- ENUM TYPES
--- ============================================================
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
 
-CREATE TYPE user_role AS ENUM ('user', 'venueStaff', 'platformAdmin');
-CREATE TYPE user_source AS ENUM ('app', 'posh', 'admin');
-CREATE TYPE verification_status AS ENUM ('unverified', 'pending', 'verified', 'rejected');
-CREATE TYPE event_status AS ENUM ('draft', 'published', 'cancelled', 'completed');
-CREATE TYPE ticket_status AS ENUM ('purchased', 'checkedIn', 'cancelled', 'refunded');
-CREATE TYPE post_type AS ENUM ('general', 'collaboration', 'job', 'announcement');
-CREATE TYPE audit_action AS ENUM (
-    'create', 'update', 'delete',
-    'login', 'logout',
-    'verify', 'reject',
-    'ban', 'unban',
+--
+-- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UUIDs)';
+
+--
+-- Name: actor_type; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.actor_type AS ENUM (
+    'user',
+    'admin',
+    'system'
+);
+
+--
+-- Name: admin_role; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.admin_role AS ENUM (
+    'platformAdmin',
+    'moderator',
+    'eventOps'
+);
+
+--
+-- Name: audit_action; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.audit_action AS ENUM (
+    'create',
+    'update',
+    'delete',
+    'login',
+    'logout',
+    'verify',
+    'reject',
+    'ban',
+    'unban',
     'checkin'
 );
-CREATE TYPE admin_role AS ENUM ('platformAdmin');
-CREATE TYPE discount_type AS ENUM ('percentage', 'fixedAmount', 'freeItem', 'buyOneGetOne', 'other');
 
--- Customer & product model
-CREATE TYPE product_type AS ENUM ('sponsorship', 'vendor_space', 'data_product');
-CREATE TYPE sponsorship_tier AS ENUM ('bronze', 'silver', 'gold', 'platinum');
-CREATE TYPE vendor_category AS ENUM ('food', 'beverage', 'equipment', 'service', 'venue', 'other');
-CREATE TYPE redemption_method AS ENUM ('self_reported', 'code_entry', 'qr_scan');
+--
+-- Name: audit_result; Type: TYPE; Schema: public; Owner: -
+--
 
--- Customer products (transitional — will be replaced by orders in Phase 4)
-CREATE TYPE customer_product_status AS ENUM ('active', 'expired', 'cancelled', 'pending');
+CREATE TYPE public.audit_result AS ENUM (
+    'success',
+    'failure'
+);
 
--- v3: Orders, contacts, markets, media
-CREATE TYPE order_status AS ENUM ('draft', 'confirmed', 'paid', 'fulfilled', 'cancelled');
-CREATE TYPE contact_role AS ENUM ('primary', 'billing', 'decision_maker', 'other');
-CREATE TYPE media_placement AS ENUM ('app_banner', 'web_banner', 'social_media', 'logo', 'other');
+--
+-- Name: contact_role; Type: TYPE; Schema: public; Owner: -
+--
 
--- ============================================================
--- TRIGGER FUNCTION
--- ============================================================
+CREATE TYPE public.contact_role AS ENUM (
+    'primary',
+    'billing',
+    'decision_maker',
+    'other'
+);
 
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
+--
+-- Name: customer_product_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.customer_product_status AS ENUM (
+    'active',
+    'expired',
+    'cancelled',
+    'pending'
+);
+
+--
+-- Name: discount_type; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.discount_type AS ENUM (
+    'percentage',
+    'fixedAmount',
+    'freeItem',
+    'buyOneGetOne',
+    'other'
+);
+
+--
+-- Name: event_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.event_status AS ENUM (
+    'draft',
+    'published',
+    'cancelled',
+    'completed'
+);
+
+--
+-- Name: media_placement; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.media_placement AS ENUM (
+    'app_banner',
+    'web_banner',
+    'social_media',
+    'logo',
+    'other'
+);
+
+--
+-- Name: order_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.order_status AS ENUM (
+    'draft',
+    'confirmed',
+    'paid',
+    'fulfilled',
+    'cancelled'
+);
+
+--
+-- Name: post_type; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.post_type AS ENUM (
+    'general',
+    'collaboration',
+    'job',
+    'announcement'
+);
+
+--
+-- Name: product_type; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.product_type AS ENUM (
+    'sponsorship',
+    'vendor_space',
+    'data_product'
+);
+
+--
+-- Name: redemption_method; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.redemption_method AS ENUM (
+    'self_reported',
+    'code_entry',
+    'qr_scan'
+);
+
+--
+-- Name: sponsorship_tier; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.sponsorship_tier AS ENUM (
+    'bronze',
+    'silver',
+    'gold',
+    'platinum'
+);
+
+--
+-- Name: ticket_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.ticket_status AS ENUM (
+    'purchased',
+    'checkedIn',
+    'cancelled',
+    'refunded'
+);
+
+--
+-- Name: user_role; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.user_role AS ENUM (
+    'user',
+    'platformAdmin'
+);
+
+--
+-- Name: user_source; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.user_source AS ENUM (
+    'app',
+    'posh',
+    'admin'
+);
+
+--
+-- Name: vendor_category; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.vendor_category AS ENUM (
+    'food',
+    'beverage',
+    'equipment',
+    'service',
+    'venue',
+    'other'
+);
+
+--
+-- Name: verification_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.verification_status AS ENUM (
+    'unverified',
+    'pending',
+    'verified',
+    'rejected'
+);
+
+--
+-- Name: update_updated_at_column(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_updated_at_column() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
 BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$;
 
--- ============================================================
--- TIER 0: No foreign keys
--- ============================================================
+--
+--
+-- Name: admin_users; Type: TABLE; Schema: public; Owner: -
+--
 
--- Users (social app — phone-based auth)
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    phone VARCHAR(20) NOT NULL UNIQUE,
-    email VARCHAR(255),
-    name VARCHAR(100),
-    bio TEXT,
-    profile_photo_url TEXT,
-    role user_role NOT NULL DEFAULT 'user',
-    source user_source NOT NULL DEFAULT 'app',
-    specialties TEXT[] DEFAULT '{}',
-    social_links JSONB,
-    verification_status verification_status NOT NULL DEFAULT 'unverified',
-    profile_completed BOOLEAN NOT NULL DEFAULT false,
-    banned BOOLEAN NOT NULL DEFAULT false,
-    -- Privacy & consent
-    analytics_consent BOOLEAN NOT NULL DEFAULT false,
-    marketing_consent BOOLEAN NOT NULL DEFAULT false,
-    profile_visibility VARCHAR(20) NOT NULL DEFAULT 'connections',
-    consent_updated_at TIMESTAMP WITH TIME ZONE,
-    -- Timestamps
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    last_login_at TIMESTAMP WITH TIME ZONE
+CREATE TABLE public.admin_users (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    email character varying(255) NOT NULL,
+    password_hash character varying(255) NOT NULL,
+    name character varying(100) NOT NULL,
+    role public.admin_role DEFAULT 'platformAdmin'::public.admin_role NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_login_at timestamp with time zone
 );
 
-CREATE INDEX idx_users_phone ON users(phone);
-CREATE INDEX idx_users_verification_status ON users(verification_status);
-CREATE INDEX idx_users_role ON users(role);
-CREATE INDEX idx_users_specialties ON users USING GIN(specialties);
+--
+-- Name: analytics_connections_daily; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TRIGGER update_users_updated_at
-    BEFORE UPDATE ON users
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- Verification codes (SMS login — keyed by phone, not user_id)
-CREATE TABLE verification_codes (
-    phone VARCHAR(20) PRIMARY KEY,
-    code VARCHAR(6) NOT NULL,
-    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+CREATE TABLE public.analytics_connections_daily (
+    date date NOT NULL,
+    event_id uuid NOT NULL,
+    city character varying(100),
+    specialty_a character varying(50) NOT NULL,
+    specialty_b character varying(50) NOT NULL,
+    connection_count integer DEFAULT 0 NOT NULL
 );
 
--- Specialties reference table (admin-managed)
-CREATE TABLE specialties (
-    id VARCHAR(50) PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    category VARCHAR(50) NOT NULL,
-    sort_order INTEGER NOT NULL DEFAULT 0,
-    is_active BOOLEAN NOT NULL DEFAULT true
+--
+-- Name: analytics_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.analytics_events (
+    event_id uuid NOT NULL,
+    total_checkins integer DEFAULT 0 NOT NULL,
+    unique_attendees integer DEFAULT 0 NOT NULL,
+    connections_made integer DEFAULT 0 NOT NULL,
+    top_specialties jsonb,
+    avg_connections_per_user numeric(5,2),
+    cross_specialty_rate numeric(5,4),
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_specialties_category ON specialties(category);
-CREATE INDEX idx_specialties_active ON specialties(is_active, sort_order);
+--
+-- Name: analytics_influence; Type: TABLE; Schema: public; Owner: -
+--
 
--- Admin users (admin app — email/password auth, separate from social users)
-CREATE TABLE admin_users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    email VARCHAR(255) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    name VARCHAR(100) NOT NULL,
-    role admin_role NOT NULL DEFAULT 'platformAdmin',
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    last_login_at TIMESTAMP WITH TIME ZONE
+CREATE TABLE public.analytics_influence (
+    user_id uuid NOT NULL,
+    connection_count integer DEFAULT 0 NOT NULL,
+    events_attended integer DEFAULT 0 NOT NULL,
+    network_reach integer DEFAULT 0 NOT NULL,
+    specialty_rank integer,
+    city_rank integer,
+    influence_score numeric(10,4),
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_admin_users_email ON admin_users(email);
-CREATE INDEX idx_admin_users_active ON admin_users(is_active);
+--
+-- Name: analytics_users_daily; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TRIGGER update_admin_users_updated_at
-    BEFORE UPDATE ON admin_users
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- NOTE: venues table removed (pre-release cleanup). Events use venue_name/venue_address text fields directly.
-
--- Customers (businesses with commercial relationships — replaces sponsors + vendors)
--- Note: contact_email, contact_phone moved to customer_contacts; logo_url moved to customer_media
-CREATE TABLE customers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    website VARCHAR(500),
-    logo_url TEXT,
-    contact_email VARCHAR(255),
-    contact_phone VARCHAR(20),
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+CREATE TABLE public.analytics_users_daily (
+    date date NOT NULL,
+    city character varying(100) NOT NULL,
+    specialty character varying(50) NOT NULL,
+    new_users integer DEFAULT 0 NOT NULL,
+    active_users integer DEFAULT 0 NOT NULL,
+    verified_users integer DEFAULT 0 NOT NULL,
+    checkins integer DEFAULT 0 NOT NULL
 );
 
-CREATE INDEX idx_customers_active ON customers(is_active);
-CREATE INDEX idx_customers_name ON customers(name);
+--
+-- Name: audit_log; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TRIGGER update_customers_updated_at
-    BEFORE UPDATE ON customers
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- Products (catalog of what IN sells: sponsorships, vendor space, data products)
-CREATE TABLE products (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    product_type product_type NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    base_price_cents INTEGER,
-    is_standard BOOLEAN NOT NULL DEFAULT true,
-    config JSONB NOT NULL DEFAULT '{}',
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    sort_order INTEGER NOT NULL DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+CREATE TABLE public.audit_log (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    action public.audit_action NOT NULL,
+    entity_type character varying(50) NOT NULL,
+    entity_id uuid,
+    actor_id uuid,
+    old_values jsonb,
+    new_values jsonb,
+    metadata jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    admin_actor_id uuid,
+    actor_type public.actor_type DEFAULT 'system'::public.actor_type NOT NULL,
+    result public.audit_result DEFAULT 'success'::public.audit_result NOT NULL,
+    failure_reason character varying(100),
+    request_id uuid,
+    route character varying(255),
+    method character varying(10),
+    status_code integer,
+    source_ip inet,
+    user_agent text,
+    environment character varying(20) DEFAULT 'development'::character varying NOT NULL,
+    metadata_version integer DEFAULT 1 NOT NULL,
+    occurred_at timestamp with time zone DEFAULT now() NOT NULL,
+    ingested_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT ck_audit_log_actor_identity CHECK ((((actor_type = 'user'::public.actor_type) AND (actor_id IS NOT NULL) AND (admin_actor_id IS NULL)) OR ((actor_type = 'admin'::public.actor_type) AND (actor_id IS NULL) AND (admin_actor_id IS NOT NULL)) OR ((actor_type = 'system'::public.actor_type) AND (actor_id IS NULL) AND (admin_actor_id IS NULL)))),
+    CONSTRAINT ck_audit_log_environment CHECK (((environment)::text = ANY ((ARRAY['development'::character varying, 'production'::character varying, 'test'::character varying])::text[])))
 );
 
-CREATE INDEX idx_products_type ON products(product_type);
-CREATE INDEX idx_products_active ON products(is_active);
-CREATE INDEX idx_products_standard ON products(is_standard);
+--
+-- Name: connections; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TRIGGER update_products_updated_at
-    BEFORE UPDATE ON products
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- Markets (geographic foundation — managed reference table, never deleted, retired via is_active)
-CREATE TABLE markets (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(100) NOT NULL UNIQUE,
-    slug VARCHAR(50) NOT NULL UNIQUE,
-    description TEXT,
-    timezone VARCHAR(50),
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    sort_order INTEGER NOT NULL DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+CREATE TABLE public.connections (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    user_a_id uuid NOT NULL,
+    user_b_id uuid NOT NULL,
+    event_id uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT different_users CHECK ((user_a_id <> user_b_id))
 );
 
-CREATE INDEX idx_markets_active ON markets(is_active, sort_order);
-CREATE INDEX idx_markets_slug ON markets(slug);
+--
+-- Name: customer_contacts; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TRIGGER update_markets_updated_at
-    BEFORE UPDATE ON markets
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- ============================================================
--- TIER 1: References tier 0 only
--- ============================================================
-
--- Events
-CREATE TABLE events (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    venue_name VARCHAR(255),
-    venue_address TEXT,
-    market_id UUID REFERENCES markets(id) ON DELETE RESTRICT,
-    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    end_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    activation_code VARCHAR(20),
-    posh_event_id VARCHAR(255),
-    status event_status NOT NULL DEFAULT 'draft',
-    capacity INTEGER,
-    attendee_count INTEGER NOT NULL DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+CREATE TABLE public.customer_contacts (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    customer_id uuid NOT NULL,
+    name character varying(255) NOT NULL,
+    email character varying(255),
+    phone character varying(20),
+    role public.contact_role DEFAULT 'other'::public.contact_role NOT NULL,
+    title character varying(255),
+    is_primary boolean DEFAULT false NOT NULL,
+    notes text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_events_status ON events(status);
-CREATE INDEX idx_events_start_time ON events(start_time);
-CREATE INDEX idx_events_posh_id ON events(posh_event_id);
-CREATE INDEX idx_events_market ON events(market_id);
+--
+-- Name: customer_markets; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TRIGGER update_events_updated_at
-    BEFORE UPDATE ON events
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- ============================================================
--- TIER 2: References tier 0 + tier 1
--- ============================================================
-
--- Customer products (transitional — will be replaced by orders in Phase 4)
-CREATE TABLE customer_products (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
-    product_id UUID NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
-    event_id UUID REFERENCES events(id) ON DELETE SET NULL,
-    status customer_product_status NOT NULL DEFAULT 'active',
-    price_paid_cents INTEGER,
-    start_date DATE,
-    end_date DATE,
-    config_overrides JSONB NOT NULL DEFAULT '{}',
-    notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    UNIQUE(customer_id, product_id, event_id)
+CREATE TABLE public.customer_markets (
+    customer_id uuid NOT NULL,
+    market_id uuid NOT NULL
 );
 
-CREATE INDEX idx_customer_products_customer ON customer_products(customer_id);
-CREATE INDEX idx_customer_products_product ON customer_products(product_id);
-CREATE INDEX idx_customer_products_event ON customer_products(event_id);
-CREATE INDEX idx_customer_products_status ON customer_products(status);
+--
+-- Name: customer_media; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TRIGGER update_customer_products_updated_at
-    BEFORE UPDATE ON customer_products
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- Orders (transactional grouping — a deal between IN and a customer)
-CREATE TABLE orders (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
-    order_number VARCHAR(20) NOT NULL UNIQUE,
-    order_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    status order_status NOT NULL DEFAULT 'draft',
-    total_amount_cents INTEGER,
-    notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+CREATE TABLE public.customer_media (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    customer_id uuid NOT NULL,
+    url text NOT NULL,
+    placement public.media_placement DEFAULT 'other'::public.media_placement NOT NULL,
+    width integer,
+    height integer,
+    alt_text character varying(255),
+    sort_order smallint DEFAULT 0 NOT NULL,
+    uploaded_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_orders_customer ON orders(customer_id);
-CREATE INDEX idx_orders_status ON orders(status);
+--
+-- Name: customer_products; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TRIGGER update_orders_updated_at
-    BEFORE UPDATE ON orders
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- Customer contacts (multi-contact per customer)
-CREATE TABLE customer_contacts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255),
-    phone VARCHAR(20),
-    role contact_role NOT NULL DEFAULT 'other',
-    title VARCHAR(255),
-    is_primary BOOLEAN NOT NULL DEFAULT false,
-    notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+CREATE TABLE public.customer_products (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    customer_id uuid NOT NULL,
+    product_id uuid NOT NULL,
+    event_id uuid,
+    status public.customer_product_status DEFAULT 'active'::public.customer_product_status NOT NULL,
+    price_paid_cents integer,
+    start_date date,
+    end_date date,
+    config_overrides jsonb DEFAULT '{}'::jsonb NOT NULL,
+    notes text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_customer_contacts_customer ON customer_contacts(customer_id);
+--
+-- Name: customers; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TRIGGER update_customer_contacts_updated_at
-    BEFORE UPDATE ON customer_contacts
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- Customer markets (many-to-many: customer operates in multiple markets)
-CREATE TABLE customer_markets (
-    customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
-    market_id UUID NOT NULL REFERENCES markets(id) ON DELETE CASCADE,
-    PRIMARY KEY (customer_id, market_id)
+CREATE TABLE public.customers (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    name character varying(255) NOT NULL,
+    description text,
+    website character varying(500),
+    logo_url text,
+    contact_email character varying(255),
+    contact_phone character varying(20),
+    is_active boolean DEFAULT true NOT NULL,
+    notes text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
--- Customer media (brand assets — logo, banners reused across all deals)
-CREATE TABLE customer_media (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
-    url TEXT NOT NULL,
-    placement media_placement NOT NULL DEFAULT 'other',
-    width INTEGER,
-    height INTEGER,
-    alt_text VARCHAR(255),
-    sort_order SMALLINT NOT NULL DEFAULT 0,
-    uploaded_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+--
+-- Name: data_export_requests; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.data_export_requests (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    user_id uuid NOT NULL,
+    request_type character varying(50) NOT NULL,
+    status character varying(20) DEFAULT 'pending'::character varying NOT NULL,
+    requested_at timestamp with time zone DEFAULT now() NOT NULL,
+    completed_at timestamp with time zone,
+    download_url text,
+    expires_at timestamp with time zone
 );
 
-CREATE INDEX idx_customer_media_customer ON customer_media(customer_id);
+--
+-- Name: discount_redemptions; Type: TABLE; Schema: public; Owner: -
+--
 
--- Event images (up to 5 per event, sort_order 0 = hero)
-CREATE TABLE event_images (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-    url TEXT NOT NULL,
-    sort_order SMALLINT NOT NULL DEFAULT 0,
-    uploaded_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+CREATE TABLE public.discount_redemptions (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    discount_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    method public.redemption_method DEFAULT 'self_reported'::public.redemption_method NOT NULL,
+    redeemed_at timestamp with time zone DEFAULT now() NOT NULL,
+    notes text
 );
 
-CREATE INDEX idx_event_images_event_id ON event_images(event_id);
+--
+-- Name: discounts; Type: TABLE; Schema: public; Owner: -
+--
 
--- Tickets (walk-in / manual check-in — Posh purchases go to posh_orders)
-CREATE TABLE tickets (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-    posh_ticket_id VARCHAR(255),
-    posh_order_id VARCHAR(255),
-    ticket_type VARCHAR(100) NOT NULL,
-    price DECIMAL(10, 2) NOT NULL,
-    status ticket_status NOT NULL DEFAULT 'purchased',
-    checked_in_at TIMESTAMP WITH TIME ZONE,
-    purchased_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+CREATE TABLE public.discounts (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    customer_id uuid NOT NULL,
+    title character varying(255) NOT NULL,
+    description text,
+    type public.discount_type DEFAULT 'percentage'::public.discount_type NOT NULL,
+    value numeric(10,2),
+    code character varying(50),
+    terms text,
+    is_active boolean DEFAULT true NOT NULL,
+    start_date timestamp with time zone,
+    end_date timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_tickets_user_id ON tickets(user_id);
-CREATE INDEX idx_tickets_event_id ON tickets(event_id);
-CREATE INDEX idx_tickets_posh_ticket_id ON tickets(posh_ticket_id);
-CREATE UNIQUE INDEX idx_tickets_posh_ticket_unique ON tickets(posh_ticket_id) WHERE posh_ticket_id IS NOT NULL;
+--
+-- Name: event_images; Type: TABLE; Schema: public; Owner: -
+--
 
--- Connections (QR scan = instant mutual connection)
-CREATE TABLE connections (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_a_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    user_b_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    event_id UUID REFERENCES events(id) ON DELETE SET NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    CONSTRAINT different_users CHECK (user_a_id != user_b_id)
+CREATE TABLE public.event_images (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    event_id uuid NOT NULL,
+    url text NOT NULL,
+    sort_order smallint DEFAULT 0 NOT NULL,
+    uploaded_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_connections_user_a ON connections(user_a_id);
-CREATE INDEX idx_connections_user_b ON connections(user_b_id);
-CREATE INDEX idx_connections_event ON connections(event_id);
-CREATE UNIQUE INDEX idx_connections_unique ON connections(
-    LEAST(user_a_id, user_b_id),
-    GREATEST(user_a_id, user_b_id)
+--
+-- Name: events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.events (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    name character varying(255) NOT NULL,
+    description text,
+    venue_name character varying(255),
+    venue_address text,
+    market_id uuid,
+    start_time timestamp with time zone NOT NULL,
+    end_time timestamp with time zone NOT NULL,
+    activation_code character varying(20),
+    posh_event_id character varying(255),
+    status public.event_status DEFAULT 'draft'::public.event_status NOT NULL,
+    capacity integer,
+    attendee_count integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    posh_event_url text
 );
 
--- Posts (community feed)
-CREATE TABLE posts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    content TEXT NOT NULL,
-    image_urls TEXT[] DEFAULT '{}',
-    type post_type NOT NULL DEFAULT 'general',
-    is_pinned BOOLEAN NOT NULL DEFAULT false,
-    is_hidden BOOLEAN NOT NULL DEFAULT false,
-    like_count INTEGER NOT NULL DEFAULT 0,
-    comment_count INTEGER NOT NULL DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+--
+-- Name: llm_usage_log; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.llm_usage_log (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    feature text NOT NULL,
+    model text NOT NULL,
+    input_tokens integer,
+    output_tokens integer,
+    latency_ms integer,
+    success boolean NOT NULL,
+    error text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_posts_author ON posts(author_id);
-CREATE INDEX idx_posts_type ON posts(type);
-CREATE INDEX idx_posts_created_at ON posts(created_at DESC);
+--
+-- Name: markets; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TRIGGER update_posts_updated_at
-    BEFORE UPDATE ON posts
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- Discounts/Perks (linked to customers — any customer can offer perks)
-CREATE TABLE discounts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    type discount_type NOT NULL DEFAULT 'percentage',
-    value DECIMAL(10, 2),
-    code VARCHAR(50),
-    terms TEXT,
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    start_date TIMESTAMP WITH TIME ZONE,
-    end_date TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+CREATE TABLE public.markets (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    name character varying(100) NOT NULL,
+    slug character varying(50) NOT NULL,
+    description text,
+    timezone character varying(50),
+    is_active boolean DEFAULT true NOT NULL,
+    sort_order integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_discounts_customer ON discounts(customer_id);
-CREATE INDEX idx_discounts_active ON discounts(is_active);
+--
+-- Name: order_items; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TRIGGER update_discounts_updated_at
-    BEFORE UPDATE ON discounts
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- Posh orders (stores Posh webhook purchases — IS the canonical Posh ticket)
-CREATE TABLE posh_orders (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    -- Posh identifiers
-    posh_event_id VARCHAR(255) NOT NULL,
-    order_number VARCHAR(255) NOT NULL,
-    -- Matched to our event (NULL if posh_event_id not yet linked)
-    event_id UUID REFERENCES events(id) ON DELETE SET NULL,
-    -- Buyer info (flat fields from Posh payload)
-    account_first_name VARCHAR(100),
-    account_last_name VARCHAR(100),
-    account_email VARCHAR(255),
-    account_phone VARCHAR(20),
-    -- Order financials
-    items JSONB NOT NULL,
-    subtotal DECIMAL(10, 2),
-    total DECIMAL(10, 2),
-    promo_code VARCHAR(50),
-    date_purchased TIMESTAMP WITH TIME ZONE,
-    -- IN account linkage (populated when buyer joins and we match by phone/email)
-    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    -- Invite tracking (NULL = invite not yet sent)
-    invite_sent_at TIMESTAMP WITH TIME ZONE,
-    -- Check-in (NULL = not checked in)
-    checked_in_at TIMESTAMP WITH TIME ZONE,
-    -- Full raw payload preserved for debugging
-    raw_payload JSONB NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    CONSTRAINT posh_orders_order_number_unique UNIQUE (order_number)
+CREATE TABLE public.order_items (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    order_id uuid NOT NULL,
+    product_id uuid NOT NULL,
+    event_id uuid,
+    unit_price_cents integer,
+    quantity integer DEFAULT 1 NOT NULL,
+    notes text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_posh_orders_posh_event_id ON posh_orders(posh_event_id);
-CREATE INDEX idx_posh_orders_event_id ON posh_orders(event_id);
-CREATE INDEX idx_posh_orders_user_id ON posh_orders(user_id);
-CREATE INDEX idx_posh_orders_account_phone ON posh_orders(account_phone);
-CREATE INDEX idx_posh_orders_account_email ON posh_orders(account_email);
+--
+-- Name: orders; Type: TABLE; Schema: public; Owner: -
+--
 
--- ============================================================
--- TIER 3: References tier 2
--- ============================================================
-
--- Order items (line items in an order — links product + optional event)
-CREATE TABLE order_items (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-    product_id UUID NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
-    event_id UUID REFERENCES events(id) ON DELETE SET NULL,
-    unit_price_cents INTEGER,
-    quantity INTEGER NOT NULL DEFAULT 1,
-    notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+CREATE TABLE public.orders (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    customer_id uuid NOT NULL,
+    order_number character varying(20) NOT NULL,
+    order_date timestamp with time zone DEFAULT now() NOT NULL,
+    status public.order_status DEFAULT 'draft'::public.order_status NOT NULL,
+    total_amount_cents integer,
+    notes text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_order_items_order ON order_items(order_id);
-CREATE INDEX idx_order_items_product ON order_items(product_id);
-CREATE INDEX idx_order_items_event ON order_items(event_id);
+--
+-- Name: partner_media; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TRIGGER update_order_items_updated_at
-    BEFORE UPDATE ON order_items
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- Partner media (deal-specific creative — per order item)
-CREATE TABLE partner_media (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    order_item_id UUID NOT NULL REFERENCES order_items(id) ON DELETE CASCADE,
-    url TEXT NOT NULL,
-    placement media_placement NOT NULL DEFAULT 'other',
-    width INTEGER,
-    height INTEGER,
-    alt_text VARCHAR(255),
-    sort_order SMALLINT NOT NULL DEFAULT 0,
-    uploaded_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+CREATE TABLE public.partner_media (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    order_item_id uuid NOT NULL,
+    url text NOT NULL,
+    placement public.media_placement DEFAULT 'other'::public.media_placement NOT NULL,
+    width integer,
+    height integer,
+    alt_text character varying(255),
+    sort_order smallint DEFAULT 0 NOT NULL,
+    uploaded_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_partner_media_order_item ON partner_media(order_item_id);
+--
+-- Name: platform_config; Type: TABLE; Schema: public; Owner: -
+--
 
--- Post comments
-CREATE TABLE post_comments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
-    author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    content TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+CREATE TABLE public.platform_config (
+    key text NOT NULL,
+    value jsonb NOT NULL,
+    description text,
+    updated_by uuid,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_post_comments_post ON post_comments(post_id);
+--
+-- Name: posh_orders; Type: TABLE; Schema: public; Owner: -
+--
 
--- Post likes
-CREATE TABLE post_likes (
-    post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (post_id, user_id)
+CREATE TABLE public.posh_orders (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    posh_event_id character varying(255) NOT NULL,
+    order_number character varying(255) NOT NULL,
+    event_id uuid,
+    account_first_name character varying(100),
+    account_last_name character varying(100),
+    account_email character varying(255),
+    account_phone character varying(20),
+    items jsonb NOT NULL,
+    subtotal numeric(10,2),
+    total numeric(10,2),
+    promo_code character varying(50),
+    date_purchased timestamp with time zone,
+    user_id uuid,
+    invite_sent_at timestamp with time zone,
+    checked_in_at timestamp with time zone,
+    raw_payload jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
--- Discount redemptions (tracks when app users claim perks — Tier 2 revenue data)
-CREATE TABLE discount_redemptions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    discount_id UUID NOT NULL REFERENCES discounts(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    method redemption_method NOT NULL DEFAULT 'self_reported',
-    redeemed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    notes TEXT,
-    CONSTRAINT unique_user_discount_redemption UNIQUE (discount_id, user_id)
+--
+-- Name: post_comments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.post_comments (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    post_id uuid NOT NULL,
+    author_id uuid NOT NULL,
+    content text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_discount_redemptions_discount ON discount_redemptions(discount_id);
-CREATE INDEX idx_discount_redemptions_user ON discount_redemptions(user_id);
+--
+-- Name: post_likes; Type: TABLE; Schema: public; Owner: -
+--
 
--- ============================================================
--- TIER 4: Audit + analytics
--- ============================================================
-
--- Audit log (tracks all significant actions)
-CREATE TABLE audit_log (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    action audit_action NOT NULL,
-    entity_type VARCHAR(50) NOT NULL,
-    entity_id UUID,
-    actor_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    old_values JSONB,
-    new_values JSONB,
-    metadata JSONB,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+CREATE TABLE public.post_likes (
+    post_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_audit_log_action ON audit_log(action);
-CREATE INDEX idx_audit_log_entity ON audit_log(entity_type, entity_id);
-CREATE INDEX idx_audit_log_actor ON audit_log(actor_id);
-CREATE INDEX idx_audit_log_created_at ON audit_log(created_at DESC);
-CREATE INDEX idx_audit_log_metadata ON audit_log USING GIN(metadata);
+--
+-- Name: posts; Type: TABLE; Schema: public; Owner: -
+--
 
--- Data export requests (GDPR/CCPA compliance)
-CREATE TABLE data_export_requests (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    request_type VARCHAR(50) NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'pending',
-    requested_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    completed_at TIMESTAMP WITH TIME ZONE,
-    download_url TEXT,
-    expires_at TIMESTAMP WITH TIME ZONE
+CREATE TABLE public.posts (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    author_id uuid NOT NULL,
+    content text NOT NULL,
+    image_urls text[] DEFAULT '{}'::text[],
+    type public.post_type DEFAULT 'general'::public.post_type NOT NULL,
+    is_pinned boolean DEFAULT false NOT NULL,
+    is_hidden boolean DEFAULT false NOT NULL,
+    like_count integer DEFAULT 0 NOT NULL,
+    comment_count integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_data_export_user ON data_export_requests(user_id);
-CREATE INDEX idx_data_export_status ON data_export_requests(status);
+--
+-- Name: products; Type: TABLE; Schema: public; Owner: -
+--
 
--- Daily connection stats by specialty pairing (anonymized)
-CREATE TABLE analytics_connections_daily (
-    date DATE NOT NULL,
-    event_id UUID REFERENCES events(id) ON DELETE SET NULL,
-    city VARCHAR(100),
-    specialty_a VARCHAR(50) NOT NULL,
-    specialty_b VARCHAR(50) NOT NULL,
-    connection_count INTEGER NOT NULL DEFAULT 0,
-    PRIMARY KEY (date, event_id, specialty_a, specialty_b)
+CREATE TABLE public.products (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    product_type public.product_type NOT NULL,
+    name character varying(255) NOT NULL,
+    description text,
+    base_price_cents integer,
+    is_standard boolean DEFAULT true NOT NULL,
+    config jsonb DEFAULT '{}'::jsonb NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    sort_order integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_analytics_conn_date ON analytics_connections_daily(date DESC);
-CREATE INDEX idx_analytics_conn_city ON analytics_connections_daily(city);
+--
+-- Name: specialties; Type: TABLE; Schema: public; Owner: -
+--
 
--- Daily user activity stats (anonymized)
-CREATE TABLE analytics_users_daily (
-    date DATE NOT NULL,
-    city VARCHAR(100),
-    specialty VARCHAR(50),
-    new_users INTEGER NOT NULL DEFAULT 0,
-    active_users INTEGER NOT NULL DEFAULT 0,
-    verified_users INTEGER NOT NULL DEFAULT 0,
-    checkins INTEGER NOT NULL DEFAULT 0,
-    PRIMARY KEY (date, city, specialty)
+CREATE TABLE public.specialties (
+    id character varying(50) NOT NULL,
+    name character varying(100) NOT NULL,
+    category character varying(50) NOT NULL,
+    sort_order integer DEFAULT 0 NOT NULL,
+    is_active boolean DEFAULT true NOT NULL
 );
 
-CREATE INDEX idx_analytics_users_date ON analytics_users_daily(date DESC);
+--
+-- Name: tickets; Type: TABLE; Schema: public; Owner: -
+--
 
--- Event performance stats
-CREATE TABLE analytics_events (
-    event_id UUID PRIMARY KEY REFERENCES events(id) ON DELETE CASCADE,
-    total_checkins INTEGER NOT NULL DEFAULT 0,
-    unique_attendees INTEGER NOT NULL DEFAULT 0,
-    connections_made INTEGER NOT NULL DEFAULT 0,
-    top_specialties JSONB,
-    avg_connections_per_user DECIMAL(5,2),
-    cross_specialty_rate DECIMAL(5,4),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+CREATE TABLE public.tickets (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    user_id uuid NOT NULL,
+    event_id uuid NOT NULL,
+    posh_ticket_id character varying(255),
+    posh_order_id character varying(255),
+    ticket_type character varying(100) NOT NULL,
+    price numeric(10,2) NOT NULL,
+    status public.ticket_status DEFAULT 'purchased'::public.ticket_status NOT NULL,
+    checked_in_at timestamp with time zone,
+    purchased_at timestamp with time zone NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    wristband_issued_at timestamp with time zone
 );
 
--- Network influence scores (updated periodically)
-CREATE TABLE analytics_influence (
-    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    connection_count INTEGER NOT NULL DEFAULT 0,
-    events_attended INTEGER NOT NULL DEFAULT 0,
-    network_reach INTEGER NOT NULL DEFAULT 0,
-    specialty_rank INTEGER,
-    city_rank INTEGER,
-    influence_score DECIMAL(10,4),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+--
+-- Name: users; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.users (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    phone character varying(20) NOT NULL,
+    email character varying(255),
+    name character varying(100),
+    bio text,
+    profile_photo_url text,
+    role public.user_role DEFAULT 'user'::public.user_role NOT NULL,
+    source public.user_source DEFAULT 'app'::public.user_source NOT NULL,
+    specialties text[] DEFAULT '{}'::text[],
+    social_links jsonb,
+    verification_status public.verification_status DEFAULT 'unverified'::public.verification_status NOT NULL,
+    profile_completed boolean DEFAULT false NOT NULL,
+    banned boolean DEFAULT false NOT NULL,
+    analytics_consent boolean DEFAULT false NOT NULL,
+    marketing_consent boolean DEFAULT false NOT NULL,
+    profile_visibility character varying(20) DEFAULT 'connections'::character varying NOT NULL,
+    consent_updated_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_login_at timestamp with time zone,
+    fcm_token text,
+    primary_specialty_id character varying(50)
 );
 
-CREATE INDEX idx_analytics_influence_score ON analytics_influence(influence_score DESC);
+--
+-- Name: verification_codes; Type: TABLE; Schema: public; Owner: -
+--
 
--- ============================================================
--- SEED DATA
--- ============================================================
-
--- Markets (geographic foundation)
-INSERT INTO markets (id, name, slug, description, timezone, sort_order) VALUES
-    (uuid_generate_v4(), 'NYC', 'nyc', 'New York City metro area', 'America/New_York', 0),
-    (uuid_generate_v4(), 'LA', 'la', 'Los Angeles metro area', 'America/Los_Angeles', 1),
-    (uuid_generate_v4(), 'Atlanta', 'atlanta', 'Atlanta metro area', 'America/New_York', 2);
-
--- Standard product catalog
-
-INSERT INTO products (id, product_type, name, description, base_price_cents, is_standard, config, sort_order) VALUES
-    -- Sponsorships: Platform-level
-    (uuid_generate_v4(), 'sponsorship', 'Platform Sponsorship — Bronze',
-     'Annual app-level sponsorship with basic logo placement',
-     250000, true, '{"level": "platform", "tier": "bronze"}', 10),
-    (uuid_generate_v4(), 'sponsorship', 'Platform Sponsorship — Silver',
-     'Annual app-level sponsorship with enhanced visibility',
-     500000, true, '{"level": "platform", "tier": "silver"}', 11),
-    (uuid_generate_v4(), 'sponsorship', 'Platform Sponsorship — Gold',
-     'Annual app-level sponsorship with premium placement and audience access',
-     1000000, true, '{"level": "platform", "tier": "gold"}', 12),
-    (uuid_generate_v4(), 'sponsorship', 'Platform Sponsorship — Platinum',
-     'Annual app-level sponsorship with full audience access and data partnership',
-     2000000, true, '{"level": "platform", "tier": "platinum"}', 13),
-
-    -- Sponsorships: Event-level
-    (uuid_generate_v4(), 'sponsorship', 'Event Sponsorship — Bronze',
-     'Per-event sponsorship with logo on event page',
-     50000, true, '{"level": "event", "tier": "bronze"}', 20),
-    (uuid_generate_v4(), 'sponsorship', 'Event Sponsorship — Silver',
-     'Per-event sponsorship with logo placement and featured perk',
-     100000, true, '{"level": "event", "tier": "silver"}', 21),
-    (uuid_generate_v4(), 'sponsorship', 'Event Sponsorship — Gold',
-     'Per-event sponsorship with premium placement, perks, and post-event report',
-     200000, true, '{"level": "event", "tier": "gold"}', 22),
-    (uuid_generate_v4(), 'sponsorship', 'Event Sponsorship — Platinum',
-     'Per-event sponsorship with full visibility, perks, data access, and dedicated support',
-     500000, true, '{"level": "event", "tier": "platinum"}', 23),
-
-    -- Vendor space
-    (uuid_generate_v4(), 'vendor_space', 'Vendor Space — Standard Booth',
-     'Standard booth space at an event',
-     30000, true, '{"booth_size": "standard"}', 30),
-    (uuid_generate_v4(), 'vendor_space', 'Vendor Space — Premium Booth',
-     'Premium booth space with prime positioning and enhanced signage',
-     60000, true, '{"booth_size": "premium"}', 31),
-
-    -- Data products
-    (uuid_generate_v4(), 'data_product', 'Event Performance Report',
-     'Post-event report: check-ins, connections, demographics, top specialties',
-     50000, true, '{"format": "pdf", "scope": "single_event", "frequency": "one_time"}', 40),
-    (uuid_generate_v4(), 'data_product', 'Quarterly Audience Report',
-     'Quarterly audience intelligence: growth trends, specialty demographics, engagement patterns',
-     500000, true, '{"format": "pdf", "scope": "all_events", "frequency": "quarterly"}', 41),
-    (uuid_generate_v4(), 'data_product', 'Dashboard Access',
-     'Ongoing access to real-time audience analytics dashboard',
-     200000, true, '{"format": "dashboard", "scope": "custom", "frequency": "ongoing"}', 42);
-
--- ============================================================
--- MIGRATION TRACKING
--- ============================================================
-
-CREATE TABLE IF NOT EXISTS _migrations (
-    filename VARCHAR(255) PRIMARY KEY,
-    applied_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+CREATE TABLE public.verification_codes (
+    phone character varying(20) NOT NULL,
+    code character varying(6) NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
 );
+
+--
+
+--
+-- Name: admin_users admin_users_email_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.admin_users
+    ADD CONSTRAINT admin_users_email_key UNIQUE (email);
+
+--
+-- Name: admin_users admin_users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.admin_users
+    ADD CONSTRAINT admin_users_pkey PRIMARY KEY (id);
+
+--
+-- Name: analytics_connections_daily analytics_connections_daily_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.analytics_connections_daily
+    ADD CONSTRAINT analytics_connections_daily_pkey PRIMARY KEY (date, event_id, specialty_a, specialty_b);
+
+--
+-- Name: analytics_events analytics_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.analytics_events
+    ADD CONSTRAINT analytics_events_pkey PRIMARY KEY (event_id);
+
+--
+-- Name: analytics_influence analytics_influence_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.analytics_influence
+    ADD CONSTRAINT analytics_influence_pkey PRIMARY KEY (user_id);
+
+--
+-- Name: analytics_users_daily analytics_users_daily_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.analytics_users_daily
+    ADD CONSTRAINT analytics_users_daily_pkey PRIMARY KEY (date, city, specialty);
+
+--
+-- Name: audit_log audit_log_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audit_log
+    ADD CONSTRAINT audit_log_pkey PRIMARY KEY (id);
+
+--
+-- Name: connections connections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.connections
+    ADD CONSTRAINT connections_pkey PRIMARY KEY (id);
+
+--
+-- Name: customer_contacts customer_contacts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_contacts
+    ADD CONSTRAINT customer_contacts_pkey PRIMARY KEY (id);
+
+--
+-- Name: customer_markets customer_markets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_markets
+    ADD CONSTRAINT customer_markets_pkey PRIMARY KEY (customer_id, market_id);
+
+--
+-- Name: customer_media customer_media_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_media
+    ADD CONSTRAINT customer_media_pkey PRIMARY KEY (id);
+
+--
+-- Name: customer_products customer_products_customer_id_product_id_event_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_products
+    ADD CONSTRAINT customer_products_customer_id_product_id_event_id_key UNIQUE (customer_id, product_id, event_id);
+
+--
+-- Name: customer_products customer_products_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_products
+    ADD CONSTRAINT customer_products_pkey PRIMARY KEY (id);
+
+--
+-- Name: customers customers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customers
+    ADD CONSTRAINT customers_pkey PRIMARY KEY (id);
+
+--
+-- Name: data_export_requests data_export_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.data_export_requests
+    ADD CONSTRAINT data_export_requests_pkey PRIMARY KEY (id);
+
+--
+-- Name: discount_redemptions discount_redemptions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discount_redemptions
+    ADD CONSTRAINT discount_redemptions_pkey PRIMARY KEY (id);
+
+--
+-- Name: discounts discounts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discounts
+    ADD CONSTRAINT discounts_pkey PRIMARY KEY (id);
+
+--
+-- Name: event_images event_images_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_images
+    ADD CONSTRAINT event_images_pkey PRIMARY KEY (id);
+
+--
+-- Name: events events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.events
+    ADD CONSTRAINT events_pkey PRIMARY KEY (id);
+
+--
+-- Name: llm_usage_log llm_usage_log_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.llm_usage_log
+    ADD CONSTRAINT llm_usage_log_pkey PRIMARY KEY (id);
+
+--
+-- Name: markets markets_name_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.markets
+    ADD CONSTRAINT markets_name_key UNIQUE (name);
+
+--
+-- Name: markets markets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.markets
+    ADD CONSTRAINT markets_pkey PRIMARY KEY (id);
+
+--
+-- Name: markets markets_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.markets
+    ADD CONSTRAINT markets_slug_key UNIQUE (slug);
+
+--
+-- Name: order_items order_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_items
+    ADD CONSTRAINT order_items_pkey PRIMARY KEY (id);
+
+--
+-- Name: orders orders_order_number_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_order_number_key UNIQUE (order_number);
+
+--
+-- Name: orders orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_pkey PRIMARY KEY (id);
+
+--
+-- Name: partner_media partner_media_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.partner_media
+    ADD CONSTRAINT partner_media_pkey PRIMARY KEY (id);
+
+--
+-- Name: platform_config platform_config_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.platform_config
+    ADD CONSTRAINT platform_config_pkey PRIMARY KEY (key);
+
+--
+-- Name: posh_orders posh_orders_order_number_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.posh_orders
+    ADD CONSTRAINT posh_orders_order_number_unique UNIQUE (order_number);
+
+--
+-- Name: posh_orders posh_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.posh_orders
+    ADD CONSTRAINT posh_orders_pkey PRIMARY KEY (id);
+
+--
+-- Name: post_comments post_comments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.post_comments
+    ADD CONSTRAINT post_comments_pkey PRIMARY KEY (id);
+
+--
+-- Name: post_likes post_likes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.post_likes
+    ADD CONSTRAINT post_likes_pkey PRIMARY KEY (post_id, user_id);
+
+--
+-- Name: posts posts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.posts
+    ADD CONSTRAINT posts_pkey PRIMARY KEY (id);
+
+--
+-- Name: products products_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.products
+    ADD CONSTRAINT products_pkey PRIMARY KEY (id);
+
+--
+-- Name: specialties specialties_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.specialties
+    ADD CONSTRAINT specialties_pkey PRIMARY KEY (id);
+
+--
+-- Name: tickets tickets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tickets
+    ADD CONSTRAINT tickets_pkey PRIMARY KEY (id);
+
+--
+-- Name: discount_redemptions unique_user_discount_redemption; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discount_redemptions
+    ADD CONSTRAINT unique_user_discount_redemption UNIQUE (discount_id, user_id);
+
+--
+-- Name: users users_phone_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_phone_key UNIQUE (phone);
+
+--
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+--
+-- Name: verification_codes verification_codes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.verification_codes
+    ADD CONSTRAINT verification_codes_pkey PRIMARY KEY (phone);
+
+--
+-- Name: idx_admin_users_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_admin_users_active ON public.admin_users USING btree (is_active);
+
+--
+-- Name: idx_admin_users_email; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_admin_users_email ON public.admin_users USING btree (email);
+
+--
+-- Name: idx_analytics_conn_city; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_analytics_conn_city ON public.analytics_connections_daily USING btree (city);
+
+--
+-- Name: idx_analytics_conn_date; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_analytics_conn_date ON public.analytics_connections_daily USING btree (date DESC);
+
+--
+-- Name: idx_analytics_influence_score; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_analytics_influence_score ON public.analytics_influence USING btree (influence_score DESC);
+
+--
+-- Name: idx_analytics_users_date; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_analytics_users_date ON public.analytics_users_daily USING btree (date DESC);
+
+--
+-- Name: idx_audit_log_action; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audit_log_action ON public.audit_log USING btree (action);
+
+--
+-- Name: idx_audit_log_action_result_time; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audit_log_action_result_time ON public.audit_log USING btree (action, result, occurred_at DESC);
+
+--
+-- Name: idx_audit_log_actor; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audit_log_actor ON public.audit_log USING btree (actor_id);
+
+--
+-- Name: idx_audit_log_admin_actor; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audit_log_admin_actor ON public.audit_log USING btree (admin_actor_id);
+
+--
+-- Name: idx_audit_log_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audit_log_created_at ON public.audit_log USING btree (created_at DESC);
+
+--
+-- Name: idx_audit_log_entity; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audit_log_entity ON public.audit_log USING btree (entity_type, entity_id);
+
+--
+-- Name: idx_audit_log_failure_reason; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audit_log_failure_reason ON public.audit_log USING btree (failure_reason);
+
+--
+-- Name: idx_audit_log_metadata; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audit_log_metadata ON public.audit_log USING gin (metadata);
+
+--
+-- Name: idx_audit_log_occurred_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audit_log_occurred_at ON public.audit_log USING btree (occurred_at DESC);
+
+--
+-- Name: idx_audit_log_request_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audit_log_request_id ON public.audit_log USING btree (request_id);
+
+--
+-- Name: idx_audit_log_result; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audit_log_result ON public.audit_log USING btree (result);
+
+--
+-- Name: idx_connections_event; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_connections_event ON public.connections USING btree (event_id);
+
+--
+-- Name: idx_connections_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_connections_unique ON public.connections USING btree (LEAST(user_a_id, user_b_id), GREATEST(user_a_id, user_b_id));
+
+--
+-- Name: idx_connections_user_a; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_connections_user_a ON public.connections USING btree (user_a_id);
+
+--
+-- Name: idx_connections_user_b; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_connections_user_b ON public.connections USING btree (user_b_id);
+
+--
+-- Name: idx_customer_contacts_customer; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_customer_contacts_customer ON public.customer_contacts USING btree (customer_id);
+
+--
+-- Name: idx_customer_media_customer; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_customer_media_customer ON public.customer_media USING btree (customer_id);
+
+--
+-- Name: idx_customer_products_customer; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_customer_products_customer ON public.customer_products USING btree (customer_id);
+
+--
+-- Name: idx_customer_products_event; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_customer_products_event ON public.customer_products USING btree (event_id);
+
+--
+-- Name: idx_customer_products_product; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_customer_products_product ON public.customer_products USING btree (product_id);
+
+--
+-- Name: idx_customer_products_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_customer_products_status ON public.customer_products USING btree (status);
+
+--
+-- Name: idx_customers_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_customers_active ON public.customers USING btree (is_active);
+
+--
+-- Name: idx_customers_name; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_customers_name ON public.customers USING btree (name);
+
+--
+-- Name: idx_data_export_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_data_export_status ON public.data_export_requests USING btree (status);
+
+--
+-- Name: idx_data_export_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_data_export_user ON public.data_export_requests USING btree (user_id);
+
+--
+-- Name: idx_discount_redemptions_discount; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_discount_redemptions_discount ON public.discount_redemptions USING btree (discount_id);
+
+--
+-- Name: idx_discount_redemptions_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_discount_redemptions_user ON public.discount_redemptions USING btree (user_id);
+
+--
+-- Name: idx_discounts_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_discounts_active ON public.discounts USING btree (is_active);
+
+--
+-- Name: idx_discounts_customer; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_discounts_customer ON public.discounts USING btree (customer_id);
+
+--
+-- Name: idx_event_images_event_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_event_images_event_id ON public.event_images USING btree (event_id);
+
+--
+-- Name: idx_events_market; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_events_market ON public.events USING btree (market_id);
+
+--
+-- Name: idx_events_posh_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_events_posh_id ON public.events USING btree (posh_event_id);
+
+--
+-- Name: idx_events_start_time; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_events_start_time ON public.events USING btree (start_time);
+
+--
+-- Name: idx_events_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_events_status ON public.events USING btree (status);
+
+--
+-- Name: idx_markets_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_markets_active ON public.markets USING btree (is_active, sort_order);
+
+--
+-- Name: idx_markets_slug; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_markets_slug ON public.markets USING btree (slug);
+
+--
+-- Name: idx_order_items_event; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_order_items_event ON public.order_items USING btree (event_id);
+
+--
+-- Name: idx_order_items_order; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_order_items_order ON public.order_items USING btree (order_id);
+
+--
+-- Name: idx_order_items_product; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_order_items_product ON public.order_items USING btree (product_id);
+
+--
+-- Name: idx_orders_customer; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_orders_customer ON public.orders USING btree (customer_id);
+
+--
+-- Name: idx_orders_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_orders_status ON public.orders USING btree (status);
+
+--
+-- Name: idx_partner_media_order_item; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_partner_media_order_item ON public.partner_media USING btree (order_item_id);
+
+--
+-- Name: idx_posh_orders_account_email; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_posh_orders_account_email ON public.posh_orders USING btree (account_email);
+
+--
+-- Name: idx_posh_orders_account_phone; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_posh_orders_account_phone ON public.posh_orders USING btree (account_phone);
+
+--
+-- Name: idx_posh_orders_event_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_posh_orders_event_id ON public.posh_orders USING btree (event_id);
+
+--
+-- Name: idx_posh_orders_posh_event_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_posh_orders_posh_event_id ON public.posh_orders USING btree (posh_event_id);
+
+--
+-- Name: idx_posh_orders_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_posh_orders_user_id ON public.posh_orders USING btree (user_id);
+
+--
+-- Name: idx_post_comments_post; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_post_comments_post ON public.post_comments USING btree (post_id);
+
+--
+-- Name: idx_posts_author; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_posts_author ON public.posts USING btree (author_id);
+
+--
+-- Name: idx_posts_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_posts_created_at ON public.posts USING btree (created_at DESC);
+
+--
+-- Name: idx_posts_type; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_posts_type ON public.posts USING btree (type);
+
+--
+-- Name: idx_products_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_products_active ON public.products USING btree (is_active);
+
+--
+-- Name: idx_products_standard; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_products_standard ON public.products USING btree (is_standard);
+
+--
+-- Name: idx_products_type; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_products_type ON public.products USING btree (product_type);
+
+--
+-- Name: idx_specialties_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_specialties_active ON public.specialties USING btree (is_active, sort_order);
+
+--
+-- Name: idx_specialties_category; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_specialties_category ON public.specialties USING btree (category);
+
+--
+-- Name: idx_tickets_event_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tickets_event_id ON public.tickets USING btree (event_id);
+
+--
+-- Name: idx_tickets_posh_ticket_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tickets_posh_ticket_id ON public.tickets USING btree (posh_ticket_id);
+
+--
+-- Name: idx_tickets_posh_ticket_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_tickets_posh_ticket_unique ON public.tickets USING btree (posh_ticket_id) WHERE (posh_ticket_id IS NOT NULL);
+
+--
+-- Name: idx_tickets_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tickets_user_id ON public.tickets USING btree (user_id);
+
+--
+-- Name: idx_users_phone; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_users_phone ON public.users USING btree (phone);
+
+--
+-- Name: idx_users_role; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_users_role ON public.users USING btree (role);
+
+--
+-- Name: idx_users_specialties; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_users_specialties ON public.users USING gin (specialties);
+
+--
+-- Name: idx_users_verification_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_users_verification_status ON public.users USING btree (verification_status);
+
+--
+-- Name: prevent_audit_log_mutation(); Type: FUNCTION; Schema: public; Owner: -
+-- (Moved after tables: %TYPE requires audit_log to exist at creation time)
+--
+
+CREATE FUNCTION public.prevent_audit_log_mutation() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+  v_actor_id   audit_log.actor_id%TYPE;
+  v_actor_type audit_log.actor_type%TYPE;
+BEGIN
+  -- Permit FK cascade: ON DELETE SET NULL on audit_log.actor_id (user deleted).
+  -- The row must change ONLY actor_id (NULL) and actor_type ('system').
+  -- Every other column must be identical to confirm this is a pure FK cascade.
+  IF TG_OP = 'UPDATE'
+     AND OLD.actor_id IS NOT NULL
+     AND NEW.actor_id IS NULL
+  THEN
+    -- Save intended final values.
+    v_actor_id   := NEW.actor_id;   -- will be NULL
+    v_actor_type := 'system';
+
+    -- Temporarily restore actor identity to OLD values for full-row comparison.
+    NEW.actor_id   := OLD.actor_id;
+    NEW.actor_type := OLD.actor_type;
+
+    -- If any other column changed, this is not a pure FK cascade — reject it.
+    IF NEW IS DISTINCT FROM OLD THEN
+      RAISE EXCEPTION 'audit_log is immutable';
+    END IF;
+
+    -- Apply the intended tombstoned actor identity.
+    NEW.actor_id   := v_actor_id;
+    NEW.actor_type := v_actor_type;
+    RETURN NEW;
+  END IF;
+
+  -- Permit FK cascade: ON DELETE SET NULL on audit_log.admin_actor_id (admin deleted).
+  -- The row must change ONLY admin_actor_id (NULL) and actor_type ('system').
+  -- Every other column must be identical to confirm this is a pure FK cascade.
+  IF TG_OP = 'UPDATE'
+     AND OLD.admin_actor_id IS NOT NULL
+     AND NEW.admin_actor_id IS NULL
+  THEN
+    -- Save intended final values.
+    v_actor_id   := NEW.admin_actor_id; -- will be NULL (reuse var for clarity)
+    v_actor_type := 'system';
+
+    -- Temporarily restore admin_actor_id and actor_type to OLD values for full-row comparison.
+    NEW.admin_actor_id := OLD.admin_actor_id;
+    NEW.actor_type     := OLD.actor_type;
+
+    -- If any other column changed, this is not a pure FK cascade — reject it.
+    IF NEW IS DISTINCT FROM OLD THEN
+      RAISE EXCEPTION 'audit_log is immutable';
+    END IF;
+
+    -- Apply the intended tombstoned actor identity.
+    NEW.admin_actor_id := NULL;
+    NEW.actor_type     := v_actor_type;
+    RETURN NEW;
+  END IF;
+
+  RAISE EXCEPTION 'audit_log is immutable';
+END;
+$$;
+
+--
+-- Name: audit_log trg_prevent_audit_log_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_prevent_audit_log_delete BEFORE DELETE ON public.audit_log FOR EACH ROW EXECUTE FUNCTION public.prevent_audit_log_mutation();
+
+--
+-- Name: audit_log trg_prevent_audit_log_update; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_prevent_audit_log_update BEFORE UPDATE ON public.audit_log FOR EACH ROW EXECUTE FUNCTION public.prevent_audit_log_mutation();
+
+--
+-- Name: admin_users update_admin_users_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_admin_users_updated_at BEFORE UPDATE ON public.admin_users FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+--
+-- Name: customer_contacts update_customer_contacts_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_customer_contacts_updated_at BEFORE UPDATE ON public.customer_contacts FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+--
+-- Name: customer_products update_customer_products_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_customer_products_updated_at BEFORE UPDATE ON public.customer_products FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+--
+-- Name: customers update_customers_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_customers_updated_at BEFORE UPDATE ON public.customers FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+--
+-- Name: discounts update_discounts_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_discounts_updated_at BEFORE UPDATE ON public.discounts FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+--
+-- Name: events update_events_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_events_updated_at BEFORE UPDATE ON public.events FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+--
+-- Name: markets update_markets_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_markets_updated_at BEFORE UPDATE ON public.markets FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+--
+-- Name: order_items update_order_items_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_order_items_updated_at BEFORE UPDATE ON public.order_items FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+--
+-- Name: orders update_orders_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+--
+-- Name: posts update_posts_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_posts_updated_at BEFORE UPDATE ON public.posts FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+--
+-- Name: products update_products_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON public.products FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+--
+-- Name: users update_users_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON public.users FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+--
+-- Name: analytics_connections_daily analytics_connections_daily_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.analytics_connections_daily
+    ADD CONSTRAINT analytics_connections_daily_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE SET NULL;
+
+--
+-- Name: analytics_events analytics_events_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.analytics_events
+    ADD CONSTRAINT analytics_events_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+
+--
+-- Name: analytics_influence analytics_influence_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.analytics_influence
+    ADD CONSTRAINT analytics_influence_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+--
+-- Name: audit_log audit_log_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audit_log
+    ADD CONSTRAINT audit_log_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+--
+-- Name: audit_log audit_log_admin_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audit_log
+    ADD CONSTRAINT audit_log_admin_actor_id_fkey FOREIGN KEY (admin_actor_id) REFERENCES public.admin_users(id) ON DELETE SET NULL;
+
+--
+-- Name: connections connections_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.connections
+    ADD CONSTRAINT connections_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE SET NULL;
+
+--
+-- Name: connections connections_user_a_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.connections
+    ADD CONSTRAINT connections_user_a_id_fkey FOREIGN KEY (user_a_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+--
+-- Name: connections connections_user_b_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.connections
+    ADD CONSTRAINT connections_user_b_id_fkey FOREIGN KEY (user_b_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+--
+-- Name: customer_contacts customer_contacts_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_contacts
+    ADD CONSTRAINT customer_contacts_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id) ON DELETE CASCADE;
+
+--
+-- Name: customer_markets customer_markets_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_markets
+    ADD CONSTRAINT customer_markets_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id) ON DELETE CASCADE;
+
+--
+-- Name: customer_markets customer_markets_market_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_markets
+    ADD CONSTRAINT customer_markets_market_id_fkey FOREIGN KEY (market_id) REFERENCES public.markets(id) ON DELETE CASCADE;
+
+--
+-- Name: customer_media customer_media_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_media
+    ADD CONSTRAINT customer_media_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id) ON DELETE CASCADE;
+
+--
+-- Name: customer_products customer_products_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_products
+    ADD CONSTRAINT customer_products_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id) ON DELETE CASCADE;
+
+--
+-- Name: customer_products customer_products_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_products
+    ADD CONSTRAINT customer_products_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE SET NULL;
+
+--
+-- Name: customer_products customer_products_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_products
+    ADD CONSTRAINT customer_products_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE RESTRICT;
+
+--
+-- Name: data_export_requests data_export_requests_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.data_export_requests
+    ADD CONSTRAINT data_export_requests_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+--
+-- Name: discount_redemptions discount_redemptions_discount_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discount_redemptions
+    ADD CONSTRAINT discount_redemptions_discount_id_fkey FOREIGN KEY (discount_id) REFERENCES public.discounts(id) ON DELETE CASCADE;
+
+--
+-- Name: discount_redemptions discount_redemptions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discount_redemptions
+    ADD CONSTRAINT discount_redemptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+--
+-- Name: discounts discounts_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discounts
+    ADD CONSTRAINT discounts_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id) ON DELETE CASCADE;
+
+--
+-- Name: event_images event_images_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_images
+    ADD CONSTRAINT event_images_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+
+--
+-- Name: events events_market_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.events
+    ADD CONSTRAINT events_market_id_fkey FOREIGN KEY (market_id) REFERENCES public.markets(id) ON DELETE RESTRICT;
+
+--
+-- Name: order_items order_items_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_items
+    ADD CONSTRAINT order_items_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE SET NULL;
+
+--
+-- Name: order_items order_items_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_items
+    ADD CONSTRAINT order_items_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id) ON DELETE CASCADE;
+
+--
+-- Name: order_items order_items_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_items
+    ADD CONSTRAINT order_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE RESTRICT;
+
+--
+-- Name: orders orders_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id) ON DELETE CASCADE;
+
+--
+-- Name: partner_media partner_media_order_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.partner_media
+    ADD CONSTRAINT partner_media_order_item_id_fkey FOREIGN KEY (order_item_id) REFERENCES public.order_items(id) ON DELETE CASCADE;
+
+--
+-- Name: platform_config platform_config_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.platform_config
+    ADD CONSTRAINT platform_config_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.admin_users(id) ON DELETE SET NULL;
+
+--
+-- Name: posh_orders posh_orders_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.posh_orders
+    ADD CONSTRAINT posh_orders_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE SET NULL;
+
+--
+-- Name: posh_orders posh_orders_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.posh_orders
+    ADD CONSTRAINT posh_orders_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+--
+-- Name: post_comments post_comments_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.post_comments
+    ADD CONSTRAINT post_comments_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+--
+-- Name: post_comments post_comments_post_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.post_comments
+    ADD CONSTRAINT post_comments_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.posts(id) ON DELETE CASCADE;
+
+--
+-- Name: post_likes post_likes_post_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.post_likes
+    ADD CONSTRAINT post_likes_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.posts(id) ON DELETE CASCADE;
+
+--
+-- Name: post_likes post_likes_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.post_likes
+    ADD CONSTRAINT post_likes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+--
+-- Name: posts posts_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.posts
+    ADD CONSTRAINT posts_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+--
+-- Name: tickets tickets_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tickets
+    ADD CONSTRAINT tickets_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+
+--
+-- Name: tickets tickets_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tickets
+    ADD CONSTRAINT tickets_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+--
+-- Name: users users_primary_specialty_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_primary_specialty_id_fkey FOREIGN KEY (primary_specialty_id) REFERENCES public.specialties(id) ON DELETE SET NULL;
+
+--
+--

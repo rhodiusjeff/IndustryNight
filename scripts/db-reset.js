@@ -6,9 +6,9 @@
  *   1. Enables maintenance mode (ALB returns 503 to all traffic)
  *   2. Scales API deployment to 0 (kills pods, drops all DB connections)
  *   3. Re-establishes kubectl port-forward to db-proxy (scale-down kills it)
- *   4. Drops ALL tables, types, and extensions in the database
+ *   4. Drops ALL tables, types, and trigger functions (extensions are preserved)
  *   5. Runs all migrations from packages/database/migrations/ (in filename order)
- *   6. Runs seed data (specialties.sql, then dev_seed.sql)
+ *   6. Runs seed data (specialties.sql, then products_catalog.sql, then dev_seed.sql)
  *   7. Scales API deployment back up
  *   8. Waits for pods to be healthy
  *   9. Disables maintenance mode (traffic flows again)
@@ -211,8 +211,9 @@ async function main() {
       }
       console.log(`  Dropped ${types.rows.length} enum types`);
 
-      // Drop trigger function
+      // Drop trigger functions
       await pool.query('DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE');
+      await pool.query('DROP FUNCTION IF EXISTS public.prevent_audit_log_mutation() CASCADE');
       console.log('  Dropped trigger functions');
 
       // ---- Step: Run migrations ----
@@ -252,6 +253,12 @@ async function main() {
     await pool.query(specialtiesSql);
     const specCount = await pool.query('SELECT COUNT(*) as count FROM specialties');
     console.log(`  Specialties: ${specCount.rows[0].count} loaded`);
+
+    // Standard product catalog (platform reference data — not dev-specific)
+    const productsCatalogSql = fs.readFileSync(path.join(SEEDS_DIR, 'products_catalog.sql'), 'utf8');
+    await pool.query(productsCatalogSql);
+    const prodCount = await pool.query('SELECT COUNT(*) as count FROM products');
+    console.log(`  Products catalog: ${prodCount.rows[0].count} loaded`);
 
     // Dev seed data
     const devSeedSql = fs.readFileSync(path.join(SEEDS_DIR, 'dev_seed.sql'), 'utf8');
