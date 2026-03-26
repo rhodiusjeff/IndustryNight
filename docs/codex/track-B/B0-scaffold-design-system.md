@@ -8,6 +8,22 @@
 **Estimated Effort:** Medium (1-2 days)
 **Dependencies:** None — runs in parallel with C0 and A0. However, complete C0 before starting B1.
 
+## Lane Variables (set by execution handoff — do not infer)
+
+Each lane receives these values in its startup handoff brief. Treat them as authoritative:
+
+| Variable | Claude lane | GPT lane |
+|----------|-------------|----------|
+| `LANE` | `claude` | `gpt` |
+| `BRANCH` | `feature/B0-react-scaffold-claude` | `feature/B0-react-scaffold-gpt` |
+| `WORKTREE` | `../IndustryNight-runs/B0-claude` | `../IndustryNight-runs/B0-gpt` |
+| `DEV_PORT` | `3630` | `3631` |
+| `TEST_PORT` | `3630` | `3631` |
+
+`DEV_PORT` / `TEST_PORT` are used only during local testing in this worktree. The committed
+`run-react-admin.sh` always defaults to port **3630** (canonical). During lane testing, override
+with `PORT=$TEST_PORT npm run dev` — do not commit the override.
+
 ## Execution Mode (Required)
 
 - [ ] Stage 1 (required): execute and validate locally first (local Postgres + local API + local admin/mobile against local endpoint).
@@ -302,7 +318,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REACT_ADMIN_DIR="$SCRIPT_DIR/../packages/react-admin"
 ENV="dev"
-PORT=3630
+PORT=${PORT:-3630}  # Allow PORT env override for lane testing; default 3630
 
 # Parse flags
 while [[ "$#" -gt 0 ]]; do
@@ -344,7 +360,212 @@ export NODE_OPTIONS='--inspect'
 "$(dirname "${BASH_SOURCE[0]}")/run-react-admin.sh" "$@"
 ```
 
-### Dashboard Stats Type
+### Test Script: test-react-admin.sh
+
+Create `scripts/test-react-admin.sh` as the standalone test runner for the React admin.
+This is committed as part of B0 output and is the basis for future `closeout-test.sh` integration.
+
+Phase structure mirrors `closeout-test.sh`: local sanity gate first, then AWS validation.
+The React admin needs a running API (which needs PG) for E2E — the script manages both.
+
+```
+Phase 1 — Type check          (no infra needed)
+Phase 2 — Unit tests          (no infra needed)
+Phase 3 — Local E2E           (starts Docker PG + local API + React admin; tears down after)
+[sanity gate: stop if Phase 3 fails]
+Phase 4 — AWS E2E             (points React admin at dev API; no local infra)
+Phase 5 — Build check         (no infra needed)
+```
+
+```bash
+#!/bin/bash
+# scripts/test-react-admin.sh
+# Standalone test runner for packages/react-admin/
+# Usage: ./scripts/test-react-admin.sh LANE_ID [--port 3630] [--local-only] [--skip-build] [--env dev|prod]
+
+set -uo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REACT_ADMIN_DIR="$PROJECT_ROOT/packages/react-admin"
+API_DIR="$PROJECT_ROOT/packages/api"
+LOG_DIR="$PROJECT_ROOT/test_logs"
+mkdir -p "$LOG_DIR"
+
+LANE_ID="${1:-B0}"; shift 2>/dev/null || true
+PORT=3630
+LOCAL_ONLY=false
+SKIP_BUILD=false
+ENV="dev"
+LOCAL_API_PID=""
+PG_CONTAINER="pg-react-admin-test"
+
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    --port)       PORT="$2"; shift ;;
+    --local-only) LOCAL_ONLY=true ;;
+    --skip-build) SKIP_BUILD=true ;;
+    --env)        ENV="$2"; shift ;;
+  esac
+  shift
+done
+
+TIMESTAMP=$(date +"%Y-%m-%d_%H%M%S")
+LOG_FILE="$LOG_DIR/${LANE_ID}_react-admin_${TIMESTAMP}.log"
+exec > >(tee -a "$LOG_FILE") 2>&1
+
+PASS=0; FAIL=0; OVERALL_FAIL=false
+phase() { echo; echo "════════════════════════════════"; echo "  Phase $1 — $2"; echo "════════════════════════════════"; }
+ok()    { echo "[PASS] $1"; PASS=$((PASS+1)); }
+fail()  { echo "[FAIL] $1"; FAIL=$((FAIL+1)); OVERALL_FAIL=true; }
+
+cleanup() {
+  [ -n "$LOCAL_API_PID" ] && kill "$LOCAL_API_PID" 2>/dev/null || true
+  docker rm -f "$PG_CONTAINER" 2>/dev/null || true
+  # Kill any React admin dev server started by this script
+  lsof -ti tcp:"$PORT" | xargs kill -9 2>/dev/null || true
+}
+trap cleanup EXIT
+
+# ── Phase 1: Type check ──────────────────────────────────────────────────────
+phase 1 "TypeScript type check"
+cd "$REACT_ADMIN_DIR"
+if npm run type-check; then ok "type-check"; else fail "type-check"; fi
+
+# ── Phase 2: Unit tests ───────────────────────────────────────────────────────
+phase 2 "Unit tests (Vitest)"
+if npm test -- --run; then ok "unit tests"; else fail "unit tests"; fi
+
+# ── Phase 3: Local E2E ────────────────────────────────────────────────────────
+phase 3 "Local E2E (Docker PG + local API + React admin port $PORT)"
+
+echo "[INFO] Starting Docker PG..."
+docker rm -f "$PG_CONTAINER" 2>/dev/null || true
+docker run -d --name "$PG_CONTAINER" \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=industrynight \
+  -p 5432:5432 postgres:15
+sleep 4
+
+echo "[INFO] Applying migrations..."
+DB_HOST=localhost DB_PORT=5432 DB_NAME=industrynight DB_USER=postgres \
+DB_PASSWORD=postgres DB_SSL=false node "$PROJECT_ROOT/scripts/migrate.js" --skip-k8s
+
+echo "[INFO] Starting local API on port 3000..."
+cd "$API_DIR"
+DB_HOST=localhost DB_PORT=5432 DB_NAME=industrynight DB_USER=postgres \
+DB_PASSWORD=postgres DB_SSL=false JWT_SECRET=test-secret-for-local-e2e-run \
+npm run dev &
+LOCAL_API_PID=$!
+sleep 5
+
+echo "[INFO] Starting React admin on port $PORT (local API)..."
+cd "$REACT_ADMIN_DIR"
+NEXT_PUBLIC_API_URL=http://localhost:3000 PORT=$PORT npm run dev &
+sleep 8
+
+echo "[INFO] Running Playwright E2E (local)..."
+PLAYWRIGHT_BASE_URL="http://localhost:$PORT" \
+TEST_ADMIN_EMAIL="${TEST_ADMIN_EMAIL:-}" \
+TEST_ADMIN_PASSWORD="${TEST_ADMIN_PASSWORD:-}" \
+npx playwright test
+if [ $? -eq 0 ]; then ok "local E2E"; else fail "local E2E"; fi
+
+# Sanity gate — stop before AWS if local failed
+if [ "$OVERALL_FAIL" = true ]; then
+  echo
+  echo "❌ SANITY GATE FAILED — local E2E did not pass. Skipping AWS phases."
+  echo "  RESULT: $PASS passed, $FAIL failed"
+  echo "  Log: $LOG_FILE"
+  exit 1
+fi
+
+cleanup
+LOCAL_API_PID=""
+
+# ── Phase 4: AWS E2E ──────────────────────────────────────────────────────────
+if [ "$LOCAL_ONLY" = true ]; then
+  echo "[SKIP] Phase 4 — AWS E2E skipped (--local-only)"
+else
+  phase 4 "AWS E2E (React admin → dev API at dev-api.industrynight.net)"
+
+  if [ "$ENV" = "prod" ]; then
+    AWS_API_URL="https://api.industrynight.net"
+  else
+    AWS_API_URL="https://dev-api.industrynight.net"
+  fi
+
+  echo "[INFO] Starting React admin on port $PORT (AWS API: $AWS_API_URL)..."
+  cd "$REACT_ADMIN_DIR"
+  NEXT_PUBLIC_API_URL="$AWS_API_URL" PORT=$PORT npm run dev &
+  sleep 8
+
+  echo "[INFO] Running Playwright E2E (AWS)..."
+  PLAYWRIGHT_BASE_URL="http://localhost:$PORT" \
+  TEST_ADMIN_EMAIL="${TEST_ADMIN_EMAIL:-}" \
+  TEST_ADMIN_PASSWORD="${TEST_ADMIN_PASSWORD:-}" \
+  npx playwright test
+  if [ $? -eq 0 ]; then ok "AWS E2E"; else fail "AWS E2E"; fi
+fi
+
+# ── Phase 5: Build check ──────────────────────────────────────────────────────
+if [ "$SKIP_BUILD" = true ]; then
+  echo "[SKIP] Phase 5 — build skipped"
+else
+  phase 5 "Production build check"
+  cd "$REACT_ADMIN_DIR"
+  if npm run build; then ok "build"; else fail "build"; fi
+fi
+
+echo
+echo "══════════════════════════════════════════"
+echo "  RESULT: $PASS passed, $FAIL failed"
+echo "  Log: $LOG_FILE"
+echo "══════════════════════════════════════════"
+[ "$FAIL" -eq 0 ]
+```
+
+**Usage by lane agents:**
+```bash
+# Local sanity only (fastest — runs during development)
+./scripts/test-react-admin.sh B0-claude --port 3630 --local-only
+
+# Full run including AWS E2E (run before PR)
+TEST_ADMIN_EMAIL=admin@example.com TEST_ADMIN_PASSWORD=xxx \
+  ./scripts/test-react-admin.sh B0-claude --port 3630
+
+# GPT lane (different port)
+./scripts/test-react-admin.sh B0-gpt --port 3631 --local-only
+```
+
+**Notes:**
+- `TEST_ADMIN_EMAIL` / `TEST_ADMIN_PASSWORD` must be set for Playwright auth tests to pass.
+  Use the dev seed admin account. Pass them as env vars, never commit credentials.
+- `cleanup` trap kills PG container and API on exit (success or failure).
+- The `--local-only` flag is the equivalent of `closeout-test.sh --local-only`; use it
+  for fast iteration during development, full run before opening the PR.
+
+---
+
+### Playwright Config
+
+Configure Playwright so `baseURL` reads from env rather than hardcoded port:
+
+```typescript
+// packages/react-admin/playwright.config.ts
+import { defineConfig } from '@playwright/test'
+
+export default defineConfig({
+  testDir: './e2e',
+  use: {
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3630',
+  },
+  webServer: {
+    command: `PORT=${process.env.PORT || 3630} npm run dev`,
+    url: `http://localhost:${process.env.PORT || 3630}`,
+    reuseExistingServer: true,  // uses already-running server if available
+  },
+})
+```
 
 ```typescript
 // types/admin.ts
@@ -430,12 +651,12 @@ describe('StatCard', () => {
 import { test, expect } from '@playwright/test'
 
 test('unauthenticated user is redirected to login', async ({ page }) => {
-  await page.goto('http://localhost:3630/');
+  await page.goto('/');
   await expect(page).toHaveURL(/\/login/);
 });
 
 test('login with invalid credentials shows error', async ({ page }) => {
-  await page.goto('http://localhost:3630/login');
+  await page.goto('/login');
   await page.fill('[name=email]', 'wrong@example.com');
   await page.fill('[name=password]', 'wrongpassword');
   await page.click('button[type=submit]');
@@ -443,11 +664,11 @@ test('login with invalid credentials shows error', async ({ page }) => {
 });
 
 test('login with valid credentials redirects to dashboard', async ({ page }) => {
-  await page.goto('http://localhost:3630/login');
+  await page.goto('/login');
   await page.fill('[name=email]', process.env.TEST_ADMIN_EMAIL!);
   await page.fill('[name=password]', process.env.TEST_ADMIN_PASSWORD!);
   await page.click('button[type=submit]');
-  await expect(page).toHaveURL('http://localhost:3630/');
+  await expect(page).toHaveURL('/');
   await expect(page.locator('h1')).toContainText('Dashboard');
 });
 ```
@@ -474,6 +695,8 @@ echo "✓ B0 smoke tests passed"
 
 - [ ] `packages/react-admin/` committed with all scaffold files
 - [ ] `scripts/run-react-admin.sh` and `scripts/debug-react-admin.sh` created, executable, and committed
+- [ ] `scripts/test-react-admin.sh` created, executable, and committed
+- [ ] `packages/react-admin/playwright.config.ts` uses `PLAYWRIGHT_BASE_URL` env var (not hardcoded port)
 - [ ] `npm run dev` in `packages/react-admin/` starts on port 3630 without errors
 - [ ] Login form renders at `/login`; dashboard renders at `/` after login
 - [ ] Role-gated sidebar: eventOps sees only 3 sections, moderator sees only 3, platformAdmin sees all
