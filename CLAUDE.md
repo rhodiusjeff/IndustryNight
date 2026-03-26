@@ -117,6 +117,9 @@ Future migrations start at `002_*.sql`. Archived originals are in `packages/data
 | `venues` | Legacy venue records (new events use venue_name/venue_address text fields directly) | — |
 | `events` | Industry night events (venue_name + venue_address as text; no image_url — use event_images) | — |
 | `event_images` | Up to 5 images per event; sort_order 0 = hero image | CASCADE |
+| `markets` | Geographic/categorical markets (e.g., "Atlanta", "NYC") — events assigned to one market | — |
+| `customer_contacts` | Contact persons for a customer (name, title, phone, email) | CASCADE |
+| `customer_media` | Brand assets (logos, photos) for a customer — stored in S3 | CASCADE |
 | `customers` | Businesses with commercial relationships (replaces sponsors + vendors) | — |
 | `products` | Catalog of what IN sells: sponsorships, vendor space, data products | — |
 | `customer_products` | Purchases / active relationships (customer + product + optional event) | customer: CASCADE, product: RESTRICT |
@@ -143,6 +146,7 @@ An event cannot be published unless:
 1. `posh_event_id` is set (required to match incoming Posh webhooks)
 2. `venue_name` is set
 3. At least 1 image exists in `event_images`
+4. `market_id` is set (required to categorize event by market; error: `"Cannot publish: Market must be assigned"`)
 
 ## API (packages/api)
 
@@ -171,6 +175,7 @@ Optional (with defaults):
 | `/events` | routes/events.ts | CRUD + attendee management |
 | `/connections` | routes/connections.ts | QR-scan connections |
 | `/posts` | routes/posts.ts | Community feed CRUD + comments/likes |
+| `/markets` | routes/markets.ts | `GET /markets` — public list of active markets |
 | `/sponsors` | routes/sponsors.ts | Social-facing: active customers with sponsorship products |
 | `/discounts` | routes/discounts.ts | Social-facing: active discounts with customer info + redemption |
 | `/webhooks` | routes/webhooks.ts | Posh webhook receiver (`POST /posh`) |
@@ -214,6 +219,16 @@ Optional (with defaults):
 | `PATCH` | `/admin/customers/:id/discounts/:did` | Update discount |
 | `DELETE` | `/admin/customers/:id/discounts/:did` | Delete discount |
 | `GET` | `/admin/customers/:id/redemptions` | Redemption stats for customer |
+| `GET` | `/admin/markets` | List all markets |
+| `POST` | `/admin/markets` | Create market |
+| `PATCH` | `/admin/markets/:id` | Update market |
+| `GET` | `/admin/customers/:id/contacts` | List contacts for customer |
+| `POST` | `/admin/customers/:id/contacts` | Add contact |
+| `PATCH` | `/admin/customers/:id/contacts/:contactId` | Update contact |
+| `DELETE` | `/admin/customers/:id/contacts/:contactId` | Remove contact |
+| `GET` | `/admin/customers/:id/media` | List media assets for customer |
+| `POST` | `/admin/customers/:id/media` | Upload media asset (multipart, sharp validation) |
+| `DELETE` | `/admin/customers/:id/media/:mediaId` | Delete media asset (S3 + DB) |
 
 ### Middleware
 - `authenticateAdmin` (`middleware/admin-auth.ts`) — verifies JWT with `tokenFamily: 'admin'`, used on all `/admin` routes
@@ -609,7 +624,7 @@ Use cases:
 - **QR networking:** Connections are instant and mutual on QR scan (no request/accept flow, no confirmation step). Scanner gets immediate celebration overlay. Scanned user gets notified via 4-second polling on `GET /connections`. Both users auto-verified on first connection.
 - **Venue as text fields:** `venue_name` and `venue_address` are plain text on `events` — no first-class Venue FK for new events. The `venues` table remains for legacy data only.
 - **posh_orders as tickets:** Posh webhook purchases write to `posh_orders`, which IS the canonical ticket record. The `tickets` table is for walk-in/manual check-ins. Posh buyers are NOT auto-created as users — they receive an invite to download the app.
-- **Publish gate:** Events require Posh event ID + venue name + at least 1 image before they can be published. Enforced at the API layer in `PATCH /admin/events/:id`.
+- **Publish gate:** Events require Posh event ID + venue name + at least 1 image + market assignment before they can be published. Enforced at the API layer in `PATCH /admin/events/:id`. Error when market missing: `"Cannot publish: Market must be assigned"`.
 - **Image catalog:** All event images are queryable globally (`GET /admin/images`) for reuse and cleanup, in addition to per-event access.
 - **Hero image:** `sort_order = 0` in `event_images` designates the hero (first image shown in social app). Admins can swap hero via star icon. Deleting the hero auto-promotes the next image.
 - **Unified customer model:** Sponsors and vendors are both "customers" who buy different "products." The `customers` table replaces separate `sponsors` and `vendors` tables. A product catalog (`products`) defines what IN sells (sponsorships, vendor space, data products). `customer_products` tracks purchases. This supports the three revenue tiers: logo placement ($500-2K), audience access ($2-5K), data partnerships ($5-20K/quarter).
@@ -668,7 +683,7 @@ Tests run against a real PostgreSQL container (not mocks) with the full migratio
 **Still needed:**
 1. **Auth flow:** request-code → verify-code → token issued → refresh → logout
 2. **User deletion cascade:** delete user → verify all FK tables cleaned, audit_log preserved (SET NULL), verification_codes cleaned separately
-3. **Event publish gate:** PATCH status=published fails without poshEventId, venueName, and at least 1 image
+3. **Event publish gate:** PATCH status=published fails without poshEventId, venueName, market_id, and at least 1 image
 4. **Posh webhook:** POST /webhooks/posh with real payload structure → posh_orders row created → invite sent
 
 ### Flutter Widget Tests — Priority: build alongside API tests

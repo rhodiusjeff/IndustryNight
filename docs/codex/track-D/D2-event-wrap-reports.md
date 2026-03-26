@@ -22,6 +22,7 @@
 
 Read these before writing any code:
 
+- `docs/codex/EXECUTION_CONTEXT.md` — living operational context: test infrastructure, migration conventions, API ground truth, deployment patterns (read before touching any code)
 - `CLAUDE.md` — full project reference (database, API routes, Admin app routes, state management)
 - `docs/product/requirements.md` — Section 4.2 "Event Wrap Reports" (product vision)
 - `packages/database/migrations/001_baseline_schema.sql` — current baseline schema

@@ -6,7 +6,7 @@
 **Alternate Model:** gpt-5.3-codex ← preferred if running inside OpenAI Codex platform; FCM integration with GCP credentials and batch send logic benefits from GPT-5.3-Codex's structured reasoning
 **A/B Test:** No
 **Estimated Effort:** Medium (6-8 hours)
-**Dependencies:** C0 (schema foundation), C1 (device token tracking + wristband columns)
+**Dependencies:** C0 (schema foundation), C1 (device token tracking + wristband columns), X1 (schema consolidation — must be merged before C2 executes; migration numbering depends on X1 output)
 
 ## Execution Mode (Required)
 
@@ -33,6 +33,7 @@
 
 Read these before implementing FCM:
 
+- `docs/codex/EXECUTION_CONTEXT.md` — living operational context: test infrastructure, migration conventions, API ground truth, deployment patterns (read before touching any code)
 - `CLAUDE.md` — full project reference (service patterns in sms.ts, email.ts, storage.ts; Flutter integration notes)
 - `packages/api/src/services/sms.ts` — graceful degradation pattern (reference implementation)
 - `packages/api/src/services/email.ts` — how to handle missing env vars without crashing

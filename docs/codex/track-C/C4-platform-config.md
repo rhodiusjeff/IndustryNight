@@ -32,6 +32,7 @@
 
 Read these before implementing:
 
+- `docs/codex/EXECUTION_CONTEXT.md` — living operational context: test infrastructure, migration conventions, API ground truth, deployment patterns (read before touching any code)
 - `CLAUDE.md` — full project reference, API section (routes, middleware, services)
 - `packages/api/src/routes/admin.ts` — existing admin endpoints pattern
 - `packages/api/src/middleware/` — authentication and validation patterns

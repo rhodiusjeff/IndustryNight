@@ -35,6 +35,7 @@ The A0 mopup branch (PR #54, merged 2026-03-25) added the following API endpoint
 
 Read these before implementing:
 
+- `docs/codex/EXECUTION_CONTEXT.md` — living operational context: test infrastructure, migration conventions, API ground truth, deployment patterns (read before touching any code)
 - `CLAUDE.md` — Admin API endpoints table (routes/admin.ts) and Flutter admin app feature list
 - `docs/codex/track-B/B0-scaffold-design-system.md` — design system, Tailwind config, component patterns
 - `docs/codex/track-B/B1-auth-rbac-permissions.md` — auth middleware, role gating, admin session management (reference for consistency)

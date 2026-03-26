@@ -22,6 +22,7 @@
 
 Read these before writing any code:
 
+- `docs/codex/EXECUTION_CONTEXT.md` — living operational context: test infrastructure, migration conventions, API ground truth, deployment patterns (read before touching any code)
 - `CLAUDE.md` — project reference (database schema, API routes, roles)
 - `docs/codex/track-B/B0-scaffold-design-system.md` — design system, component patterns, styling conventions
 - `docs/codex/track-B/B1-auth-rbac-permissions.md` — role-gated navigation, `eventOps` role definition, auth hooks

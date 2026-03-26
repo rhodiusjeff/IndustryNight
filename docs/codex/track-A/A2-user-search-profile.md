@@ -22,6 +22,7 @@
 
 Read these before writing any code:
 
+- `docs/codex/EXECUTION_CONTEXT.md` — living operational context: test infrastructure, migration conventions, API ground truth, deployment patterns (read before touching any code)
 - `CLAUDE.md` — full project reference, especially Roles and Architecture Decisions sections
 - `packages/social-app/lib/features/search/` — existing search_screen.dart (may be stub)
 - `packages/social-app/lib/features/profile/screens/my_profile_screen.dart` — current user profile (will refactor)
@@ -30,6 +31,8 @@ Read these before writing any code:
 - `packages/shared/lib/api/connections_api.dart` — connections API client (verify or add methods)
 - `packages/shared/lib/models/user.dart` — User model (may need fields added)
 - `packages/social-app/lib/config/routes.dart` — GoRouter config (verify `/users/:userId` route exists)
+
+> **Flutter Widget Test Gotcha:** `FakeAppState.initialize()` MUST be a no-op override in all widget tests. Without this, `SecureStorage` throws `MissingPluginException` in test context. See `EXECUTION_CONTEXT.md` §1 and the reference test at `packages/social-app/test/features/settings/settings_screen_test.dart`.
 
 ---
 

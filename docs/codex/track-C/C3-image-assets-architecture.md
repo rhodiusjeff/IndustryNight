@@ -33,6 +33,7 @@
 
 Read these before writing any code:
 
+- `docs/codex/EXECUTION_CONTEXT.md` — living operational context: test infrastructure, migration conventions, API ground truth, deployment patterns (read before touching any code)
 - `CLAUDE.md` — full project reference (API services section, database section, tech stack)
 - `docs/product/master_plan_v2.md` — Section 3.5 "Image Assets Table" (architectural goals)
 - `packages/database/migrations/001_baseline_schema.sql` — baseline schema

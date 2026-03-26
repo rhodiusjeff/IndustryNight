@@ -22,6 +22,7 @@
 
 Read these before writing any code:
 
+- `docs/codex/EXECUTION_CONTEXT.md` — living operational context: test infrastructure, migration conventions, API ground truth, deployment patterns (read before touching any code)
 - `CLAUDE.md` — Admin auth API endpoints, admin roles, JWT token families
 - `docs/codex/track-B/B0-scaffold-design-system.md` — B0 scaffold structure, permissions.ts skeleton, auth patterns
 - B0 scaffold: `packages/react-admin/` with empty auth shell but no real token management or login logic

@@ -52,6 +52,7 @@ Migration numbering: X1 consolidates 001–007 into a single new `001_baseline_s
 
 Read these before writing any code:
 
+- `docs/codex/EXECUTION_CONTEXT.md` — living operational context: test infrastructure, migration conventions, API ground truth, deployment patterns (read before touching any code)
 - `CLAUDE.md` — full project reference (API routes section, middleware patterns, services)
 - `packages/api/src/routes/` — existing route files (patterns: exports `router`, uses `validate` middleware, parameterized queries)
 - `packages/api/src/middleware/` — auth and validation middleware
