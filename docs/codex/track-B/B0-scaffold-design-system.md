@@ -715,24 +715,53 @@ echo "✓ B0 smoke tests passed"
 
 > To be filled in by the executing agent after implementation is complete.
 
-**Branch:** `feature/B0-react-scaffold-[claude|gpt]`
-**Model used:** —
-**Date completed:** —
+**Branch:** `feature/B0-react-scaffold-claude`
+**Model used:** claude-sonnet-4-6
+**Date completed:** 2026-03-25
 
 ### What I implemented exactly as specced
--
+
+- Full Next.js 14 App Router project at `packages/react-admin/` with TypeScript strict mode
+- All design tokens in `tailwind.config.ts` (exact hex values from spec)
+- CSS custom properties in `globals.css` for all color tokens
+- Inter font via `next/font/google`
+- `middleware.ts` for auth redirect (exact code from spec)
+- `lib/permissions.ts` with `NAV_PERMISSIONS` map and `canAccess()` (exact code from spec)
+- API proxy at `app/api/[...path]/route.ts` (exact pattern from spec)
+- `scripts/run-react-admin.sh` — port 3630, `.env.local` bootstrap, `--env dev|prod`
+- `scripts/debug-react-admin.sh` — wraps run script with `NODE_OPTIONS='--inspect'`
+- `scripts/test-react-admin.sh` — 5-phase test runner (exact structure from spec)
+- `playwright.config.ts` using `PLAYWRIGHT_BASE_URL` env var (not hardcoded port)
+- Role-gated Sidebar: eventOps sees 5 items, moderator sees 4, platformAdmin sees all 10
+- Dashboard with 4 stat cards (Total Users, Active Events, Connections Made, Community Posts)
+- Skeleton loading + error retry on dashboard
+- All 9 "Coming Soon" placeholder screens
+- 14 unit tests passing: permissions (4), StatCard (4), utils (6)
 
 ### What I deviated from the spec and why
--
+
+- **Token storage**: Used `localStorage` instead of httpOnly cookies for `accessToken`/`refreshToken`. The spec mentions "httpOnly cookie (or secure localStorage if cookie approach is problematic in Next.js App Router)" — Next.js App Router makes httpOnly cookies complex because middleware runs on the edge and `set-cookie` from client components requires a server action or API route. The middleware uses `request.cookies.get('accessToken')` for the redirect guard, but the client-side auth guard in `(dashboard)/layout.tsx` reads from `localStorage`. This is a known limitation — B1 should decide definitively: full cookie-based auth (server actions for login/logout) OR localStorage with the middleware guard being a second line of defense.
+- **Sidebar role counts**: The spec says eventOps sees "only 3 sections" (Dashboard, Event Ops, Events), but `NAV_PERMISSIONS` in the spec also grants eventOps access to `/posh-orders`, making it 4. Implemented exactly per `NAV_PERMISSIONS` map.
 
 ### What I deferred or left incomplete
--
+
+- No `/dev/components` Storybook-style page (marked optional in spec)
+- shadcn/ui CLI initialization not run — Radix UI primitives installed directly since node_modules were pre-populated. B1 can run `npx shadcn-ui init` if needed.
+- E2E Playwright tests only run in CI (require live API + admin credentials). Unit tests fully pass.
 
 ### Technical debt introduced
--
+
+- `localStorage` token storage is accessible to JS (XSS risk vs httpOnly cookies). Acceptable for admin-only internal tool at this stage. B1 should migrate to httpOnly cookies via Next.js server actions for production hardening.
+- `useAuth` hook manages user state in component state (not Zustand). Works for single-component use, but if multiple components need auth state simultaneously, Zustand store should be wired. B1 will likely need to promote to a global store.
 
 ### What B1 (Auth + RBAC) should know about this scaffold
--
+
+- **Auth decision needed**: localStorage vs httpOnly cookies. Current middleware uses cookie check; client layout uses localStorage. One must win — recommend httpOnly cookies via Next.js server actions for production.
+- **Token storage keys**: `in_admin_access_token`, `in_admin_refresh_token`, `in_admin_user` in localStorage.
+- **API client auto-refresh**: Implemented in `lib/api/client.ts` — on 401, calls `POST /admin/auth/refresh`, retries request once, then clears session and redirects to `/login`.
+- **Sidebar already role-gated**: `canAccess()` from `lib/permissions.ts` drives nav visibility. B1 adds route-level enforcement (redirect unauthorized users who navigate directly).
+- **Port convention**: 3630 is committed throughout. Do not change.
+- **node_modules were pre-populated** in the worktree. Added `@testing-library/dom` which was missing. Run `npm install` if adding new deps.
 
 ---
 
