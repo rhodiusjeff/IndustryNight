@@ -19,7 +19,7 @@
 ### C0 Winner Handoff (Control Session)
 
 - Winner for C0 execution/apply authority: `claude-sonnet-4-6` (control session decision).
-- Source-of-truth migration: `packages/database/migrations/004_phase0_foundation.sql`.
+- Source-of-truth migration: `packages/database/migrations/001_baseline_schema.sql` (X1 consolidated all prior migrations; `004_phase0_foundation.sql` is now in `archive/`).
 - Assume these C0 outputs exist before implementing C2:
   - `admin_role` includes `moderator` and `eventOps`
   - `users.fcm_token` and `tickets.wristband_issued_at` columns exist
@@ -39,7 +39,7 @@ Read these before implementing FCM:
 - `packages/api/src/services/email.ts` — how to handle missing env vars without crashing
 - `packages/api/src/services/storage.ts` — S3 integration with fallback behavior
 - `packages/social-app/lib/providers/app_state.dart` — where to hook push notification initialization
-- `packages/database/migrations/004_phase0_foundation.sql` — users.fcm_token and tickets.wristband_issued_at columns (from C0)
+- `packages/database/migrations/001_baseline_schema.sql` — users.fcm_token and tickets.wristband_issued_at columns are now part of the consolidated baseline (C0 schema changes absorbed by X1)
 - `packages/api/src/routes/connections.ts` — where QR scan endpoint will integrate FCM call
 - `packages/api/src/routes/events.ts` or new wristband endpoint (from C1) — where wristband confirmation will integrate FCM call
 - Firebase Console documentation: service account JSON key download, FCM API enablement
