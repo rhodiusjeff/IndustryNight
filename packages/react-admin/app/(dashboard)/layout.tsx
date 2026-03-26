@@ -12,7 +12,11 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const [user, setUser] = useState<AdminUser | null>(null)
+  // Sync read on first render — avoids a flash of null while waiting for useEffect
+  const [user, setUser] = useState<AdminUser | null>(() => {
+    if (typeof window === 'undefined') return null
+    return getStoredUser()
+  })
   const [checked, setChecked] = useState(false)
   const router = useRouter()
 
@@ -40,10 +44,9 @@ export default function DashboardLayout({
     }
   }
 
-  if (!checked || !user) {
-    // Returning null while the useEffect redirect fires avoids showing
-    // a stale spinner on the login page as the redirect takes effect
-    return null
+  // If no user after hydration, we're mid-redirect — show a minimal dark screen
+  if (!user || !checked) {
+    return <div className="min-h-screen bg-background" />
   }
 
   return (
