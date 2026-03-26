@@ -8,6 +8,7 @@ pubspec.lock
 build/
 dist/
 *.js.map
+packages/react-admin/.next/
 
 # IDE
 .idea/
