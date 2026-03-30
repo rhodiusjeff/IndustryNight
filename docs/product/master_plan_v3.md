@@ -49,7 +49,7 @@ As of v3, the platform's transactional loop is fully operational and the social 
 | User search + profiles | ✅ Complete (A2) | Search screen, user profile, connections list — wired to real API |
 | Perks/sponsors | ✅ Complete (A3) | Perks screen, sponsor detail, discount redemption — wired to real API |
 | Schema consolidation | ✅ Complete (X1) | Migrations 001–004 merged into 001_baseline_schema.sql |
-| Profile photo upload | ✅ Complete (A0) | Upload endpoint wired; S3 graceful degradation in dev |
+| Profile photo upload | ⚠️ API endpoint missing; Flutter UI disabled | `POST /users/me/photo` not implemented; `edit_profile_screen.dart` button is `onPressed: null`; flagged as A2 delivery item |
 | Delete account (GoRouter-safe) | ✅ Complete (A0) | Auth-safe delete flow with GoRouter refreshListenable guard |
 
 ### 1.2 What's In Progress or Scaffolded
@@ -142,7 +142,11 @@ As of v3, the platform's transactional loop is fully operational and the social 
 
 ### 2.8 Profile Photo Upload
 
-**Status:** ✅ Complete (A0). Upload endpoint wired; S3 graceful degradation in dev.
+**Status:** ⚠️ Incomplete. The `uploadProfilePhoto` method exists in `UsersApi` (Dart) and the `profile_photo_url` column exists in the `users` table, but:
+- `POST /users/me/photo` API endpoint does **not exist** in `packages/api/src/routes/users.ts`
+- Flutter `edit_profile_screen.dart` has `onPressed: null, // photo upload deferred to v1.0`
+- No Jest or widget test coverage
+- A2 `docs/codex/track-A/A2-user-search-profile.md` spec has been updated to own this as a first-class deliverable.
 
 ### 2.9 Influence Score
 

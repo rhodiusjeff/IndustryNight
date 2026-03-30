@@ -5,7 +5,7 @@
 **Model:** claude-sonnet-4-6
 **Alternate Model:** gpt-5.3-codex
 **A/B Test:** No
-**Estimated Effort:** Medium (6-8 hours)
+**Estimated Effort:** Medium (8-10 hours) — includes profile photo upload endpoint + Flutter UI (was incorrectly marked Complete in A0)
 **Dependencies:** A0 (critical fixes), A1 (community feed wiring)
 
 ## Execution Mode (Required)
@@ -180,9 +180,10 @@ class UserProfileScreen extends ConsumerWidget {
 ```
 
 Ensure:
-- Profile photo upload still works (from A0)
 - Edit profile navigation still works
 - Settings icon in top-right still routes to settings_screen
+
+> **Note:** Profile photo upload was incorrectly marked Complete in A0. The API endpoint does not exist and the Flutter button is disabled. Implement it as part of A2 — see §9 below.
 
 ### 4. `connections_list_screen.dart` (fully wire)
 
@@ -298,6 +299,250 @@ Verify these fields:
 
 **File:** `packages/social-app/lib/config/routes.dart`
 
+### 9. Profile Photo Upload (A2 delivery — was NOT completed in A0)
+
+This feature was incorrectly marked Complete in A0. Both the API endpoint and the Flutter UI are missing. A2 owns full delivery.
+
+#### A. API endpoint — `POST /users/me/photo`
+
+**File:** `packages/api/src/routes/users.ts`
+
+```typescript
+// Add multer import at top of file (already used in admin.ts — same pattern)
+import multer from 'multer';
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+
+router.post(
+  '/me/photo',
+  authenticate,
+  upload.single('photo'),
+  async (req, res, next): Promise<void> => {
+    try {
+      if (!req.file) {
+        res.status(400).json({ error: 'No file uploaded' });
+        return;
+      }
+
+      // sharp validation: reject non-images
+      let metadata: sharp.Metadata;
+      try {
+        metadata = await sharp(req.file.buffer).metadata();
+      } catch {
+        res.status(422).json({ error: 'Invalid image file' });
+        return;
+      }
+
+      if (!['jpeg', 'png', 'webp'].includes(metadata.format ?? '')) {
+        res.status(422).json({ error: 'Unsupported image format. Use JPEG, PNG, or WebP.' });
+        return;
+      }
+
+      // Resize to max 800px wide, convert to WebP for consistency
+      const processed = await sharp(req.file.buffer)
+        .resize({ width: 800, withoutEnlargement: true })
+        .webp({ quality: 85 })
+        .toBuffer();
+
+      const filename = `profile-photos/${req.user!.userId}-${Date.now()}.webp`;
+      const url = await uploadImage(processed, filename, 'profile-photos');
+
+      const updated = await queryOne<{ profile_photo_url: string }>(
+        'UPDATE users SET profile_photo_url = $1, updated_at = NOW() WHERE id = $2 RETURNING profile_photo_url',
+        [url, req.user!.userId]
+      );
+
+      res.json({ profilePhotoUrl: updated!.profile_photo_url });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+```
+
+**Constraints:**
+- Max file size: 5MB (multer limit)
+- Accepted formats: JPEG, PNG, WebP (sharp validates)
+- sharp resizes and converts to WebP before S3 upload
+- Returns `{ profilePhotoUrl: string }` on success
+- 400 if no file; 422 if not an image or unsupported format
+- Graceful degradation: if `s3Available` is false in dev, `uploadImage` returns placeholder URL (existing behavior)
+
+#### B. Flutter UI — `edit_profile_screen.dart`
+
+**File:** `packages/social-app/lib/features/profile/screens/edit_profile_screen.dart`
+
+Wire the currently-disabled photo upload button:
+
+```dart
+// Replace the disabled button with:
+GestureDetector(
+  onTap: _isUploadingPhoto ? null : _pickAndUploadPhoto,
+  child: Stack(
+    children: [
+      CircleAvatar(
+        radius: 48,
+        backgroundImage: _localPhotoBytes != null
+            ? MemoryImage(_localPhotoBytes!) as ImageProvider
+            : (user?.profilePhotoUrl != null
+                ? NetworkImage(user!.profilePhotoUrl!)
+                : null),
+        child: (user?.profilePhotoUrl == null && _localPhotoBytes == null)
+            ? const Icon(Icons.person, size: 48)
+            : null,
+      ),
+      Positioned(
+        bottom: 0, right: 0,
+        child: _isUploadingPhoto
+            ? const CircularProgressIndicator(strokeWidth: 2)
+            : const CircleAvatar(
+                radius: 14,
+                backgroundColor: Colors.white,
+                child: Icon(Icons.camera_alt, size: 16),
+              ),
+      ),
+    ],
+  ),
+)
+```
+
+Add the pick-and-upload handler:
+
+```dart
+Uint8List? _localPhotoBytes;
+bool _isUploadingPhoto = false;
+
+Future<void> _pickAndUploadPhoto() async {
+  // Web: use dart:html FileReader
+  // Mobile: use image_picker
+  final bytes = await _pickImageBytes();
+  if (bytes == null) return;
+
+  setState(() {
+    _localPhotoBytes = bytes;
+    _isUploadingPhoto = true;
+  });
+
+  try {
+    final filename = 'profile-${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final updatedUser = await context.read<AppState>().usersApi.uploadProfilePhoto(
+      bytes,
+      filename,
+    );
+    context.read<AppState>().updateCurrentUser(updatedUser);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Photo updated')),
+      );
+    }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload failed: $e')),
+      );
+      setState(() { _localPhotoBytes = null; });
+    }
+  } finally {
+    if (mounted) setState(() { _isUploadingPhoto = false; });
+  }
+}
+
+Future<Uint8List?> _pickImageBytes() async {
+  // Use the same FileReader/image_picker pattern as A1 community post image attachment
+  // Web: dart:html FileReader (see A1-community-board.md §3 for pattern)
+  // Mobile: image_picker ImageSource.gallery
+  // Return null if user cancels
+}
+```
+
+**Packages needed (verify in pubspec.yaml):**
+- `image_picker` (already likely present from onboarding — verify)
+- `dart:html` for web FileReader (no pubspec entry needed — platform SDK)
+
+#### C. Jest test — `POST /users/me/photo`
+
+Add to `packages/api/src/__tests__/users.test.ts` (or a new `user-photo.test.ts`):
+
+```typescript
+describe('POST /users/me/photo', () => {
+  it('uploads photo and returns profilePhotoUrl', async () => {
+    const res = await request(app)
+      .post('/users/me/photo')
+      .set('Authorization', `Bearer ${userToken}`)
+      .attach('photo', Buffer.from('fake-image-bytes'), { filename: 'test.jpg', contentType: 'image/jpeg' });
+
+    // In test env without S3, expect placeholder URL or actual URL
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('profilePhotoUrl');
+    expect(typeof res.body.profilePhotoUrl).toBe('string');
+  });
+
+  it('returns 400 when no file uploaded', async () => {
+    const res = await request(app)
+      .post('/users/me/photo')
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 422 for non-image file', async () => {
+    const res = await request(app)
+      .post('/users/me/photo')
+      .set('Authorization', `Bearer ${userToken}`)
+      .attach('photo', Buffer.from('not an image'), { filename: 'doc.txt', contentType: 'text/plain' });
+
+    expect(res.status).toBe(422);
+  });
+
+  it('requires authentication', async () => {
+    const res = await request(app)
+      .post('/users/me/photo')
+      .attach('photo', Buffer.from('fake'), { filename: 'test.jpg', contentType: 'image/jpeg' });
+
+    expect(res.status).toBe(401);
+  });
+
+  it('updates profile_photo_url in database after upload', async () => {
+    await request(app)
+      .post('/users/me/photo')
+      .set('Authorization', `Bearer ${userToken}`)
+      .attach('photo', Buffer.from('fake-image'), { filename: 'p.jpg', contentType: 'image/jpeg' });
+
+    const user = await db.query('SELECT profile_photo_url FROM users WHERE id = $1', [testUserId]);
+    expect(user.rows[0].profile_photo_url).toBeTruthy();
+  });
+});
+```
+
+#### D. Widget test — photo upload button in `edit_profile_screen.dart`
+
+**File:** `packages/social-app/test/features/profile/edit_profile_screen_test.dart`
+
+```dart
+testWidgets('Photo upload button is tappable (not null)', (tester) async {
+  await tester.pumpWidget(buildTestApp());
+  // Camera icon should be present and tappable
+  expect(find.byIcon(Icons.camera_alt), findsOneWidget);
+  // Should not be disabled
+  final gesture = find.byIcon(Icons.camera_alt);
+  expect(tester.widget<GestureDetector>(gesture.first).onTap, isNotNull);
+});
+
+testWidgets('Shows loading indicator while uploading', (tester) async {
+  // Mock usersApi.uploadProfilePhoto to delay
+  // Verify CircularProgressIndicator appears during upload
+});
+
+testWidgets('Shows snackbar on upload success', (tester) async {
+  // Mock uploadProfilePhoto to return updatedUser
+  // Verify 'Photo updated' snackbar appears
+});
+
+testWidgets('Shows error snackbar on upload failure', (tester) async {
+  // Mock uploadProfilePhoto to throw
+  // Verify 'Upload failed' snackbar appears
+});
+```
+
 Verify these routes exist (add if missing):
 
 ```dart
@@ -390,6 +635,11 @@ GestureDetector(
 - [ ] All screens handle loading and error states without white screen flash
 - [ ] url_launcher package added to pubspec.yaml (social-app)
 - [ ] All API calls use correct endpoints per backend (verify GET /users, GET /users/:id, GET /connections)
+- [ ] `POST /users/me/photo` endpoint implemented in `packages/api/src/routes/users.ts` (multer + sharp validation + S3 upload + DB update)
+- [ ] `edit_profile_screen.dart` photo upload button wired (not `onPressed: null`)
+- [ ] Photo upload shows local preview immediately, loading indicator during upload, success/error snackbar
+- [ ] Jest tests cover: upload success, 400 no file, 422 non-image, 401 unauthenticated, DB update verified
+- [ ] Widget tests cover: button is tappable, loading state, success snackbar, error snackbar
 
 ---
 
@@ -870,6 +1120,7 @@ describe('GET /connections', () => {
 - [ ] Manual test: connections list displays all connections with date
 - [ ] Manual test: post author tap navigates to author's profile
 - [ ] No existing tests broken
+- [ ] Manual test: tap photo avatar in edit_profile_screen → file picker opens → photo uploads → avatar updates immediately
 - [ ] Completion Report filled in (below)
 - [ ] Interrogative Session completed with Jeff
 
@@ -896,7 +1147,7 @@ describe('GET /connections', () => {
 -
 
 ### What the next prompt in this track (A3) should know
--
+- Profile photo upload endpoint (`POST /users/me/photo`) is implemented and tested — A3 may reference `profile_photo_url` as a known-present field in the User model without re-implementing upload
 
 ---
 
