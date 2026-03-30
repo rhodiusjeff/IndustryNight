@@ -93,10 +93,11 @@ TODAY — Start all three in parallel (all are ⚡ A/B):
 | C0 | Schema Migrations (Phase 0) | sonnet-4-6 | gpt-5.3-codex | ⚡ | Small | None |
 | C1 | Missing API Endpoints | sonnet-4-6 | gpt-5.3-codex | — | Small | C0 |
 | C2 | Push Notifications (FCM) | sonnet-4-6 | gpt-5.3-codex | — | Medium | C0 |
-| C3 | Image Assets Architecture | opus-4-6 | gpt-5.4 | ⚡ | Large | C0 |
-| C4 | Platform Config + Audit Log Reader + API Key Status | sonnet-4-6 | gpt-5.4-mini | — | Small | C0 |
+| C3 | Image Assets Architecture | opus-4-6 | gpt-5.4 | ⚡ | Large | C0, C5 |
+| C4 | Platform Config + Audit Log Reader + API Key Status | sonnet-4-6 | gpt-5.4-mini | — | Small-Medium | C0 |
+| C5 | CSAM Scan Service | sonnet-4-6 | gpt-5.3-codex | — | Small | C0 |
 
-**Track C completion:** All known backend gaps filled; push notifications live; image asset system operational.
+**Track C completion:** All known backend gaps filled; push notifications live; image asset system operational with CSAM hard-block gate.
 
 **C4 scope note (updated May 2026):** C4 now explicitly includes:
 - `GET /admin/audit-log` endpoint with filters (action, actor_type, result, date range) + cursor pagination — reads from existing `audit_log` table
@@ -104,6 +105,21 @@ TODAY — Start all three in parallel (all are ⚡ A/B):
 - Platform config UI (AI moderation thresholds, SIEM forwarding stub toggle — CloudWatch Logs target, retention setting)
 - API key status dashboard
 - Completing audit instrumentation coverage: event CRUD, customer/product/discount CRUD, admin logout — all calls to `tryLogSecurityEventFromRequest` missing today
+- **Audit gap — Rate limit hits:** `authLimiter` handler in `app.ts` writes to `audit_log` on every 429 (action: 'login', result: 'failure', failure_reason: 'rate_limited')
+- **Audit gap — Silent failure escalation:** `tryLogSecurityEventFromRequest` emits structured JSON to stderr on audit DB write failure (not just `console.error`); does not block the primary request
+- **Audit gap — Posh order ingestion:** `handleNewOrder` in `services/posh.ts` writes an `audit_log` entry on successful posh_order insert and on failure path
+
+**C5 scope note (added May 2026):** C5 is a pre-condition gate for C3. Image uploads (event images, customer media) MUST pass a content scan before the S3 URL is made public. Hard-block on flagged content — no `pending_review` state; delete the object and return 422.
+
+C5 implements:
+- Service selection: AWS Rekognition (`DetectModerationLabels`) for illegal/CSAM content detection — MVP choice; PhotoDNA or NCMEC hash matching can be added as a hardening layer later
+- IAM role + policy for Rekognition access (least-privilege: `rekognition:DetectModerationLabels` only)
+- `packages/api/src/services/csam.ts` — exports `scanImage(buffer: Buffer): Promise<{ safe: boolean; labels?: string[] }>`. Gracefully degrades when Rekognition is not configured (warn + pass-through in dev; hard-block when `NODE_ENV=production`)
+- Integration into the upload path: call `scanImage` after `multer` receives the buffer, before `uploadImage` sends to S3
+- Test coverage: clean image passes, flagged image returns 422 with `{ error: 'content_policy_violation' }` (use synthetic test fixtures per NCMEC guidelines — never use real CSAM materials)
+- Audit log: flagged uploads write to `audit_log` with `action: 'delete'`, `entity: 'image_upload'`, `result: 'blocked'`, `failure_reason: <top label>`
+
+**Execution order within Track C:** C0 → C5 → C3 (C5 must complete and be merged before C3 begins)
 
 ---
 

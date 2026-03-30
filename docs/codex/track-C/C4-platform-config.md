@@ -5,7 +5,7 @@
 **Model:** claude-sonnet-4-6
 **Alternate Model:** gpt-5.4-mini ← tight-spec, low-ambiguity prompt; fast-path eligible
 **A/B Test:** No
-**Estimated Effort:** Small (2-3 hours)
+**Estimated Effort:** Small-Medium (3-4 hours)
 **Dependencies:** C0 (platform_config table created), C2 (FCM + LLM services), C3 (Admin React routes)
 
 ## Execution Mode (Required)
@@ -70,6 +70,26 @@ Expose the `platform_config` table through admin API endpoints, and add a servic
 - [ ] Jest test suite covers: config CRUD, non-existent key handling, default reset, audit logging
 - [ ] Jest test suite covers: system status with all env vars set, with none set, database unreachable handling
 - [ ] All tests pass without modifying existing test files (new files only: `platform-config.test.ts`, `system-status.test.ts`)
+
+### Audit Gap Closure
+
+Three audit coverage gaps identified during architecture review — wire these in as part of C4:
+
+- [ ] Auth rate limit hits write to `audit_log` — add a `handler` callback to `authLimiter` in `packages/api/src/app.ts`:
+  - `action: 'login'`, `result: 'failure'`, `failure_reason: 'rate_limited'`, `source_ip` from `req.ip`
+  - Write directly to `audit_log` table (no `tryLogSecurityEventFromRequest` here — no user context at limit-hit time)
+  - Do NOT block the 429 response; fire the audit write without awaiting if needed
+- [ ] `tryLogSecurityEventFromRequest` escalates audit write failures beyond `console.error`:
+  - On DB write failure, emit a structured JSON line to `process.stderr`: `{ level: 'error', category: 'audit_failure', message: 'audit log write failed', err: ... }`
+  - Does NOT rethrow or block the primary request — degraded audit is recoverable; request failure is not
+- [ ] `handleNewOrder` in `packages/api/src/services/posh.ts` writes an `audit_log` entry immediately after `INSERT INTO posh_orders` succeeds:
+  - `action: 'create'`, `entity: 'posh_order'`, `entity_id: <inserted order id>`, `actor_type: 'system'`, `result: 'success'`
+  - On insert failure path: `result: 'failure'`, `failure_reason: <error message>`
+  - If audit write fails, log to stderr and continue — do NOT prevent the webhook from completing
+- [ ] Jest test suite covers all three gaps in a new file `audit-gaps.test.ts`:
+  - Rate limit handler: confirm `audit_log` row written with `failure_reason: 'rate_limited'` when limiter fires
+  - Posh order ingestion: confirm `audit_log` row written with `action: 'create'`, `entity: 'posh_order'` on successful `handleNewOrder`
+  - Silent failure escalation: confirm `process.stderr` receives structured JSON when `tryLogSecurityEventFromRequest` DB call throws (mock `pool.query` to throw inside audit write)
 
 ---
 
@@ -841,6 +861,10 @@ async getSystemStatus(): Promise<SystemStatus> {
 - [ ] Frontend: Settings page is gated to platformAdmin only
 - [ ] Frontend: API client methods added for all four endpoints
 - [ ] All tests pass (Jest backend tests + React component renders)
+- [ ] Audit gap: rate limit hits write to `audit_log` (`authLimiter` handler in `app.ts`)
+- [ ] Audit gap: `tryLogSecurityEventFromRequest` emits structured stderr on write failure (no swallowed errors)
+- [ ] Audit gap: `handleNewOrder` writes `audit_log` row on posh order insert (success + failure paths)
+- [ ] Audit gap tests pass in `audit-gaps.test.ts` (rate limit, posh order, silent failure escalation)
 - [ ] Completion Report filled in (below)
 - [ ] Interrogative Session completed with Jeff
 
