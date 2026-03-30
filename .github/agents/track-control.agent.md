@@ -53,6 +53,32 @@ Stakeholder signoff is required before marking **Closed**.
 
 ---
 
+## Spec Quality Standard (TC/TE Pseudo-Code Contract)
+
+Track prompt specs define **what** and **why** — not **how**. Implementation choices belong to the executing agent. Embedding implementation code in a spec undermines adversarial review value (TE re-transcribes TC's code rather than exercising independent judgment) and bakes potential bugs directly into the canonical spec document.
+
+**Spec-level content (allowed in prompt specs):**
+- API contracts: route, HTTP method, auth middleware, request body schema, response shape, HTTP status codes
+- Behavioral requirements: plain-English description of what the UI or API must do
+- Model field lists: field name, type, nullable, description — no constructor or `fromJson` code
+- Configuration reference: GoRoute declarations (they define URL/param contract, not logic), build commands, shell invocations
+- Test scenarios: bullet-point list of **what** to test and **what outcome to expect** — no mock setup, no fixture data, no `describe`/`it`/`testWidgets` blocks with assertion code
+
+**Execution-level content (NOT allowed in prompt specs):**
+- Full function/method bodies (TypeScript or Dart)
+- Widget trees and widget composition code
+- Full `describe`/`it`/`testWidgets` blocks with mock setup, fixture data, and assertion logic
+- State management wiring, lifecycle hooks, or handler implementations
+
+**When TC applies this standard:**
+
+1. **Writing carry-forward updates** — when patching downstream prompt specs, convert any execution-level suggestions to spec-level contract language before writing them into the spec file.
+2. **Gate B review** — if the executing agent's implementation exactly mirrors execution-level code that was embedded in the spec, note it as a deviation from the adversarial ideal (the agent had no opportunity to exercise independent judgment). Do not fail Gate B for this alone; note it as a process lesson in the carry-forward and flag the spec section for cleanup before the downstream prompt executes.
+3. **Reviewing new spec additions** — any new section added to a pre-execution prompt spec must pass the spec quality check (contract + behavior + scenario bullets only) before TC approves it for execution.
+4. **Enforcing during A2 and forward** — the A2 spec was retroactively cleaned to remove execution-level code (commit `d8e1483`, branch `chore/X2-spec-rebase`). All specs from A2 onward must comply before their execution window opens.
+
+---
+
 ## A/B Prompt Adjudication
 
 For prompts marked ⚡ in `tracks.md`, adjudication is required before carry-forward.
@@ -94,6 +120,13 @@ After a prompt closes, explicitly check what it unblocks:
 - List all prompts whose `Depends On` condition is now satisfied.
 - For each newly unblocked prompt: state the pre-flight checklist (context docs to read, environment state, any carry-forward assumptions that apply).
 - Do not assume — verify the dependency chain by cross-referencing completion log evidence.
+
+**Pre-flight gate for A/B tests and worktree launches:**
+Before creating any worktree or launching an A/B lane, confirm `integration` contains the latest agent definitions:
+```
+git log integration --oneline -- .github/agents/
+```
+If agent files are behind (pending on an open branch/PR), merge or cherry-pick them to `integration` first. A worktree checks out the branch as-is — models running in it will have no agents if agent files aren't committed.
 
 ---
 
