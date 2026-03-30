@@ -148,36 +148,12 @@ A unified profile display used for:
 
 **File:** `packages/social-app/lib/features/profile/screens/my_profile_screen.dart`
 
-Simplify to just a wrapper:
+Refactor into a thin wrapper that delegates to `UserProfileScreen`. Two valid implementation approaches:
 
-```dart
-class MyProfileScreen extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final appState = ref.read(appStateProvider);
-    final currentUserId = appState.currentUser?.id;
+1. **Wrapper approach:** `MyProfileScreen` reads `currentUser.id` from app state and constructs a `UserProfileScreen(userId: currentUserId)`. Redirects to login if not authenticated.
+2. **Parameter approach:** `UserProfileScreen` accepts a `userId` parameter and determines `isSelf` by comparing to the authenticated user's ID — either via a constructor param or computed internally.
 
-    if (currentUserId == null) {
-      return const LoginScreen(); // or redirect
-    }
-
-    return UserProfileScreen(userId: currentUserId);
-  }
-}
-```
-
-Alternatively, add a parameter to `UserProfileScreen`:
-```dart
-class UserProfileScreen extends ConsumerWidget {
-  final String userId;
-  final bool isSelf;
-
-  UserProfileScreen({
-    required this.userId,
-    this.isSelf = false, // or compute from currentUser.id
-  });
-}
-```
+Either approach is acceptable. The executing agent should choose based on what minimizes duplication with the existing `my_profile_screen.dart`.
 
 Ensure:
 - Edit profile navigation still works
@@ -211,30 +187,14 @@ The API response for `GET /connections` should include:
 
 **File:** `packages/shared/lib/api/users_api.dart`
 
-Verify or implement:
+Verify or implement the following methods:
 
-```dart
-// Search users by query string (min 2 chars)
-Future<List<User>> searchUsers({
-  required String query,
-  int limit = 20,
-}) async {
-  final response = await client.get('/users?q=$query&limit=$limit');
-  return (response as List).map((u) => User.fromJson(u as Map<String, dynamic>)).toList();
-}
-
-// Get single user by ID (includes all profile fields)
-Future<User> getUser(String userId) async {
-  final response = await client.get('/users/$userId');
-  return User.fromJson(response as Map<String, dynamic>);
-}
-
-// Get current authenticated user (alias for /auth/me if needed)
-Future<User> getCurrentUser() async {
-  final response = await client.get('/auth/me');
-  return User.fromJson(response as Map<String, dynamic>);
-}
-```
+| Method | Parameters | Returns | Endpoint |
+|--------|-----------|---------|----------|
+| `searchUsers` | `query: String (min 2 chars), limit: int = 20` | `Future<List<User>>` | `GET /users?q=&limit=` |
+| `getUser` | `userId: String` | `Future<User>` | `GET /users/:id` |
+| `getCurrentUser` | — | `Future<User>` | `GET /auth/me` |
+| `uploadProfilePhoto` | `imageBytes: List<int>, filename: String` | `Future<User>` | `POST /users/me/photo` (multipart, field: `photo`) |
 
 **User model fields** (`packages/shared/lib/models/user.dart`):
 
@@ -264,27 +224,12 @@ cd packages/shared && dart run build_runner build --delete-conflicting-outputs
 
 **File:** `packages/shared/lib/api/connections_api.dart`
 
-Verify or implement:
+Verify or implement the following methods:
 
-```dart
-// Get all current user's connections
-Future<List<Connection>> getConnections({int? limit, int? offset}) async {
-  final response = await client.get('/connections?limit=${limit ?? 50}&offset=${offset ?? 0}');
-  return (response as List)
-      .map((c) => Connection.fromJson(c as Map<String, dynamic>))
-      .toList();
-}
-
-// Check if connected to specific user
-Future<bool> isConnected(String userId) async {
-  try {
-    final response = await client.get('/connections/$userId');
-    return response['connected'] == true;
-  } catch (e) {
-    return false;
-  }
-}
-```
+| Method | Parameters | Returns | Endpoint |
+|--------|-----------|---------|----------|
+| `getConnections` | `limit: int?, offset: int?` | `Future<List<Connection>>` | `GET /connections?limit=&offset=` |
+| `isConnected` | `userId: String` | `Future<bool>` | `GET /connections/:userId` → `true` when response `connected == true`; return `false` on any error |
 
 **Connection model** (`packages/shared/lib/models/connection.dart`):
 
@@ -299,6 +244,21 @@ Verify these fields:
 
 **File:** `packages/social-app/lib/config/routes.dart`
 
+Verify these routes exist; add if missing:
+
+| Route path | Name | Screen | Notes |
+|-----------|------|--------|-------|
+| `/users/:userId` | `user-profile` | `UserProfileScreen(userId)` | `userId` from `state.pathParameters` |
+| `/connect` | `connect` | `ConnectTabScreen` | |
+| `/connect/scan` | `qr-scanner` | `QrScannerScreen` | Nested under `/connect` |
+| `/profile` | `profile` | `MyProfileScreen` | |
+
+**Navigation patterns:**
+- Post author name tap → `context.go('/users/$authorId')`
+- Connection list item tap → `context.go('/users/$userId')`
+- "Connect" button on user profile → `context.push('/connect/scan')` (push so user returns to profile after scanning)
+- Search result tap → `context.go('/users/$userId')`
+
 ### 9. Profile Photo Upload (A2 delivery — was NOT completed in A0)
 
 This feature was incorrectly marked Complete in A0. Both the API endpoint and the Flutter UI are missing. A2 owns full delivery.
@@ -307,279 +267,48 @@ This feature was incorrectly marked Complete in A0. Both the API endpoint and th
 
 **File:** `packages/api/src/routes/users.ts`
 
-```typescript
-// Add multer import at top of file (already used in admin.ts — same pattern)
-import multer from 'multer';
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
-
-router.post(
-  '/me/photo',
-  authenticate,
-  upload.single('photo'),
-  async (req, res, next): Promise<void> => {
-    try {
-      if (!req.file) {
-        res.status(400).json({ error: 'No file uploaded' });
-        return;
-      }
-
-      // sharp validation: reject non-images
-      let metadata: sharp.Metadata;
-      try {
-        metadata = await sharp(req.file.buffer).metadata();
-      } catch {
-        res.status(422).json({ error: 'Invalid image file' });
-        return;
-      }
-
-      if (!['jpeg', 'png', 'webp'].includes(metadata.format ?? '')) {
-        res.status(422).json({ error: 'Unsupported image format. Use JPEG, PNG, or WebP.' });
-        return;
-      }
-
-      // Resize to max 800px wide, convert to WebP for consistency
-      const processed = await sharp(req.file.buffer)
-        .resize({ width: 800, withoutEnlargement: true })
-        .webp({ quality: 85 })
-        .toBuffer();
-
-      const filename = `profile-photos/${req.user!.userId}-${Date.now()}.webp`;
-      const url = await uploadImage(processed, filename, 'profile-photos');
-
-      const updated = await queryOne<{ profile_photo_url: string }>(
-        'UPDATE users SET profile_photo_url = $1, updated_at = NOW() WHERE id = $2 RETURNING profile_photo_url',
-        [url, req.user!.userId]
-      );
-
-      res.json({ profilePhotoUrl: updated!.profile_photo_url });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-```
-
-**Constraints:**
-- Max file size: 5MB (multer limit)
-- Accepted formats: JPEG, PNG, WebP (sharp validates)
-- sharp resizes and converts to WebP before S3 upload
-- Returns `{ profilePhotoUrl: string }` on success
-- 400 if no file; 422 if not an image or unsupported format
-- Graceful degradation: if `s3Available` is false in dev, `uploadImage` returns placeholder URL (existing behavior)
+- **Auth:** `authenticate` middleware required
+- **Upload:** multipart/form-data, field name `photo`, max 5MB (multer memory storage — same import pattern as `admin.ts`)
+- **Validation:** sharp must be able to read the buffer (422 if invalid); accepted formats: JPEG, PNG, WebP only (422 for anything else)
+- **Processing:** resize to max 800px wide, convert to WebP before S3 upload
+- **Response 200:** `{ profilePhotoUrl: string }`
+- **Response 400:** no file attached
+- **Response 422:** invalid or unsupported image format
+- **Side effect:** `profile_photo_url` updated in `users` table
+- **Graceful degradation:** `uploadImage` returns placeholder URL when S3 not configured in dev (existing behavior — no special handling needed)
 
 #### B. Flutter UI — `edit_profile_screen.dart`
 
 **File:** `packages/social-app/lib/features/profile/screens/edit_profile_screen.dart`
 
-Wire the currently-disabled photo upload button:
+- Photo avatar tap target must NOT be `null` (currently `onPressed: null` — wire it up)
+- Tapping the avatar opens file picker: `image_picker` (gallery) on mobile, `dart:html` FileReader on web — same pattern as A1 community post image attachment (see `A1-community-board.md §3`)
+- Show local image preview immediately after file selection (before upload completes)
+- Show loading indicator while upload is in flight; disable the tap target during upload
+- On success: update user photo in app state, show "Photo updated" snackbar
+- On failure: clear local preview, show "Upload failed" snackbar
 
-```dart
-// Replace the disabled button with:
-GestureDetector(
-  onTap: _isUploadingPhoto ? null : _pickAndUploadPhoto,
-  child: Stack(
-    children: [
-      CircleAvatar(
-        radius: 48,
-        backgroundImage: _localPhotoBytes != null
-            ? MemoryImage(_localPhotoBytes!) as ImageProvider
-            : (user?.profilePhotoUrl != null
-                ? NetworkImage(user!.profilePhotoUrl!)
-                : null),
-        child: (user?.profilePhotoUrl == null && _localPhotoBytes == null)
-            ? const Icon(Icons.person, size: 48)
-            : null,
-      ),
-      Positioned(
-        bottom: 0, right: 0,
-        child: _isUploadingPhoto
-            ? const CircularProgressIndicator(strokeWidth: 2)
-            : const CircleAvatar(
-                radius: 14,
-                backgroundColor: Colors.white,
-                child: Icon(Icons.camera_alt, size: 16),
-              ),
-      ),
-    ],
-  ),
-)
-```
-
-Add the pick-and-upload handler:
-
-```dart
-Uint8List? _localPhotoBytes;
-bool _isUploadingPhoto = false;
-
-Future<void> _pickAndUploadPhoto() async {
-  // Web: use dart:html FileReader
-  // Mobile: use image_picker
-  final bytes = await _pickImageBytes();
-  if (bytes == null) return;
-
-  setState(() {
-    _localPhotoBytes = bytes;
-    _isUploadingPhoto = true;
-  });
-
-  try {
-    final filename = 'profile-${DateTime.now().millisecondsSinceEpoch}.jpg';
-    final updatedUser = await context.read<AppState>().usersApi.uploadProfilePhoto(
-      bytes,
-      filename,
-    );
-    context.read<AppState>().updateCurrentUser(updatedUser);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Photo updated')),
-      );
-    }
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Upload failed: $e')),
-      );
-      setState(() { _localPhotoBytes = null; });
-    }
-  } finally {
-    if (mounted) setState(() { _isUploadingPhoto = false; });
-  }
-}
-
-Future<Uint8List?> _pickImageBytes() async {
-  // Use the same FileReader/image_picker pattern as A1 community post image attachment
-  // Web: dart:html FileReader (see A1-community-board.md §3 for pattern)
-  // Mobile: image_picker ImageSource.gallery
-  // Return null if user cancels
-}
-```
-
-**Packages needed (verify in pubspec.yaml):**
+**Packages needed (verify in `packages/social-app/pubspec.yaml`):**
 - `image_picker` (already likely present from onboarding — verify)
 - `dart:html` for web FileReader (no pubspec entry needed — platform SDK)
 
-#### C. Jest test — `POST /users/me/photo`
+#### C. Jest test scenarios — `POST /users/me/photo`
 
 Add to `packages/api/src/__tests__/users.test.ts` (or a new `user-photo.test.ts`):
 
-```typescript
-describe('POST /users/me/photo', () => {
-  it('uploads photo and returns profilePhotoUrl', async () => {
-    const res = await request(app)
-      .post('/users/me/photo')
-      .set('Authorization', `Bearer ${userToken}`)
-      .attach('photo', Buffer.from('fake-image-bytes'), { filename: 'test.jpg', contentType: 'image/jpeg' });
+- Valid JPEG upload → 200, `profilePhotoUrl` (string) present in response body, `profile_photo_url` updated in `users` table
+- No file attached → 400
+- Non-image file (plain text) → 422
+- No `Authorization` header → 401
 
-    // In test env without S3, expect placeholder URL or actual URL
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('profilePhotoUrl');
-    expect(typeof res.body.profilePhotoUrl).toBe('string');
-  });
-
-  it('returns 400 when no file uploaded', async () => {
-    const res = await request(app)
-      .post('/users/me/photo')
-      .set('Authorization', `Bearer ${userToken}`);
-
-    expect(res.status).toBe(400);
-  });
-
-  it('returns 422 for non-image file', async () => {
-    const res = await request(app)
-      .post('/users/me/photo')
-      .set('Authorization', `Bearer ${userToken}`)
-      .attach('photo', Buffer.from('not an image'), { filename: 'doc.txt', contentType: 'text/plain' });
-
-    expect(res.status).toBe(422);
-  });
-
-  it('requires authentication', async () => {
-    const res = await request(app)
-      .post('/users/me/photo')
-      .attach('photo', Buffer.from('fake'), { filename: 'test.jpg', contentType: 'image/jpeg' });
-
-    expect(res.status).toBe(401);
-  });
-
-  it('updates profile_photo_url in database after upload', async () => {
-    await request(app)
-      .post('/users/me/photo')
-      .set('Authorization', `Bearer ${userToken}`)
-      .attach('photo', Buffer.from('fake-image'), { filename: 'p.jpg', contentType: 'image/jpeg' });
-
-    const user = await db.query('SELECT profile_photo_url FROM users WHERE id = $1', [testUserId]);
-    expect(user.rows[0].profile_photo_url).toBeTruthy();
-  });
-});
-```
-
-#### D. Widget test — photo upload button in `edit_profile_screen.dart`
+#### D. Widget test scenarios — `edit_profile_screen_test.dart`
 
 **File:** `packages/social-app/test/features/profile/edit_profile_screen_test.dart`
 
-```dart
-testWidgets('Photo upload button is tappable (not null)', (tester) async {
-  await tester.pumpWidget(buildTestApp());
-  // Camera icon should be present and tappable
-  expect(find.byIcon(Icons.camera_alt), findsOneWidget);
-  // Should not be disabled
-  final gesture = find.byIcon(Icons.camera_alt);
-  expect(tester.widget<GestureDetector>(gesture.first).onTap, isNotNull);
-});
-
-testWidgets('Shows loading indicator while uploading', (tester) async {
-  // Mock usersApi.uploadProfilePhoto to delay
-  // Verify CircularProgressIndicator appears during upload
-});
-
-testWidgets('Shows snackbar on upload success', (tester) async {
-  // Mock uploadProfilePhoto to return updatedUser
-  // Verify 'Photo updated' snackbar appears
-});
-
-testWidgets('Shows error snackbar on upload failure', (tester) async {
-  // Mock uploadProfilePhoto to throw
-  // Verify 'Upload failed' snackbar appears
-});
-```
-
-Verify these routes exist (add if missing):
-
-```dart
-GoRoute(
-  path: 'users/:userId',
-  name: 'user-profile',
-  builder: (context, state) {
-    final userId = state.pathParameters['userId']!;
-    return UserProfileScreen(userId: userId);
-  },
-),
-
-GoRoute(
-  path: 'connect',
-  name: 'connect',
-  builder: (context, state) => const ConnectTabScreen(),
-  routes: [
-    GoRoute(
-      path: 'scan',
-      name: 'qr-scanner',
-      builder: (context, state) => const QrScannerScreen(),
-    ),
-  ],
-),
-
-GoRoute(
-  path: 'profile',
-  name: 'profile',
-  builder: (context, state) => MyProfileScreen(),
-),
-```
-
-**Navigation patterns:**
-- Post author name tap (in community_feed_screen or post_detail_screen) → `context.go('/users/$authorId')`
-- Connection list item tap → `context.go('/users/$userId')`
-- "Connect" button on user profile → `context.push('/connect/scan')` (push so user returns to profile after scanning)
-- Search result tap → `context.go('/users/$userId')`
+- Camera icon tap target is not `null` (not disabled)
+- `CircularProgressIndicator` appears while upload is in flight
+- "Photo updated" snackbar appears on upload success
+- "Upload failed" snackbar appears on upload failure; local preview is cleared
 
 ### 8. Post author taps (wiring existing screens)
 
@@ -587,21 +316,7 @@ GoRoute(
 - `packages/social-app/lib/features/community/screens/community_feed_screen.dart`
 - `packages/social-app/lib/features/community/screens/post_detail_screen.dart`
 
-Update post list items and post detail header:
-
-When rendering post author name/avatar, make it tappable:
-```dart
-GestureDetector(
-  onTap: () => context.go('/users/${post.authorId}'),
-  child: Row(
-    children: [
-      CircleAvatar(backgroundImage: NetworkImage(post.authorPhoto ?? '')),
-      SizedBox(width: 8),
-      Text(post.authorName ?? 'Unknown'),
-    ],
-  ),
-)
-```
+Post author name/avatar in both screens must be wrapped in a tap handler that navigates to `/users/$authorId`.
 
 ---
 
@@ -664,435 +379,50 @@ GestureDetector(
 
 **File:** `packages/social-app/test/features/search/search_screen_test.dart`
 
-```dart
-testWidgets('Search screen renders with auto-focused input', (tester) async {
-  await tester.pumpWidget(buildTestApp());
-  expect(find.byType(TextField), findsOneWidget);
-  // Verify input is focused (check focus state or hint visible)
-  expect(find.text('Search for photographers'), findsOneWidget);
-});
-
-testWidgets('Search hint displayed when no query', (tester) async {
-  await tester.pumpWidget(buildTestApp());
-  expect(find.text('Search for photographers, stylists, directors...'), findsOneWidget);
-});
-
-testWidgets('Typing triggers debounce (wait 350ms before API call)', (tester) async {
-  final mockUsersApi = MockUsersApi();
-  when(mockUsersApi.searchUsers(query: 'photo'))
-      .thenAnswer((_) async => [testUser1, testUser2]);
-
-  await tester.pumpWidget(buildTestApp(usersApi: mockUsersApi));
-  await tester.enterText(find.byType(TextField), 'photo');
-
-  // API should NOT be called immediately
-  verifyNever(mockUsersApi.searchUsers(query: any));
-
-  // Wait 350ms + pump frame
-  await tester.pumpAndSettle(const Duration(milliseconds: 350));
-
-  // API should now be called
-  verify(mockUsersApi.searchUsers(query: 'photo')).called(1);
-});
-
-testWidgets('Search results display with avatar, name, specialty', (tester) async {
-  await tester.pumpWidget(buildTestApp());
-  await tester.enterText(find.byType(TextField), 'stylist');
-  await tester.pumpAndSettle();
-
-  expect(find.text('Sarah Stylist'), findsOneWidget);
-  expect(find.text('Hair Stylist'), findsOneWidget);
-  expect(find.byType(CircleAvatar), findsWidgets);
-});
-
-testWidgets('Tapping result navigates to user profile', (tester) async {
-  await tester.pumpWidget(buildTestApp());
-  await tester.enterText(find.byType(TextField), 'stylist');
-  await tester.pumpAndSettle();
-
-  await tester.tap(find.text('Sarah Stylist'));
-  await tester.pumpAndSettle();
-
-  expect(find.byType(UserProfileScreen), findsOneWidget);
-});
-
-testWidgets('Clear button (X) appears when text entered', (tester) async {
-  await tester.pumpWidget(buildTestApp());
-  expect(find.byIcon(Icons.clear), findsNothing);
-
-  await tester.enterText(find.byType(TextField), 'photo');
-  await tester.pumpAndSettle();
-
-  expect(find.byIcon(Icons.clear), findsOneWidget);
-
-  await tester.tap(find.byIcon(Icons.clear));
-  await tester.pumpAndSettle();
-
-  expect(find.text('photo'), findsNothing);
-});
-
-testWidgets('Recent searches display when search bar focused with no text', (tester) async {
-  await tester.pumpWidget(buildTestApp());
-
-  // Perform a search
-  await tester.enterText(find.byType(TextField), 'stylist');
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Sarah Stylist'));
-  await tester.pumpAndSettle();
-
-  // Go back to search screen
-  await tester.pageBack();
-  await tester.pumpAndSettle();
-
-  // Clear search and focus
-  await tester.enterText(find.byType(TextField), '');
-  await tester.pumpAndSettle();
-
-  // Recent searches should be visible
-  expect(find.text('stylist'), findsOneWidget);
-});
-
-testWidgets('Empty state: no query', (tester) async {
-  await tester.pumpWidget(buildTestApp());
-  expect(find.text('Search for photographers, stylists, directors...'), findsOneWidget);
-});
-
-testWidgets('Empty state: query with no results', (tester) async {
-  final mockUsersApi = MockUsersApi();
-  when(mockUsersApi.searchUsers(query: 'xyz'))
-      .thenAnswer((_) async => []);
-
-  await tester.pumpWidget(buildTestApp(usersApi: mockUsersApi));
-  await tester.enterText(find.byType(TextField), 'xyz');
-  await tester.pumpAndSettle();
-
-  expect(find.text('No results for \'xyz\''), findsOneWidget);
-});
-```
+- Screen renders with auto-focused `TextField` and hint text visible
+- Hint text "Search for photographers, stylists, directors..." shows when no query
+- Typing 2+ chars, waiting 350ms: `searchUsers` API is called exactly once; typing does NOT trigger call before 350ms
+- After API returns results: avatar, name, primary specialty visible per result row
+- Tapping a result navigates to `UserProfileScreen` for that user
+- Clear (×) button absent when field is empty; appears when text is present; tapping it clears the field
+- After tapping a result and returning to search screen: that query appears in recent searches when field is focused with no text
+- Empty state: "No results for '{query}'" when API returns empty array
 
 **File:** `packages/social-app/test/features/profile/user_profile_screen_test.dart`
 
-```dart
-testWidgets('User profile loads and displays data', (tester) async {
-  final mockUsersApi = MockUsersApi();
-  final testUser = User(
-    id: '123',
-    name: 'John Photographer',
-    photoUrl: 'https://...',
-    verificationStatus: VerificationStatus.verified,
-    primarySpecialtyName: 'Photographer',
-    bio: 'Professional photographer',
-    connectionCount: 47,
-    postCount: 12,
-  );
-  when(mockUsersApi.getUser('123')).thenAnswer((_) async => testUser);
-
-  await tester.pumpWidget(buildTestApp(usersApi: mockUsersApi, userId: '123'));
-  await tester.pumpAndSettle();
-
-  expect(find.text('John Photographer'), findsOneWidget);
-  expect(find.text('Photographer'), findsOneWidget);
-  expect(find.text('Professional photographer'), findsOneWidget);
-  expect(find.text('47 connections'), findsOneWidget);
-  expect(find.text('12 posts'), findsOneWidget);
-});
-
-testWidgets('Verification badge displays for verified users', (tester) async {
-  final verifiedUser = User(
-    id: '123',
-    name: 'Verified User',
-    verificationStatus: VerificationStatus.verified,
-  );
-  final mockUsersApi = MockUsersApi();
-  when(mockUsersApi.getUser('123')).thenAnswer((_) async => verifiedUser);
-
-  await tester.pumpWidget(buildTestApp(usersApi: mockUsersApi, userId: '123'));
-  await tester.pumpAndSettle();
-
-  // Look for verification badge (could be icon or chip with verification indicator)
-  expect(find.byIcon(Icons.verified), findsOneWidget);
-});
-
-testWidgets('Bio expandable when > 3 lines', (tester) async {
-  final longBioUser = User(
-    id: '123',
-    name: 'User',
-    bio: 'Line 1\nLine 2\nLine 3\nLine 4\nLine 5',
-  );
-  final mockUsersApi = MockUsersApi();
-  when(mockUsersApi.getUser('123')).thenAnswer((_) async => longBioUser);
-
-  await tester.pumpWidget(buildTestApp(usersApi: mockUsersApi, userId: '123'));
-  await tester.pumpAndSettle();
-
-  expect(find.text('Read more'), findsOneWidget);
-
-  await tester.tap(find.text('Read more'));
-  await tester.pumpAndSettle();
-
-  expect(find.text('Show less'), findsOneWidget);
-  expect(find.text('Line 5'), findsOneWidget);
-});
-
-testWidgets('"Connected ✓" chip when already connected', (tester) async {
-  final mockUsersApi = MockUsersApi();
-  final mockConnectionsApi = MockConnectionsApi();
-  final testUser = User(id: '123', name: 'Other User');
-
-  when(mockUsersApi.getUser('123')).thenAnswer((_) async => testUser);
-  when(mockConnectionsApi.isConnected('123')).thenAnswer((_) async => true);
-
-  await tester.pumpWidget(buildTestApp(
-    usersApi: mockUsersApi,
-    connectionsApi: mockConnectionsApi,
-    userId: '123',
-  ));
-  await tester.pumpAndSettle();
-
-  expect(find.text('Connected'), findsOneWidget);
-  expect(find.byIcon(Icons.check), findsOneWidget);
-});
-
-testWidgets('"Connect" button when not connected', (tester) async {
-  final mockUsersApi = MockUsersApi();
-  final mockConnectionsApi = MockConnectionsApi();
-  final testUser = User(id: '123', name: 'Other User');
-
-  when(mockUsersApi.getUser('123')).thenAnswer((_) async => testUser);
-  when(mockConnectionsApi.isConnected('123')).thenAnswer((_) async => false);
-
-  await tester.pumpWidget(buildTestApp(
-    usersApi: mockUsersApi,
-    connectionsApi: mockConnectionsApi,
-    userId: '123',
-  ));
-  await tester.pumpAndSettle();
-
-  expect(find.text('Connect'), findsOneWidget);
-});
-
-testWidgets('Tapping Connect navigates to QR scanner', (tester) async {
-  final mockUsersApi = MockUsersApi();
-  final mockConnectionsApi = MockConnectionsApi();
-
-  when(mockUsersApi.getUser('123')).thenAnswer((_) async => User(id: '123'));
-  when(mockConnectionsApi.isConnected('123')).thenAnswer((_) async => false);
-
-  await tester.pumpWidget(buildTestApp(
-    usersApi: mockUsersApi,
-    connectionsApi: mockConnectionsApi,
-    userId: '123',
-  ));
-  await tester.pumpAndSettle();
-
-  await tester.tap(find.text('Connect'));
-  await tester.pumpAndSettle();
-
-  expect(find.byType(QrScannerScreen), findsOneWidget);
-});
-
-testWidgets('Own profile shows Edit button, not Connect', (tester) async {
-  final mockUsersApi = MockUsersApi();
-  final currentUser = User(id: 'me', name: 'My Profile');
-
-  when(mockUsersApi.getUser('me')).thenAnswer((_) async => currentUser);
-
-  await tester.pumpWidget(buildTestApp(
-    usersApi: mockUsersApi,
-    currentUserId: 'me',
-    userId: 'me',
-  ));
-  await tester.pumpAndSettle();
-
-  expect(find.text('Edit Profile'), findsOneWidget);
-  expect(find.text('Connect'), findsNothing);
-});
-
-testWidgets('Own profile displays own posts', (tester) async {
-  final mockUsersApi = MockUsersApi();
-  final mockPostsApi = MockPostsApi();
-
-  when(mockUsersApi.getUser('me')).thenAnswer((_) async => User(id: 'me'));
-  when(mockPostsApi.getPosts(userId: 'me')).thenAnswer((_) async => [
-    Post(id: '1', title: 'My Post 1'),
-    Post(id: '2', title: 'My Post 2'),
-  ]);
-
-  await tester.pumpWidget(buildTestApp(
-    usersApi: mockUsersApi,
-    postsApi: mockPostsApi,
-    currentUserId: 'me',
-    userId: 'me',
-  ));
-  await tester.pumpAndSettle();
-
-  expect(find.text('My Post 1'), findsOneWidget);
-  expect(find.text('My Post 2'), findsOneWidget);
-});
-
-testWidgets('User not found shows error message', (tester) async {
-  final mockUsersApi = MockUsersApi();
-  when(mockUsersApi.getUser('invalid'))
-      .thenThrow(Exception('User not found'));
-
-  await tester.pumpWidget(buildTestApp(usersApi: mockUsersApi, userId: 'invalid'));
-  await tester.pumpAndSettle();
-
-  expect(find.text('This profile is no longer available'), findsOneWidget);
-  expect(find.byIcon(Icons.arrow_back), findsOneWidget);
-});
-```
+- Profile loads and displays: name, primary specialty, bio, `connectionCount`, `postCount`
+- Verification badge visible (`Icons.verified` or equivalent) when `verificationStatus == verified`
+- Long bio (> 3 lines): "Read more" visible initially; tapping expands and shows "Show less"
+- Connected user (mocked `isConnected` returns `true`): "Connected ✓" chip displayed, no "Connect" button
+- Unconnected user (mocked `isConnected` returns `false`): "Connect" button visible
+- Tapping "Connect" button navigates to `QrScannerScreen`
+- Own profile (`userId == currentUser.id`): "Edit Profile" button shown; "Connect" button absent
+- Own profile: user's posts list rendered below profile info
+- 404/error from `getUser`: "This profile is no longer available" message + back button
 
 **File:** `packages/social-app/test/features/networking/connections_list_screen_test.dart`
 
-```dart
-testWidgets('Connections list loads and displays', (tester) async {
-  final mockConnectionsApi = MockConnectionsApi();
-  final testConnections = [
-    Connection(
-      id: '1',
-      userId: 'me',
-      connectedUserId: 'user1',
-      connectedAt: DateTime(2024, 1, 15),
-      connectedUser: User(
-        id: 'user1',
-        name: 'Sarah Stylist',
-        primarySpecialtyName: 'Hair Stylist',
-      ),
-    ),
-  ];
-
-  when(mockConnectionsApi.getConnections()).thenAnswer((_) async => testConnections);
-
-  await tester.pumpWidget(buildTestApp(connectionsApi: mockConnectionsApi));
-  await tester.pumpAndSettle();
-
-  expect(find.text('Sarah Stylist'), findsOneWidget);
-  expect(find.text('Hair Stylist'), findsOneWidget);
-  expect(find.text('2 weeks ago'), findsOneWidget);
-});
-
-testWidgets('Tapping connection navigates to profile', (tester) async {
-  final mockConnectionsApi = MockConnectionsApi();
-  when(mockConnectionsApi.getConnections()).thenAnswer((_) async => [
-    Connection(
-      connectedUserId: 'user1',
-      connectedUser: User(id: 'user1', name: 'User'),
-    ),
-  ]);
-
-  await tester.pumpWidget(buildTestApp(connectionsApi: mockConnectionsApi));
-  await tester.pumpAndSettle();
-
-  await tester.tap(find.text('User'));
-  await tester.pumpAndSettle();
-
-  expect(find.byType(UserProfileScreen), findsOneWidget);
-});
-
-testWidgets('Empty state when no connections', (tester) async {
-  final mockConnectionsApi = MockConnectionsApi();
-  when(mockConnectionsApi.getConnections()).thenAnswer((_) async => []);
-
-  await tester.pumpWidget(buildTestApp(connectionsApi: mockConnectionsApi));
-  await tester.pumpAndSettle();
-
-  expect(find.text('No connections yet'), findsOneWidget);
-});
-```
+- Connections list loads and displays: name, primary specialty, relative connection date
+- Tapping a connection row navigates to `UserProfileScreen` for that user
+- Empty state: "No connections yet" copy visible when list is empty
 
 ### API Integration Tests
 
 **File:** `packages/api/src/__tests__/users.test.ts`
 
-```typescript
-describe('GET /users (search)', () => {
-  it('returns users matching query', async () => {
-    const res = await request(app)
-      .get('/users?q=photographer')
-      .set('Authorization', `Bearer ${userToken}`);
+**`GET /users` (search):**
+- Query matching users → 200, array with `name` and `primarySpecialtyName` on each result
+- Query matching no users → 200, empty array
+- Response includes `verificationStatus` field on each result
 
-    expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body[0]).toHaveProperty('name');
-    expect(res.body[0]).toHaveProperty('primarySpecialtyName');
-  });
+**`GET /users/:id` (profile):**
+- Valid user ID → 200, body has: `name`, `bio`, `photoUrl`, `connectionCount`, `postCount`, `specialties`, `socialLinks`
+- Non-existent UUID → 404
+- Verified user: `verificationStatus == 'verified'`
 
-  it('returns empty array for no matches', async () => {
-    const res = await request(app)
-      .get('/users?q=nonexistent-query-xyz')
-      .set('Authorization', `Bearer ${userToken}`);
-
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual([]);
-  });
-
-  it('returns users with verification status', async () => {
-    const res = await request(app)
-      .get('/users?q=test')
-      .set('Authorization', `Bearer ${userToken}`);
-
-    expect(res.body[0]).toHaveProperty('verificationStatus');
-  });
-});
-
-describe('GET /users/:id (profile)', () => {
-  it('returns full user profile', async () => {
-    const res = await request(app)
-      .get(`/users/${testUserId}`)
-      .set('Authorization', `Bearer ${userToken}`);
-
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('name');
-    expect(res.body).toHaveProperty('bio');
-    expect(res.body).toHaveProperty('photoUrl');
-    expect(res.body).toHaveProperty('connectionCount');
-    expect(res.body).toHaveProperty('postCount');
-    expect(res.body).toHaveProperty('specialties');
-    expect(res.body).toHaveProperty('socialLinks');
-  });
-
-  it('returns 404 for non-existent user', async () => {
-    const res = await request(app)
-      .get('/users/00000000-0000-0000-0000-000000000000')
-      .set('Authorization', `Bearer ${userToken}`);
-
-    expect(res.status).toBe(404);
-  });
-
-  it('includes verification badge for verified users', async () => {
-    const res = await request(app)
-      .get(`/users/${verifiedUserId}`)
-      .set('Authorization', `Bearer ${userToken}`);
-
-    expect(res.body.verificationStatus).toBe('verified');
-  });
-});
-
-describe('GET /connections', () => {
-  it('returns current user connections with embedded profiles', async () => {
-    const res = await request(app)
-      .get('/connections')
-      .set('Authorization', `Bearer ${userToken}`);
-
-    expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body[0]).toHaveProperty('connectedUserId');
-    expect(res.body[0]).toHaveProperty('connectedAt');
-    expect(res.body[0]).toHaveProperty('connectedUser');
-    expect(res.body[0].connectedUser).toHaveProperty('name');
-  });
-
-  it('returns empty array when no connections', async () => {
-    const res = await request(app)
-      .get('/connections')
-      .set('Authorization', `Bearer ${newUserToken}`);
-
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual([]);
-  });
-});
-```
+**`GET /connections`:**
+- Authenticated user with connections → 200, array with `connectedUserId`, `connectedAt`, `connectedUser.name` on each item
+- Authenticated user with no connections → 200, empty array
 
 ---
 
