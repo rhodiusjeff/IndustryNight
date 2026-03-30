@@ -37,6 +37,7 @@ Read these before implementing:
 
 - `docs/codex/EXECUTION_CONTEXT.md` — living operational context: test infrastructure, migration conventions, API ground truth, deployment patterns (read before touching any code)
 - `CLAUDE.md` — Admin API endpoints table (routes/admin.ts) and Flutter admin app feature list
+- `docs/product/user-stories.md` — B3 section: Admin Parity user stories; defines explicit functional requirements for all screens (dashboard, users, events, markets, customers, products, moderation, settings)
 - `docs/codex/track-B/B0-scaffold-design-system.md` — design system, Tailwind config, component patterns
 - `docs/codex/track-B/B1-auth-rbac-permissions.md` — auth middleware, role gating, admin session management (reference for consistency)
 - `docs/codex/track-B/B2-event-ops-screen.md` — Event Ops screen + image upload patterns, EventFormScreen structure

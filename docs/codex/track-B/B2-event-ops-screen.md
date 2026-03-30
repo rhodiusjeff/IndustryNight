@@ -24,6 +24,7 @@ Read these before writing any code:
 
 - `docs/codex/EXECUTION_CONTEXT.md` — living operational context: test infrastructure, migration conventions, API ground truth, deployment patterns (read before touching any code)
 - `CLAUDE.md` — project reference (database schema, API routes, roles)
+- `docs/product/user-stories.md` — B2 section: Event Ops user stories; defines door device vs. wristband device workflows, SSE cross-device sync, backlog stats, and queue ordering requirements
 - `docs/codex/track-B/B0-scaffold-design-system.md` — design system, component patterns, styling conventions
 - `docs/codex/track-B/B1-auth-rbac-permissions.md` — role-gated navigation, `eventOps` role definition, auth hooks
 - `docs/codex/track-C/C1-missing-api-endpoints.md` — backend SSE stream format, check-in payload structure, ticket resolution
@@ -33,9 +34,14 @@ Read these before writing any code:
 
 ## Goal
 
-Build the Event Ops screen — the real-time check-in dashboard used by `eventOps` staff on event night, typically on a tablet at the venue door. The screen shows live attendee check-ins via Server-Sent Events (SSE), allows wristband confirmation with one tap, displays a queue of unmatched Posh buyers, and provides venue staff with the activation code to share with walk-in guests.
+Build the Event Ops screen — the real-time check-in dashboard used by `eventOps` staff on event night. This covers **two physically separate devices** operated by two distinct staff roles:
 
-At the end of this prompt, an eventOps-role admin can navigate to `/events/ops/[eventId]` and see check-ins streaming in real-time, confirm wristbands with live FCM notifications, resolve Posh exceptions, and view the activation code prominently.
+- **Door device** (tablet at the venue entrance): Live check-in stream, Posh exception queue, activation code. Operated by the door scanner / check-in staff.
+- **Wristband device** (tablet at the wristband table): Queue of checked-in attendees waiting for a wristband, sorted oldest check-in first. Operated by the wristband distribution staff.
+
+Both devices open `/events/ops/[eventId]` but navigate to their respective sub-view. Both subscribe to the **same SSE stream** (`GET /admin/events/:id/checkins/stream`). When the app records a check-in, the server broadcasts a `checkin` event to all connected clients — the wristband device listens for this event and automatically appends the new arrival to the bottom of its pending queue without any manual refresh.
+
+At the end of this prompt, an eventOps-role admin can open either view: the door view streams check-ins in real-time and confirms wristbands; the wristband view shows a pending queue (oldest first) and lets staff issue wristbands one tap at a time with live backlog stats.
 
 ---
 
@@ -48,6 +54,8 @@ At the end of this prompt, an eventOps-role admin can navigate to `/events/ops/[
 - [ ] Event format matches spec: `checkin`, `wristband`, `heartbeat` event types with proper data payloads
 - [ ] Heartbeat every 30 seconds keeps connection alive (prevents proxy timeout)
 - [ ] Client auto-reconnects with exponential backoff (1s, 2s, 4s, 8s, max 30s) on disconnect
+- [ ] **Cross-device sync:** `checkin` events broadcast to ALL connected clients for that eventId — both the door device and the wristband device receive every check-in in real time. The wristband device uses incoming `checkin` events to append new arrivals to its pending queue automatically.
+- [ ] **Cross-device wristband sync:** `wristband` events also broadcast to all clients — when wristband staff tap Issue on the wristband device, the door device's feed updates ⬜ → ✅ without polling.
 
 **Event Selector**
 - [ ] `/events/ops/` route shows event selector (dropdown or card list)
@@ -79,8 +87,22 @@ At the end of this prompt, an eventOps-role admin can navigate to `/events/ops/[
   - Tabs: "Live Feed" | "Exceptions" | "Stats"
   - Only one tab visible at a time on narrow screens
 
-**Wristband Confirmation**
-- [ ] Tap wristband icon on check-in entry: optimistic ✅ update
+**Wristband Queue Screen (Wristband Device)**
+- [ ] Separate sub-view of `/events/ops/[eventId]` — navigated to by wristband table staff, not the door scanner
+- [ ] On SSE connect, receives snapshot of all checked-in attendees with `wristbandIssuedAt == null` (pending)
+- [ ] Pending queue sorted **oldest `checkedInAt` first** — person who has waited longest appears at top
+- [ ] When a new `checkin` SSE event arrives, the new attendee is appended to the bottom of the pending queue (they just arrived; someone checked in earlier is still waiting at top)
+- [ ] Each queue row: avatar, name, specialty, wait duration ("42 min ago"), Issue Wristband button
+- [ ] Wait duration displayed in amber when > 20 minutes (backlog warning signal)
+- [ ] **Backlog stats header:** Prominent display of ⏳ Pending count + ✓ Issued count — always visible at top of queue card
+- [ ] Pending count renders in amber/warning color when > 10 (configurable threshold)
+- [ ] Tapping "Issue Wristband →": optimistic update (row dims, button hidden, "Wristband issued" label appears), decrements pending count, increments issued count
+- [ ] Call `PATCH /admin/events/:id/attendees/:ticketId/wristband` with `{ wristbandIssuedAt: now }`
+- [ ] On error: revert optimistic update, show toast
+- [ ] Issued rows remain visible (dimmed) below pending rows so staff can verify recent issues
+
+**Wristband Confirmation (Door Device)**
+- [ ] Tap wristband icon on check-in entry in the live feed: optimistic ✅ update
 - [ ] Call `PATCH /admin/events/:id/attendees/:ticketId/wristband` with `{ wristbandIssuedAt: now }`
 - [ ] On success: entry icon becomes ✅; FCM push sent to attendee (C2)
 - [ ] On error: revert optimistic update; show toast error
@@ -118,9 +140,13 @@ At the end of this prompt, an eventOps-role admin can navigate to `/events/ops/[
 
 | Actor | Story | Notes |
 |-------|-------|-------|
-| eventOps staff (tablet) | As eventOps at the venue door, I see attendees checking in live as they scan the app | Real-time SSE stream |
-| eventOps staff | When I hand someone a wristband, I tap their entry to confirm — they get a push notification welcoming them | One-tap wristband confirm + FCM |
-| eventOps staff | When a Posh buyer shows their confirmation email but has no app account, I find them in the exception queue and resolve it | Posh exception handling |
+| eventOps staff — door device | As eventOps at the venue door, I see attendees checking in live as they scan the app | Real-time SSE stream |
+| eventOps staff — door device | When I hand someone a wristband, I tap their entry to confirm — they get a push notification welcoming them | One-tap wristband confirm + FCM |
+| eventOps staff — door device | When a Posh buyer shows their confirmation email but has no app account, I find them in the exception queue and resolve it | Posh exception handling |
+| Wristband staff — wristband device | I open the Wristband Queue and see everyone who has checked in but hasn't received a wristband yet, with the person who has waited longest at the top | Oldest-first queue, SSE auto-populated from `checkin` events |
+| Wristband staff — wristband device | When a new guest checks in at the door, their name appears at the bottom of my queue automatically — I don't have to refresh | SSE cross-device auto-update |
+| Wristband staff — wristband device | I can see at a glance how many people are waiting vs. already issued — if pending goes amber I know I need to move faster | Backlog stats header |
+| Wristband staff — wristband device | I tap Issue Wristband → next to a person's name, hand them the band, and their row dims — the door device updates simultaneously | Cross-device `wristband` SSE broadcast |
 | Venue manager | I can read the activation code off the screen and tell walk-in guests what to enter in the app | Large, prominent code display |
 | eventOps (phone backup) | On a phone, tabbed mobile view gives me full access to live feed and exceptions | Responsive design |
 | Developer | I can run tests locally: `npm test` in packages/react-admin, all E2E green | Test suite |

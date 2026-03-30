@@ -28,6 +28,21 @@ Save location: `docs/codex/log/track-{X}/{ID}/post-run-carry-forward.md` (co-loc
 - What is rejected:
 - Deviations from prompt and rationale:
 
+## User Story Amendments
+
+*Instructions: Review the TE's User Story Deviations section in the completion log. For each deviated story, determine TC action: Update (amend user-stories.md + amendment log), Accept (no change to doc — deviation is implementation detail, story stands as intent reference), or Flag (product intent changed, Jeff review required before carry-forward). Update `docs/product/user-stories.md` for all Update decisions.*
+
+| Story (short label) | Original Text | Implemented As | TC Action | Reason |
+|---------------------|--------------|----------------|-----------|--------|
+| example | "original story text" | "what was actually built" | Update / Accept / Flag | rationale |
+
+- Total stories in scope for this prompt:
+- Stories confirmed as-implemented (no deviation):
+- Stories amended (Update):
+- Stories accepted as-is (Accept):
+- Stories flagged for Jeff (Flag):
+- `user-stories.md` updated: yes / no / N/A (no deviations)
+
 ## Lessons Learned
 - What worked:
 - What failed or drifted:

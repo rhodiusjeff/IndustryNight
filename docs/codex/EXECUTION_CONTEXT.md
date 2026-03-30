@@ -299,6 +299,50 @@ If you discover CLAUDE.md is wrong about something in your scope, flag it in you
 
 ## 7. Known Technical Debt (Don't Fix Unless Assigned)
 
+---
+
+## 8. User Story Compliance Protocol
+
+**Source of truth for explicit functional requirements:** `docs/product/user-stories.md`
+
+### TE Obligation
+
+Before writing any code, read the section of `user-stories.md` relevant to your prompt (identified in your prompt's Context section). The user stories define what actors need to accomplish — they are a **strong reference, not a hard specification.** You may deviate when:
+
+- The API reality makes a story impossible as written (document why)
+- Implementation reveals the story is ambiguous and a clearer interpretation serves the actor better
+- A story is superseded by a carry-forward or handoff note in your prompt spec
+
+You may NOT:
+- Silently skip a story without noting it
+- Treat stories as optional suggestions to be implemented if convenient
+- Expand a story's scope beyond what's stated (implicit function is TE discretion, but don't encode it as a story)
+
+### Reporting Deviations in Your Completion Log
+
+In your completion log (`docs/codex/log/track-{X}/{ID}/completion-report.md`), include a **User Story Deviations** subsection:
+
+```
+## User Story Deviations
+
+| Story (short label) | Original Story | Implemented As | Reason |
+|---------------------|---------------|----------------|--------|
+| Issue wristband     | "tap Issue Wristband →" | "swipe right to issue" | touch target too small on 7.9" tablet; swipe is more reliable |
+| (none)              | All stories implemented as written | — | — |
+```
+
+If no deviations: state "All user stories implemented as written" — do not leave the section blank.
+
+### TC Carry-Forward Duty
+
+After reviewing the completion log, TC:
+1. Evaluates each deviation: **Update** user-stories.md (story was improved), **Accept** (deviation is correct but story stays as intent reference), or **Flag** for Jeff (deviation changes product intent)
+2. Updates `docs/product/user-stories.md` — amends the table row to reflect current truth, adds a row to the **Amendment Log** at the bottom of that file preserving the original text
+3. Records the amendment in the carry-forward report under **User Story Amendments**
+
+---
+
+
 - CI/CD does not auto-run migrations on deploy (manual step required)
 - `/health` endpoint does not check DB connectivity
 - No rollback migration files (`.down.sql`) exist
