@@ -2,7 +2,7 @@
 
 **Purpose:** High-level map of all implementation tracks, their sequences, dependencies, model assignments, and A/B test designations.
 
-**Last Updated:** March 26, 2026 (B0 winner declared — Jeff signoff received; X2 track approved and scoped)
+**Last Updated:** May 2026 (Track F/G added — global search + help system; E3 paid billing scope clarified)
 
 **Legend:** ⚡ = A/B test (run both Claude + OpenAI models; adversarial panel review before merge)
 
@@ -94,9 +94,16 @@ TODAY — Start all three in parallel (all are ⚡ A/B):
 | C1 | Missing API Endpoints | sonnet-4-6 | gpt-5.3-codex | — | Small | C0 |
 | C2 | Push Notifications (FCM) | sonnet-4-6 | gpt-5.3-codex | — | Medium | C0 |
 | C3 | Image Assets Architecture | opus-4-6 | gpt-5.4 | ⚡ | Large | C0 |
-| C4 | Platform Config + API Key Status | sonnet-4-6 | gpt-5.4-mini | — | Small | C0 |
+| C4 | Platform Config + Audit Log Reader + API Key Status | sonnet-4-6 | gpt-5.4-mini | — | Small | C0 |
 
 **Track C completion:** All known backend gaps filled; push notifications live; image asset system operational.
+
+**C4 scope note (updated May 2026):** C4 now explicitly includes:
+- `GET /admin/audit-log` endpoint with filters (action, actor_type, result, date range) + cursor pagination — reads from existing `audit_log` table
+- Audit log React page (top-level System nav, filter bar, expandable rows showing old/new values, IP, route, request_id, failure_reason, result)
+- Platform config UI (AI moderation thresholds, SIEM forwarding stub toggle — CloudWatch Logs target, retention setting)
+- API key status dashboard
+- Completing audit instrumentation coverage: event CRUD, customer/product/discount CRUD, admin logout — all calls to `tryLogSecurityEventFromRequest` missing today
 
 ---
 
@@ -126,6 +133,47 @@ TODAY — Start all three in parallel (all are ⚡ A/B):
 | E3 | Job Poster Account Portal | sonnet-4-6 | gpt-5.4 | — | Large | E0 |
 
 **Track E completion:** Full jobs marketplace operational; verified hire confirmation pipeline live; professional ratings available.
+
+**E3 scope note (added May 2026):** Job Poster accounts are a **paid subscription type**. E3 scope includes: job poster registration flow, subscription tier selection, billing integration (Stripe or compatible) for recurring subscription charges, account dashboard, usage limits by tier. If billing infrastructure complexity warrants isolation, it may be split into E3 (account portal) + E4 (billing/subscription backend). Decision deferred to X2-A2 master plan.
+
+---
+
+## Track F — Global Search
+
+**Goal:** Implement cross-entity full-text search for the React admin console and social app — users, events, tickets, jobs, and customers searchable from a single entry point.
+
+| Prompt | Title | Claude | OpenAI | A/B | Effort | Depends On |
+|--------|-------|--------|--------|-----|--------|------------|
+| F0 | Search API + Postgres FTS Index | sonnet-4-6 | gpt-5.3-codex | — | Medium | C0, C1 |
+| F1 | Admin Search UI + Results Page | sonnet-4-6 | gpt-5.4 | — | Medium | F0, B3 |
+| F2 | Social App Search Wiring | sonnet-4-6 | gpt-5.3-codex | — | Small | F0, A2 |
+
+**Track F completion:** Operators can search across all entities from the admin console topbar; social app search routes through unified endpoint; Postgres `tsvector` indexes maintained automatically via trigger.
+
+**F0 scope:** Add `search_index` tsvector column (or separate FTS table) with triggers on `users`, `events`, `tickets` (future: `jobs`, `customers`). Single `GET /admin/search?q=&type=` endpoint. Auth-gated; no public search.
+
+**F1 scope:** React admin Search page (already mocked in admin-mockup-v2.html — topbar search + `/search` route). Facet filter chips (All / Users / Events / Tickets / Jobs / Customers). Keyboard shortcut (Cmd+K). Results grouped by entity type with direct link-out to detail pages.
+
+**Execution order:** F0 → F1 (admin) + F2 (social) in parallel.
+
+---
+
+## Track G — Help System
+
+**Goal:** Implement an in-app help and onboarding system for the React admin console, including contextual guides, a first-time setup checklist, and operator documentation.
+
+| Prompt | Title | Claude | OpenAI | A/B | Effort | Depends On |
+|--------|-------|--------|--------|-----|--------|------------|
+| G0 | Help Content Architecture + Static Pages | sonnet-4-6 | gpt-5.4 | — | Medium | B3 |
+| G1 | Contextual Tooltips + Onboarding Flow | sonnet-4-6 | gpt-5.4 | — | Medium | G0 |
+
+**Track G completion:** Operators have in-app documentation accessible from the sidebar Help nav item; first-time operators see a setup checklist; key screens have contextual tooltip hints.
+
+**G0 scope:** Static help content framework. Sidebar Help page with left-nav article browser (already mocked in admin-mockup-v2.html). Content sourced from markdown or inline JSX — no external CMS required for v1. On-load first-time checklist modal for brand-new admin accounts.
+
+**G1 scope:** Contextual `?` tooltip icons on form fields and complex UI sections (publish gate requirements, image hero selection, discount redemption tracking). "Walk me through this" micro-flows for event creation and customer setup.
+
+**Execution order:** G0 → G1.
 
 ---
 
@@ -214,7 +262,7 @@ Update this table as prompts complete.
 | A0 | ⚡ | ✅ Closed | GPT | docs/codex/log/track-A/A0/control-decision.md | docs/codex/reviews/A0-adversarial-review.md | Merged to integration 2026-03-25 (PR #54, commit 2f63641); all 4 gates green |
 | X1 | — | ✅ Closed | N/A | docs/codex/log/track-X/X1/control-decision.md | — | Merged 2026-03-25 (PR #58, e37e3cb); 145 Jest / 30 Flutter / 25 E2E + 7/7 AWS; fresh-schema proof complete |
 | B0 | ⚡ | 🔶 Reviewing | Claude (claude-sonnet-4-6) | — | docs/codex/reviews/B0-adversarial-review.md | Winner: Claude. **Jeff signoff received 2026-03-26.** PR #63 parked pending X2-B re-run verdict. If merged as-is: 2 remaining pre-merge items (client.ts proxy fix, playwright fallback port). **B1 blocked until X2-C complete.** |
-| X2-A1 | — | ⬜ Not started | — | — | — | Ground-truth research: docs + code archaeology |
+| X2-A1 | — | 🔶 Reviewing | — | — | — | Inventory complete: `docs/codex/track-X/X2-A1-inventory.md`. **Awaiting Jeff review.** 3 product decisions required (Tickets nav, Images nav, Markets nav). |
 | X2-A2 | — | ⬜ Not started | — | — | — | Waiting for X2-A1 + Jeff review |
 | X2-B | — | ⬜ Not started | — | — | — | Waiting for X2-A2 + Jeff review |
 | X2-C | — | ⬜ Not started | — | — | — | Waiting for X2-B + Jeff review |
@@ -234,7 +282,12 @@ Update this table as prompts complete.
 | E0 | — | ⬜ Not started | — | — | — | Waiting for C0 |
 | E1 | — | ⬜ Not started | — | — | — | Waiting for E0, A1 |
 | E2 | — | ⬜ Not started | — | — | — | Waiting for E0, D0 |
-| E3 | — | ⬜ Not started | — | — | — | Waiting for E0 |
+| E3 | — | ⬜ Not started | — | — | — | Waiting for E0. Paid subscription billing included in scope (see Track E note). |
+| F0 | — | ⬜ Not started | — | — | — | Waiting for C0, C1 |
+| F1 | — | ⬜ Not started | — | — | — | Waiting for F0, B3 |
+| F2 | — | ⬜ Not started | — | — | — | Waiting for F0, A2 |
+| G0 | — | ⬜ Not started | — | — | — | Waiting for B3 |
+| G1 | — | ⬜ Not started | — | — | — | Waiting for G0 |
 
 **Status values:** ⬜ Not started → 🔵 In progress → 🟡 Claude done / GPT done → 🟠 Under adversarial review → ✅ Merged
 **Winner values:** Claude / GPT / Cherry-pick / N/A

@@ -40,6 +40,7 @@ Read these before writing any code:
 
 - `docs/codex/EXECUTION_CONTEXT.md` — living operational context: test infrastructure, migration conventions, API ground truth, deployment patterns (read before touching any code)
 - `CLAUDE.md` — full project reference (infrastructure section, deployment patterns, existing scripts)
+- `docs/product/user-stories.md` — explicit user stories for the B track; defines what each actor needs to accomplish. Use this as the functional requirements source alongside the mockup.
 - `docs/product/master_plan_v2.md` — Section 5 (React Admin Architecture Spec) — especially §5.1 (Tech Stack), §5.2 (Design System), §5.3 (Navigation Structure), §5.10 (Local Dev Scripts), §5.13 (Auth & Session)
 - `docs/design/admin-mockup.html` — the interactive prototype; this is the visual target
 - `scripts/run-api.sh` — pattern to follow for the new run-react-admin.sh script

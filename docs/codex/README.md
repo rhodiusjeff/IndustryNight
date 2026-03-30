@@ -9,17 +9,19 @@
 ## How to Execute a Prompt
 
 1. Open the prompt file and read it fully before writing a line of code.
-2. Read the referenced context documents listed in the prompt's **Context** section.
+2. Read the referenced context documents listed in the prompt's **Context** section — this includes `docs/codex/EXECUTION_CONTEXT.md` (always first) and the relevant section of `docs/product/user-stories.md` (identified in your prompt's Context entry).
 3. Implement the feature described in **Goal**.
 4. Verify all **Acceptance Criteria** are satisfied.
 5. Write the tests specified in the **Test Suite** section and confirm they pass.
 6. Commit with the message format: `feat(track-X): <short description>`
+7. In your completion log, include a **User Story Deviations** subsection — list each story from your relevant section and note whether implemented as written or deviated. See `EXECUTION_CONTEXT.md §8` for the format.
 
 Important:
 - Prompt execution output is provisional until control gates pass.
 - Review and closeout governance is control-owned (local review gate + GitHub review gate + validation evidence gate).
 - **Local-first execution is mandatory.** Verify with Jest testcontainers and local Flutter/widget tests before touching shared dev or AWS.
 - **Interrogative session is optional.** If skipped, capture any product-owner guidance in the carry-forward report instead.
+- **User stories are a strong reference, not a hard spec.** Deviations are allowed with rationale — silence is not. See `EXECUTION_CONTEXT.md §8`.
 
 Control operator guide:
 - `docs/codex/guides/control_plane_user_manual.md`
@@ -34,6 +36,7 @@ Principles:
 - Freeze executed prompts as historical artifacts.
 - Apply lessons only to downstream prompts and shared protocol/templates.
 - For A/B prompts, adjudicate first, then carry-forward.
+- **User story amendments:** For every deviated story, TC decides Update / Accept / Flag and updates `docs/product/user-stories.md` accordingly. Amended stories are recorded in the Amendment Log at the bottom of that file, preserving the original text for lessons-learned tracing. See `EXECUTION_CONTEXT.md §8` for the full protocol.
 
 Artifacts:
 - Reports (instance outputs): `docs/codex/log/track-{X}/{ID}/post-run-carry-forward.md` — co-located with TC control decision and agent completion report(s)

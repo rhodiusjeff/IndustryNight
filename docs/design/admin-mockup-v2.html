@@ -1,0 +1,2768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Industry Night — React Admin Mockup v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary: #121212;
+  --bg-surface: #1E1E1E;
+  --bg-elevated: #2A2A2A;
+  --bg-hover: #333333;
+  --border: rgba(255,255,255,0.08);
+  --border-strong: rgba(255,255,255,0.16);
+  --text-primary: #F5F5F5;
+  --text-secondary: #A0A0A0;
+  --text-tertiary: #606060;
+  --accent: #7C3AED;
+  --accent-light: #A855F7;
+  --accent-energy: #FF3D8E;
+  --accent-cool: #1B9CFC;
+  --accent-gold: #F1C40F;
+  --gradient-brand: linear-gradient(135deg, #7C3AED, #FF3D8E);
+  --success: #10B981;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  --sidebar-w: 240px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  height: 100vh;
+  display: flex;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+/* ─── SIDEBAR ─── */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+.sidebar-logo {
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.logo-mark {
+  width: 32px;
+  height: 32px;
+  background: var(--gradient-brand);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: white;
+  flex-shrink: 0;
+}
+.logo-text { font-weight: 600; font-size: 14px; color: var(--text-primary); }
+.logo-sub { font-size: 11px; color: var(--text-tertiary); }
+.sidebar-section { padding: 12px 8px 4px; }
+.sidebar-section-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0 8px;
+  margin-bottom: 4px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  position: relative;
+  user-select: none;
+}
+.nav-item:hover { background: var(--bg-elevated); color: var(--text-primary); }
+.nav-item.active {
+  background: rgba(124,58,237,0.15);
+  color: var(--accent-light);
+}
+.nav-item.active .nav-icon { color: var(--accent-light); }
+.nav-icon { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.7; }
+.nav-item.active .nav-icon { opacity: 1; }
+.nav-badge {
+  margin-left: auto;
+  background: var(--error);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+.nav-badge.warn { background: var(--warning); color: #1a1a1a; }
+.sidebar-footer {
+  margin-top: auto;
+  padding: 12px 8px;
+  border-top: 1px solid var(--border);
+}
+.admin-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.admin-profile:hover { background: var(--bg-elevated); }
+.admin-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--gradient-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+.admin-name { font-size: 12px; font-weight: 500; color: var(--text-primary); }
+.admin-role { font-size: 11px; color: var(--text-tertiary); }
+
+/* ─── MAIN ─── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.topbar {
+  height: 56px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.topbar-title { font-size: 16px; font-weight: 600; flex: 1; }
+.topbar-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  width: 240px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.topbar-search svg { opacity: 0.5; flex-shrink: 0; }
+.topbar-icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  position: relative;
+}
+.topbar-icon-btn:hover { background: var(--bg-elevated); color: var(--text-primary); }
+.notif-dot {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 7px; height: 7px;
+  background: var(--error);
+  border-radius: 50%;
+  border: 1.5px solid var(--bg-surface);
+}
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+/* ─── PAGES ─── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ─── PAGE HEADER ─── */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.page-title { font-size: 22px; font-weight: 700; margin-bottom: 2px; }
+.page-sub { font-size: 13px; color: var(--text-secondary); }
+
+/* ─── BUTTONS ─── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+.btn-primary {
+  background: var(--accent);
+  color: white;
+}
+.btn-primary:hover { background: var(--accent-light); }
+.btn-secondary {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+}
+.btn-secondary:hover { background: var(--bg-hover); }
+.btn-ghost { background: transparent; color: var(--text-secondary); }
+.btn-ghost:hover { background: var(--bg-elevated); color: var(--text-primary); }
+.btn-danger { background: rgba(239,68,68,0.1); color: var(--error); border: 1px solid rgba(239,68,68,0.2); }
+.btn-danger:hover { background: rgba(239,68,68,0.2); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+
+/* ─── STAT CARDS ─── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+.stat-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+.stat-value { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+.stat-delta { font-size: 12px; color: var(--success); }
+.stat-delta.neg { color: var(--error); }
+.stat-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  font-size: 18px;
+}
+
+/* ─── TABLE ─── */
+.table-container {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.table-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  flex: 1;
+  max-width: 280px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.12s ease;
+}
+.filter-chip:hover, .filter-chip.active { background: rgba(124,58,237,0.15); border-color: rgba(124,58,237,0.3); color: var(--accent-light); }
+table { width: 100%; border-collapse: collapse; }
+thead tr { border-bottom: 1px solid var(--border); }
+th {
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+td { padding: 12px 16px; font-size: 13px; border-bottom: 1px solid var(--border); }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: rgba(255,255,255,0.02); }
+.table-actions { display: flex; gap: 6px; opacity: 0; transition: opacity 0.12s; }
+tr:hover .table-actions { opacity: 1; }
+
+/* ─── BADGES ─── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.badge-published { background: rgba(16,185,129,0.12); color: var(--success); }
+.badge-draft { background: rgba(160,160,160,0.12); color: var(--text-secondary); }
+.badge-completed { background: rgba(27,156,252,0.12); color: var(--accent-cool); }
+.badge-cancelled { background: rgba(239,68,68,0.12); color: var(--error); }
+.badge-verified { background: rgba(241,196,15,0.12); color: var(--accent-gold); }
+.badge-pending { background: rgba(245,158,11,0.12); color: var(--warning); }
+.badge-unverified { background: rgba(160,160,160,0.12); color: var(--text-secondary); }
+.badge-gold { background: rgba(241,196,15,0.12); color: var(--accent-gold); }
+.badge-silver { background: rgba(160,160,160,0.15); color: #C0C0C0; }
+.badge-bronze { background: rgba(180,100,40,0.15); color: #CD7F32; }
+.badge-platinum { background: rgba(124,58,237,0.15); color: var(--accent-light); }
+.badge-flagged { background: rgba(239,68,68,0.12); color: var(--error); }
+.badge-auto-approved { background: rgba(16,185,129,0.12); color: var(--success); }
+.badge-auto-rejected { background: rgba(239,68,68,0.15); color: var(--error); }
+.badge-review { background: rgba(245,158,11,0.12); color: var(--warning); }
+.badge-open { background: rgba(27,156,252,0.12); color: var(--accent-cool); }
+.badge-filled { background: rgba(16,185,129,0.12); color: var(--success); }
+
+/* ─── AVATAR ─── */
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+  color: white;
+  flex-shrink: 0;
+}
+.cell-user { display: flex; align-items: center; gap: 10px; }
+.cell-name { font-weight: 500; color: var(--text-primary); }
+.cell-sub { font-size: 12px; color: var(--text-secondary); }
+
+/* ─── CARDS ─── */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-title { font-size: 14px; font-weight: 600; }
+.card-body { padding: 16px 20px; }
+
+/* ─── 2-COL GRID ─── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+/* ─── MODERATION SPECIFIC ─── */
+.mod-item {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  display: flex;
+  gap: 16px;
+}
+.mod-content { flex: 1; }
+.mod-author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.mod-author-name { font-size: 13px; font-weight: 600; }
+.mod-author-sub { font-size: 12px; color: var(--text-secondary); }
+.mod-text { font-size: 13px; color: var(--text-primary); line-height: 1.6; margin-bottom: 10px; }
+.mod-meta { display: flex; align-items: center; gap: 12px; }
+.confidence-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.confidence-fill {
+  height: 4px;
+  border-radius: 2px;
+  width: 80px;
+  background: var(--bg-elevated);
+  overflow: hidden;
+}
+.confidence-fill-inner {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+.mod-actions { display: flex; flex-direction: column; gap: 8px; justify-content: flex-start; padding-top: 4px; }
+.llm-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.llm-haiku { background: rgba(27,156,252,0.1); color: var(--accent-cool); }
+.llm-sonnet { background: rgba(124,58,237,0.1); color: var(--accent-light); }
+
+/* ─── TABS ─── */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+  gap: 0;
+}
+.tab {
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s ease;
+  margin-bottom: -1px;
+}
+.tab:hover { color: var(--text-primary); }
+.tab.active { color: var(--accent-light); border-bottom-color: var(--accent-light); }
+.tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 16px;
+  background: var(--bg-elevated);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 0 4px;
+  margin-left: 6px;
+  color: var(--text-secondary);
+}
+.tab.active .tab-count { background: rgba(124,58,237,0.2); color: var(--accent-light); }
+
+/* ─── METRICS MINI ─── */
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.metric-mini {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  text-align: center;
+}
+.metric-mini-val { font-size: 22px; font-weight: 700; }
+.metric-mini-label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+/* ─── EVENT IMAGE THUMB ─── */
+.event-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #2d1b69, #7C3AED);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+/* ─── JOB CARD ─── */
+.job-row-detail { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.job-tag {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ─── ANALYTICS CHART PLACEHOLDER ─── */
+.chart-placeholder {
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  position: relative;
+  overflow: hidden;
+}
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 120px;
+  padding: 0 20px;
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+}
+.chart-bar {
+  flex: 1;
+  background: rgba(124,58,237,0.25);
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  transition: background 0.2s;
+}
+.chart-bar:hover { background: rgba(124,58,237,0.5); }
+.chart-bar.highlight { background: var(--accent); }
+
+/* ─── INFLUENCE GRAPH ─── */
+.influence-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+/* ─── POSH ORDERS ─── */
+.reconcile-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.reconcile-linked { background: rgba(16,185,129,0.12); color: var(--success); }
+.reconcile-unlinked { background: rgba(245,158,11,0.12); color: var(--warning); }
+.reconcile-error { background: rgba(239,68,68,0.12); color: var(--error); }
+
+/* ─── EMPTY STATE ─── */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-secondary);
+}
+.empty-state-icon { font-size: 36px; margin-bottom: 12px; }
+.empty-state-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+.empty-state-sub { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; }
+
+/* ─── DIVIDER ─── */
+.divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+/* ─── TOOLTIP ─── */
+.tooltip-note {
+  background: rgba(124,58,237,0.1);
+  border: 1px solid rgba(124,58,237,0.2);
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--accent-light);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--bg-hover); }
+
+/* ─── REPORT CARD ─── */
+.report-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.report-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #1a0a3d, var(--accent));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.report-meta { flex: 1; }
+.report-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.report-detail { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+.report-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* ─── NEW BADGE ─── */
+.new-pill {
+  display: inline-flex;
+  align-items: center;
+  background: var(--gradient-brand);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-left: 4px;
+}
+/* ─── ROLE SWITCHER ─── */
+.role-switcher {
+  display: flex;
+  gap: 4px;
+  padding: 8px 8px 0;
+}
+.role-btn {
+  flex: 1;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  color: var(--text-tertiary);
+  background: transparent;
+  font-family: inherit;
+  transition: all 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.role-btn.active {
+  background: rgba(124,58,237,0.15);
+  border-color: rgba(124,58,237,0.3);
+  color: var(--accent-light);
+}
+/* ─── HIDDEN BY ROLE ─── */
+.role-platform-only { display: flex; }
+.role-limited .role-platform-only { display: none; }
+/* ─── IMAGES PAGE ─── */
+.img-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  padding: 20px;
+}
+.img-tile {
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: border-color 0.15s;
+  position: relative;
+}
+.img-tile:hover { border-color: var(--accent); }
+.img-tile-thumb {
+  aspect-ratio: 4/3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  background: linear-gradient(135deg, #1a0a3d, #2d1b69);
+}
+.img-tile-meta {
+  padding: 8px 10px;
+}
+.img-tile-name { font-size: 11px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.img-tile-sub { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; }
+.img-tile-check {
+  position: absolute;
+  top: 8px; right: 8px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: white; opacity: 0;
+  transition: opacity 0.15s;
+}
+.img-tile.selected .img-tile-check { opacity: 1; }
+.img-tile.selected { border-color: var(--accent-light); }
+/* ─── DISABLED TAB ─── */
+.tab.disabled { opacity: 0.4; cursor: not-allowed; }
+.tab.disabled:hover { color: var(--text-secondary); }
+/* ─── SETTINGS SIDEBAR ─── */
+.settings-layout { display: grid; grid-template-columns: 180px 1fr; gap: 24px; }
+.settings-nav { display: flex; flex-direction: column; gap: 2px; }
+.settings-nav-item {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.settings-nav-item:hover { background: var(--bg-elevated); color: var(--text-primary); }
+.settings-nav-item.active { background: rgba(124,58,237,0.12); color: var(--accent-light); }
+/* ─── EVENT OPS ─── */
+.checkin-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.checkin-row:last-child { border-bottom: none; }
+.checkin-status {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.checkin-status.in { background: var(--success); }
+.checkin-status.out { background: var(--bg-hover); }
+.live-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  margin-right: 5px;
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+/* ─── TICKET PAGE ─── */
+.preset-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.12s;
+}
+.preset-chip:hover, .preset-chip.active {
+  background: rgba(124,58,237,0.12);
+  border-color: rgba(124,58,237,0.3);
+  color: var(--accent-light);
+}
+
+/* ─── EVENT DETAIL: SUB-TABS ─── */
+.sub-tabs { display: flex; gap: 6px; margin-bottom: 20px; }
+.sub-tab {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 6px;
+  font-size: 12px; font-weight: 500; cursor: pointer; user-select: none;
+  color: var(--text-secondary); background: var(--bg-elevated);
+  border: 1px solid var(--border); transition: all 0.12s ease;
+}
+.sub-tab:hover { color: var(--text-primary); }
+.sub-tab.active { background: rgba(124,58,237,0.15); border-color: rgba(124,58,237,0.3); color: var(--accent-light); }
+
+/* ─── EVENT DETAIL: IMAGE GRID & PARTNER CHIPS ─── */
+.event-img-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+.event-img-tile {
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: 8px; aspect-ratio: 16/9;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; font-size: 28px; cursor: pointer; transition: border-color 0.15s;
+}
+.event-img-tile:hover { border-color: var(--border-strong); }
+.hero-star { position: absolute; top: 6px; right: 6px; font-size: 14px; color: var(--accent-gold); }
+.partner-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: 8px;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  font-size: 12px; cursor: default; transition: border-color 0.15s;
+}
+.partner-chip:hover { border-color: var(--border-strong); }
+.partner-logo {
+  width: 24px; height: 24px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: white; flex-shrink: 0;
+}
+
+/* ─── WRISTBAND QUEUE ─── */
+.wb-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background 0.15s ease;
+}
+.wb-row:last-child { border-bottom: none; }
+.wb-row:not(.issued):hover { background: rgba(16,185,129,0.04); }
+.wb-row.issued { opacity: 0.45; cursor: default; }
+.btn-issue {
+  background: rgba(16,185,129,0.12); color: var(--success);
+  border: 1px solid rgba(16,185,129,0.25);
+  padding: 8px 14px; border-radius: 6px;
+  font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
+  white-space: nowrap; flex-shrink: 0; transition: all 0.15s ease;
+}
+.btn-issue:hover { background: rgba(16,185,129,0.22); }
+
+/* ─── TABLET RESPONSIVE (<=1023px) ─── */
+@media (max-width: 1023px) {
+  :root { --sidebar-w: 60px; }
+  .sidebar { overflow: hidden; }
+  .sidebar-section-label { display: none; }
+  .sidebar-logo div { display: none; }
+  .sidebar-logo { padding: 12px 8px; }
+  .nav-item { padding: 12px 8px; justify-content: center; font-size: 0; gap: 0; min-height: 44px; }
+  .nav-icon { width: 20px; height: 20px; opacity: 1; }
+  .nav-badge, .new-pill { display: none !important; }
+  .admin-name, .admin-role { display: none; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .grid-2 { grid-template-columns: 1fr; }
+  .event-img-grid { grid-template-columns: repeat(2, 1fr); }
+  .topbar-search { display: none; }
+  .tab { min-height: 44px; padding: 12px 16px; }
+  .sub-tab, .btn { min-height: 44px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SIDEBAR
+═══════════════════════════════════════════════════════════ -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZUAAACrCAYAAACuXAFSAAAAAXNSR0IArs4c6QAAAUZlWElmTU0AKgAAAAgABwESAAMAAAABAAEAAAEaAAUAAAABAAAAYgEbAAUAAAABAAAAagEoAAMAAAABAAIAAAExAAIAAACZAAAAcgE7AAIAAAAPAAABDIdpAAQAAAABAAABHAAAAAAAAABgAAAAAQAAAGAAAAABQ2FudmEgKFJlbmRlcmVyKSBkb2M9REFHbjhwX092OTAgdXNlcj1VQUJfVy05WUkzRSBicmFuZD1IZWFkY2hvcCArIExpbCcgQ2hvcCBUZWFtIHRlbXBsYXRlPUJsYWNrIEJlaWdlIEJvbGQgRnJhbWVkIFR5cG9ncmFwaHkgUGxhbmV0IEJyYW5kIEJ1c2luZXNzIExvZ28AAExhdXJlbiBTaW1wc29uAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAABlaADAAQAAAABAAAAqwAAAAA/GjNTAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAFnGlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iWE1QIENvcmUgNi4wLjAiPgogICA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPgogICAgICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIgogICAgICAgICAgICB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iCiAgICAgICAgICAgIHhtbG5zOkF0dHJpYj0iaHR0cDovL25zLmF0dHJpYnV0aW9uLmNvbS9hZHMvMS4wLyIKICAgICAgICAgICAgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIgogICAgICAgICAgICB4bWxuczp0aWZmPSJodHRwOi8vbnMuYWRvYmUuY29tL3RpZmYvMS4wLyI+CiAgICAgICAgIDxkYzpjcmVhdG9yPgogICAgICAgICAgICA8cmRmOlNlcT4KICAgICAgICAgICAgICAgPHJkZjpsaT5MYXVyZW4gU2ltcHNvbjwvcmRmOmxpPgogICAgICAgICAgICA8L3JkZjpTZXE+CiAgICAgICAgIDwvZGM6Y3JlYXRvcj4KICAgICAgICAgPGRjOnRpdGxlPgogICAgICAgICAgICA8cmRmOkFsdD4KICAgICAgICAgICAgICAgPHJkZjpsaSB4bWw6bGFuZz0ieC1kZWZhdWx0Ij5pbmR1c3RyeSBuaWdodCAtIDI8L3JkZjpsaT4KICAgICAgICAgICAgPC9yZGY6QWx0PgogICAgICAgICA8L2RjOnRpdGxlPgogICAgICAgICA8QXR0cmliOkFkcz4KICAgICAgICAgICAgPHJkZjpTZXE+CiAgICAgICAgICAgICAgIDxyZGY6bGkgcmRmOnBhcnNlVHlwZT0iUmVzb3VyY2UiPgogICAgICAgICAgICAgICAgICA8QXR0cmliOlRvdWNoVHlwZT4yPC9BdHRyaWI6VG91Y2hUeXBlPgogICAgICAgICAgICAgICAgICA8QXR0cmliOkNyZWF0ZWQ+MjAyNS0xMi0yMDwvQXR0cmliOkNyZWF0ZWQ+CiAgICAgICAgICAgICAgICAgIDxBdHRyaWI6RXh0SWQ+OWM4MzlkNWItN2IyNC00ODFiLTkxZmMtOGU4MDY5ZTAxNmI4PC9BdHRyaWI6RXh0SWQ+CiAgICAgICAgICAgICAgICAgIDxBdHRyaWI6RmJJZD41MjUyNjU5MTQxNzk1ODA8L0F0dHJpYjpGYklkPgogICAgICAgICAgICAgICA8L3JkZjpsaT4KICAgICAgICAgICAgPC9yZGY6U2VxPgogICAgICAgICA8L0F0dHJpYjpBZHM+CiAgICAgICAgIDx4bXA6Q3JlYXRvclRvb2w+Q2FudmEgKFJlbmRlcmVyKSBkb2M9REFHbjhwX092OTAgdXNlcj1VQUJfVy05WUkzRSBicmFuZD1IZWFkY2hvcCArIExpbCcgQ2hvcCBUZWFtIHRlbXBsYXRlPUJsYWNrIEJlaWdlIEJvbGQgRnJhbWVkIFR5cG9ncmFwaHkgUGxhbmV0IEJyYW5kIEJ1c2luZXNzIExvZ288L3htcDpDcmVhdG9yVG9vbD4KICAgICAgICAgPHRpZmY6T3JpZW50YXRpb24+MTwvdGlmZjpPcmllbnRhdGlvbj4KICAgICAgPC9yZGY6RGVzY3JpcHRpb24+CiAgIDwvcmRmOlJERj4KPC94OnhtcG1ldGE+ChelJaoAACVySURBVHgB7Z0LnBxFnceremY3CyHJ7iasm32ERAy4OwkPRUXvOEQFRUXlUEFOPEBBTjzffkQEFSGiIgqKoucB4hGengIq8lSIL/AJ2cwmGHMh2UdCHruTJ8nuTNf9anZnMzs73V3z6Jme7V99PrPTXfWvf1V9e7b+XW8h6EiABEiABEiABEiABEiABEiABEiABEiABEiABEiABEiABEiABLwISC8BHa7i8XpRX28ka6KPMi4EXtKfkvKkpIsEg0iABEggsASiTjkb7o//SEhxug5PCDFTiBEaFSdYZfSXm1puhLoPlVElVZEACZBAxQg4GhVhiYOEEodULCdMiARIgARIoOYJWDVfAhaABEiABEggMARoVALzKJgREiABEqh9AjQqtf8MWQISIAESCAwBGpXAPApmhARIgARqnwCNSu0/Q5aABEiABAJDgEYlMI+CGSEBEiCB2idAo1L7z5AlIAESIIHAEHBep2KeRb362zYXp6QbAaXEqFs4w0iABEggyARKNipSibMbO2L3BLmQzBsJkAAJkEBlCLD7qzKcmQoJkAAJhIIAjUooHjMLSQIkQAKVIUCjUhnOTIUESIAEQkGARiUUj5mFJAESIIHKEKBRqQxnpkICJEACoSBAoxKKx8xCkgAJkEBlCNCoVIYzUyEBEiCBUBCgUQnFY2YhSYAESKAyBEpe/FiZbDKVDIHhgfhaXNdn7vN9S6G+29i+5Kv5wuhHAiRAAn4SCKxRQeV5rFJ2e0RZW2d3dP9JSsmtYMZ+CQvw5WpUhJCNfv5oqJsESIAEnAgErvtruD9+LgzKemT4r1JaP7Mt8eSOwd4B+H/CqRD0JwESIAESCAaBQBmVxGD8KiHFLUCzMBuPEqIV/tfC2NyU7c9rEiABEiCBYBEIjFGBwXgbdui91APP+Yn++Ac9ZBhMAiRAAiRQJQKBMSoo/yfxkV4clBTsBvOCxHASIAESqBKBwBgVWJNXGjI4YuvGNW2GshQjARIgARKoIIFAGJW+vr6DMG7SYFruSL3dbCpLORIgARIggcoRCMSU4s7OzhcwprINxZ5nUPSk2DOjz0COIiSQlwB+a99WQs7IGzjuaUn7oca2Jf/rJsMwEiCBqQQCYVTGs/UQvv9tahan+DzRfPjhO6b40oMEzAm8HwtED3ITt5XUvzEaFTdIDCOBPAQC0f2l82XZ8gp8DeXJ44QXxl322cq6fMKDFyRAAiRAAoEiEBijMqeze60U8kzQ0d1g+dweTA47d25H1x/yBdKPBEiABEig+gQCY1Q0isb27kcxZfjleu8q3P4dnyFMMl6H7x+mZOo4hN+FazoSIAESIIGAEgjSmEoaUXNbbCMuLg4oL2aLBEiABEjAhUCgWiou+WQQCZAACZBADRCgUamBh8QskgAJkECtEKBRqZUnxXySAAmQQA0QCNyYSjWZKaWsxOY1C5RUh9TL1NaZLUu2VuIcl63P9c6PRFKHqqiVlHsbBrgOZ+qvYGf/6rnwnZsS9sEiYiVGI/a2lpbY7qmSteezfv36hubo3o5UnWyIJuWm2R1d22uvFMwxCYwRCIxRQaVxRFKmTvZ6MFEVudPpn25Mh32Ktw7rjoyOoXXr5lgN+y8UQp2e2NR7nFCiTu9qOSoskRjs3ZUYiMdxOthv4Xd7U3vsb166TcJ3P9/zomRSnqukfCPSOxZp41AtS6SPIWvYJ7DiG9OnxV/weRzrd27T061N9JrIDA3G34s0XQ/xiki1dk7bEr0Y1dNtH4y/SSrxEldBKYYwAeN2V5mswLRxH+w9TUh5ulDqKAS9FMbkwGJF2xZ1eCjgNAgZPUvwbyolHm3qeP5hKU9KZqlKX0LuPGwDNDPLP5J1nffSUiI2NBD/cG6gFU090Piio/4v239oYNV7MN1dGz1nZ4l1zfNjv8wIbN78zMz6VORcPY1eir2vQHEaZEqJFGAivxsxA/L3eLm5R4gIcKj2TDy377pI8u5ZrUdvcZPJF4b0zgefg/OFTfJTMtXU3vX9SrxoTUqXNzVFIDBGJWnZr5BK3uBFD5XL7yCT900OOl6J/8lve+qQYzp0ZYP1lFfhH2psg0pc5LhZ8DoeBuV4+H8K8r+B/isaO2KP5cgZ3W7ZEj+kLim/NJpUFyDCIajcnZyuAP9Ff2xLfQbp3m4L+wtz25eWvD0N8v956F3slLD2Tyl5N76MjIpliw9g2vcZbvqQ5hqEGxkVfbQBjPllkO+AQXFTq8PaIKOf3WulJT6eGGzZhsPclitLfGN8FmEm/tV4hi/K3Jh8Y2r7qYhzaq6sSkX74TfJqOB3eykYLMmVnXRvi/twnzYqQ/29b4EB+Q7uD9MyeUq5ANvILBBKnoXQDchHWk7LurlUKtKF8IJmTiYGek9WQt2ENEzcT2BQbjQRpEx4CYRyTAUnSlqoqG/CY78ZnzGDYvYbOAGVzaPDA703KPXrggwyKsqX1Y2Kv6IS/DiSOsQsubSU3qPqPEtYT6LCfV0B8WpKNLFhZROeyWPg+z1kvKPIzM9D5f5RGDG0/oLphgd7PyYt9VPkzshQoDx/gqxutRo4eb5urRsITojYQn1y4sb9IqlU6gp3EYaSgO5zCaFTwr4FxT6/+KKrixObWu41jT/c1/NavA3+CvKuLQQPfW2ocB+ATJ2HXM0Fp3epjkYeRcZLNppg9BS6KXWrIHAOXY+fxUvFN9E0MX2GKch+WUr7UhQmT4NmchEh0JCU9pWTfZ3v9IsOWignO0tkhShxR3Pn0pVZPrwkgbwEQmlU8O+5NC+NQjyVeMtw/6rLvaLs6OtdLCzrx0hzjpesQbhutRj2VBhoC4jIIdbOryArLytHdtBKubocenzQEUPejCv88fTv1+N4jW1LH8b9z03yhB/HGdv7V7/aRFYo+9OQ86wDoHMfxpi+ZKSTQqEn4PmDCj0hNwBSfm5HX9xxkFrP6rGt9FiC+yCuWxrTPAz89Nk4F5SjmEFupaB8+nfiOUEgi0MK3bTLMvf4HX0W1/sz9y7fEWzbf5VLeDoosbHncIzb/KuXnA63pbh1TmfsHyaylCEBGpXSfgMz7Ij8kJOKprq9GBRXxzmF0x90IuKd4HBgZld+KLrr5xF8voWK8KsYv/8vtPyewP3ObPEAt1Kys2l6/YvGtq6JsZS582NxzAjT44Am7nUYn3qbq2BEfgLh9a4yY4G7lbInjJuBPEVCTqCgwebpyApN+z9gyuY9Slh/R8fSLJTxdZZQ5+j+abPyqjfkk9Nv4HjDuyhfmIcf6k1UlkroZ6NngU1rh8K+1GC44FZ0A52XC0KPxcyM7DwDxuQiPMdIo9NYihQbwHNvVvyFuEYUVzeM0ESuBNLS0739djZm1X05N5GINeOLSXvkTPgbtHyl7mq7P1eHvt+1ae2h0HNOvrApflL+YG5b6bMOp+ilx7QlEGajsh+G41OorHKnMd8Jg/DfmJb6Mzz1Fs8nr8QRel1F7tx9tGA+hkHZJs/44wKo4dagmvtmRNb/dNb8xVu1t+5aQ7eHPrhMr5eYp/2mnbOVnrHl7qTUFfwUp08Mhedt+rN9+9rZUwTGPZraYq/KDsNbvDYwrq0j/DZuam6P6TGHsjsU90msr0GrI/W0EpGtWKsyD62Bo8HhVBi/02DvHsHapKdyE9a/Cwz2f92sRaaOwkD8Bxrbuv87V09S7f8I0tAvUF4uEbVG9XgXHQkYEwivUcHbbXNH7If5SKH/+I+oeHQ/v8ksohm7N/9DvzmmDcGEPqVQOZg5VDK3D48c/P5Fixbty44x3o99Baah/hAGSk9DDexU2ex8F3QtFcYJ3K2KVOo/hvt7h9T+Gd922m1g7tzFk7rCCspDBYWlFMsa22KX5SS5Afd/wefmxGDPcXhHSeWET9w2DYtvJBrTMxcXT3g6XOBl53NozS0fN75pKb3oEiss9W/b20l1QzGLKb0VU2I6EwjpmIr8eZODQck8bLRg7kdVZ3Qg2KgamfTWq1fMQ8/SjC6P78fmtHWfk2tQsuM0tXVvSNlRbaQGs/2nw7XU3Y4eLt0VKdWVsmFf//Bg/G4Y/PPHB/g9YgYrGAblgTwGZVImMdPrz3rG1yTPrBsZi41gevoXsrzcLhfOlLv02MmEm5GMXIgb/fv0clvUCwd93UuI4SSQSyCURgXrVG7PBeFw/4SDv6v3SDJyEgRMZvqkFLrJcrvO8imf13nkACrXoE6XzZdlIz9sTaPX+ySNhMd2IXgXZG9C9+QAjMt9ekW4Ydyqi9lClKUrqbl9yR0ozG9MCiSl+vj4vmlo7IKaJS82iYeZdNc5tQpN4lMmvARCaVQs7G1l8sixN9dmE7lcGXTXmK3Sl+Ivza3dq3LjO97va/gfhJlMK3VUEbSA8X3Nbi00X+nWixBvw1v7w0MDvQ9tG1yJAf8AO5xgiq1jjAyBSSmwbc8lkHPsJsvSoTfhvFzfYx+7czBmc3hWmNNl/57U7OucAulPAm4EQmlU3Pqss2Hhzc7knzY7Svoa3WYGs3MgqkTvlMguHuNvjhtcRGoyaH8k+VEMXD9ebOYx1faUiIo8NbaxY7FafI6n5OpypoB94H6Pct9jpFOKC/W6FDDGAL2Bk+Ka7HEYgxgUIYEJAqE0KhOl9+kCXQeme3vtLiILvk9phVGcYZwvy3TqtbPG1taj9+xOzXozKr2CWyxZWmejG/FWtFqwCWMQXXEvKK4lidqfQ7jJ7+EgFbH0JqEvc9WnA9Giapy/5buechQgAQcCNCoOYEr0zjsFNlcnppKatWgmRywmzmQN3nemRhHLrY0MKHqr3J1+M8aEhHMxXfZMSK53l3YITR9boL41PlHCQWj6eOst+AHW1AB4GxSgwY7LV+c7PmD6UGNJ/CZAo+IDYfTzT55e7JAG5F7uEJTXW69bQcCCvIGmnlJMmrbsEK3TwX+qt/TODyo+kzTTunGswN2JkYO70Wr5GDwK6h4cz9yho0nroqkZLcwHM7Vq439jX8MytC42FVY6R+n4nLauWxxDGUACBgRq4x/HoCBBEsEA/zrD/BwxtCl+qqGswEJIsz5xN4VK7HALTodJsSgzY8hNVp9YiXBvIyenrkx306unV6PVcj2m1sZgXE4c7xYz7yrEZp9u+o3CPA4yM9JRASE9zoaxv2XlSAq7G1xlMhOxHGlRx/QlQKPiw7Pduf/gx6HWqBLElNrrTSrwHYOr3gidHyw9u3LK1iNTdKIbCadweo5NRKPqbMSNTImf66G8jcp4Kyw3poBxWaG7xZKpyJGo9PRuvd5OioUeQiYTMI7w0BGYYOwYcCNaKz2lZUj+ubm9+87SdDA2CRhse01IhRMYX8g4ZZsNB02LU5b966G+nqMcwgVWk7/PVlLP9Kl3kjH3V0bjFRjv+cz2gR7HbrDhTasXooPok0bpSvmcm1z6vBlL9KCcl6XXUuQRPnTBSwdtO3J+nqCpXtL9uGREMBncfrXOV0Y51sS8XZ/cmbkP0rduXShbfraUPPEArlLoMW42gfBu05JNwY9rPZNJqdcbqcb5LjJi/RkV14OYZvwEus8G0Kdfh/gYQ5Fvxtzj44z0GAhhIPw3mJ32nwainVgptwL7Ry3D0bc/wZYxQzqOblVht8MzlG3rrUZ095eJW+EkpI0I0rgW4y4NGCW+EosZz8QMrmX53pqjkZH5ev2ep/Pu4tsGHV6ryiM4B+cBPJO/QrYdn4XRUfkefAfybb65o/sXQwPxhzBzT7doC3UrmjuW/rzQSJQngXwEaFTyUSmDH7ps/geLzT6LyrLLSN3YaYCnoRvjNKw/yNq4F9dldDAqj6FeHkUSdQZqF6LS/wHkv4fKVXebSSykm4O43l1eB5Tvt2fU/erA7eSrxKbVepzowMwknPWO8t+Bs+aXwbDejbT+lrLETstWXUpJE2OIXHoMXCv5LAxYbHJO8t7p7Xf+KROCfL0V14E0KjqPeLaXoPX4OsNnmymWjnfFxA0vSKBEAgavfSWmEOroUv+zltcqlMhTtzhwHonenLIQp42InsrcjE8hBkWn8WOnzR7TU3+x6aEWmuKkeDHAXYJW1V04dfCXGKz/BmQWTZHL56GkY8toTFz9Ll80A7+TnbrnDOL6LoL97J7Gr+1HhSSEls2DmHHnaPQL0UVZEtAEaFR8/B00tnffhbft7/mYRHGq7fShSyaD1cXpz8SSYjQlnQ94wtTfqyE6LyNepm80aJRrayJpR3T4SBHptewY6D2piHgVi5IclZfDUJhO4bZTKv3iU7H8MaHpT4BGxednPGdYYL2F/H0ZkynZGDR3Ll2J/FxZxjzlVYXB4yvmtS3Nuz0JJgG8BpHelzdiKZ5KLMceW791U6EH/RG+3E3GKQwtp7c7hQXBP1ovjkcLr8EoL0reO7ej+0kjWQqRgCEBGhVDUMWK6a3KMR6gt60vtsslk3QKXRufws1AxqOUb6wBucLnVtQNGDxe5pRHzC7DC7V43im8GH9U+E9hdF0vmvR0kP0iMrDZU3CqQDED4VO1+OWj1OcNVSc548uQFMUKIkCjUhCu4oT1OEZjAgOoQtyATzEtjWHUweehz/za4nKQPxbO9vgPhOiB8u35JYry3Yb1JBfDaLkOqmP79t/hjJhX4q1a70lVDJPszOHkZnlHMireMLujy6gsaM1sRCS9jf7ObEUG10e4Tf82iO+bCA5zOwfKjzFKQIk7x1usRuIUIgFTAjQqpqRKlNMtFl3R2so6Ad1hevqmyRkiL0DuZvSTx/RsshKzkDc68vTtqFXfhenLn8esqWIX0MGOiB4MZlwWUdZLMR3YaD8qfUYMjuw9E9OTX4Z2i17AtylvJp09dwolf4JWx4kYvzq7pSW221l0aojuJsNZ8C+HYXsIofjydDCY4pq6aEOh+fRUXKqAnkCAIxcuNdGjx1wsJb9kIksZEiiUgO6CyOtwwt49+Dd7Z97ALE9MR3w3Zo/ohXl0BRDQCwuliOjpw69AK2QhKnU9VTcpLbEVs7M2w+9xTMW9z2nmVAFJFSSaeH7li9WodQLWyugpt4fhBzIPRnA2rjMLLzHArXaicsVaD/WcVFZcROSKpvldzxWUkIOwPk4XhuL1sFJLkca8sU03lZ5xthd+e7DObzO+nxW2vXKPanysXFu06/NYsH3+mXgGS2HcWpAeyiyxSFLpltdqbJy5oqnj+YeDutlioj/+QRhXo0kh+H39F47S/qDDI6A3CZREgEalJHyMTALVJ6Di8XqcW78GOVlkkJs9MD7duvvPQJYiJFAwAXZ/FYyMEUggWAQSc8SHkSMTg4KGl/oBDUqwnt90yw2NynR7oixPqAhs3vzMTHTXme3BhhOFo9HU1aECxMJWnACNSsWRM0ESKB+BGcnIJ6CtzUQjJkN8Z1br0VtMZClDAsUSoFEplhzjkUCVCSQ2rGzChA49JdzEbbVfaLjGRJAyJFAKARqVUugxLglUk0Ak8mkkj9l53g6D89fpA728JSlBAqUR4C7FpfFjbBKoCoFdm59pSdriQ0ara7ALw57U7G9WJaNMtGYI4FiLI0wyiwXGf3eTo1Fxo8MwEggogWQqqnd3nmOUPSmvKdd6HqP0akAIRzk8jGwe6ZZVrE96CAt5L3STmU5h2Pz1WcPyOC5F0fFpVAwpUowEgkJgaDC+AC2U9xvlR4p1jcPqRiNZD6Fdm9YemrJHj8ECVGskGe0Z35jTI1ZAgxUOmJNigVvusDBZL4KlK5AAjUqBwChOAlUngO1wsOBkpkk+sCPBV2SsG7sgFO/07g+WtK5NqpF3QEsdtuMR0UgqhUPoHklK+xNOO1EXnyJj1jIBDtTX8tNj3kNHYEdf72JLKL1xpImLz5nfdbOJoJNMYmPP4ThW+jdoGb0Ln7osuQi20XkT9nrDkdPYWoeOBMYJ0Kjwp0ACNUTAttQXUJkbnZeihMKRzNIupXgqEvkR4h/momMe9rK8XW8V4yLDoBARYPdXiB42i1rbBLC1PSp3dTxaDBsNSvJ3HC9wh4GcowhaIKdg9+PXOAocCFiMvcfei9uSWkUH1PGqlgnQqNTy02PeQ0UAxx9sQIFfUrFC29aJGMw2dTjSgUbFFNZ0lmP313R+uiwbCZRAAOPx+sgDM6fELDNBSk13AmypTPcnzPKRQJEEYFQGcF6SmZNi0EyQUk4E9Jk+lorqvdzcXUR8q7m1e5W7UPVCaVSqx54pk0CgCdgidW9ERK5EJj3rCRifewNdmBrIXNSOtCupLvDKqkrK+yBTe0YlmYx8dEZEYD68u9tXnxpwl2AoCZBALRKY13bUGqw816dJ6vNanJ0S/4vTX3/lLMCQMBFwfAOp6dWyYXqCLCsJ+EigsW3Lx4cHWw7FeP2ZDsk8Zh9Uf75DGL1DSMDRqISQBYtMAiSQQ0DKk5LwOgtbw/wMXVznw7h0Y5hFT/BZi5X1y5vau75f6lqYnCR5W+MEaFRq/AEy+yRQCQI4gng50tEfOhJwJcApxa54GEgCJEACJFAIARqVQmhRlgRIgARIwJUAjYorHgaSAAmQAAkUQoBjKoXQoiwJBJzA0Lp1c0T93sMsJfbsq7c3t7YevSfgWU5nb/369Q1z6/YtwEFRM7HocnvT/C2D45MEApn9WuVcCZg0KpWgzDRIwJDA0MCq9wgh57qKW2Jd8/zYLzMyw309rxWW9e+YmfUmJfa16slZeiH8jJRlD/fHn8P+Xc/A4/7RevHjlpbY7kw8k++x/IhmV1lL/l92flxlswLHNqy0UF6BTSv3Hp4SIqKD9Sr+xGCLjTUyG5Dv3yopH8AJjHdmom7vX/1qbL788sx93m8lU80d3WU5nCyjv9yccXzvXJxHo8ufdjCmC9MPLuPh8C2lOmVoIL4oN7i5PXZDrl817vE7pCMBEggKARiBHhiBJR75ua+pPfYOvWsxdhH+Gv6J3wV5k//lBCrs74pU6uuNhx017JFGOnh4ML4SFd1SD9l7kZ/TPWQmghMDvW+A3bgaOy4fN+HpcYHCrbalWKZnoeFwsKsR/xKPKCPI0wwnmSBwhtE8Fvn7q1MeC/VHeU1+A45qkR/9LuLpvNLhmIonQgqQQPAIYN3IP0ulnkQt8m7kzrQyacTb8KUqGnlav+1XulQwgBbesK/BOS8PFmJQdD5R23XBIN6Giu8WlKFiZ7fUIudKP9fc9GhUconwngSCTgAtB1SwD6KiRVdXUW6BJe1HdPdTUbGLiKQNClpWd8D6fQrR091cRajRUc6FhflIkXELi1aDnAsroD/SNCr+cKVWEvCPgBQvhnKjM+pdMjET9fxNuzY/0+IiU7agxGDv9eOtqnLorMxYcA1yLgfcUnXQqJRKkPFJoHYJdCRT0a/6nf2hgd6zkMbFfqcTYP0V4RyU8tOoBOVJMB8kUAUCaD2cldiwssmvpPUMJynUd6DfdNzHr6xUVa/fnKtauJzEK9OMzEmUtyRAAmUjsFNKsdxWcgXGGnahAj8S1fc50H6MSQoYl2lQdZE3Q9aXfb1saesxFPcpyfkzOgLv3fjMwaeUMZj82gv3LTtn2xL7LVusz8qKnq3WlnXvdKkPRNvvFFhtfxqVaj8Bpk8CRRLA2++TWMNxVuPY2fUZLb/AoPh1w4OrvwcDc0HG0+0bCyW9pjC7RXcM27597Wy1b+RCR4GpAdqQ3IbZYTc3ty/5nQ7WiyIb6/eeooS8GOWp2MSC7Kz5xXnu/Fgv0tHjY2mX6I+/HjPbHs3cO31jd+gLsQbnF07h1fanUan2E2D6JFAcgadTDfVvnDt38c7c6HorehiWi3YM9i5BS8Rz6jAq8Xm5OspxH9k3eirSN22lbMOMtrNw2Ndj2WkvWrRoH+7v1x/MHvuoUOpaXFey5RJ4ztm8gnDNMZUgPAXmgQQKI6DQbXJRPoOSUaMNi63sL2fuXb99WvdhC/F613QPBKakkGfnGpQDwWNXTW3d1wspzcqUG7m4+5rgXFzR/ItFo+IfW2omAZ8IyJ45nbGnvJQ3tW97EF03+k2/Kg7dVa80SRitmR83tnc/YiLbOKyugtxzJrKly9QG59LLWV4NNCrl5UltJFAJAhtNEtEbMqLC3m4i64uMFEZrYNCqmtjXyysfMhYbwYSE+7zkyhReG5zLVNhyqaFRKRdJ6iGBihFQ2HvR2BUia6zURBBjJEZTlZNJ648m+jIyMEI9mWt/v2uDs78MCtdOo1I4M8YgARLwIKDi8Xq0kho8xNLB++RMo80tJ3QptWvimheBI0CjErhHwgyRQO0TSHdTCWFU+c8WO9sLKTF2KzbqVitEJ2XLR4BGpXwsqYkESGAygaHJt/nvlCVPzB+S3xeVluc06fwxp4cvzlOp5JTqgqHRqBSMjBFIgAQMCfSZyGGdzHkmclpmW9+z7ehWe5up/LSUU8porKpaZadRqRZ5pksC05wABupXGBbxn7Cw8WNesnr7/IiVvAVyh3jJ1mK4UrbRpAolra4gl49GJchPh3kjgRomgErSaO1JuohKfX24f9XlSv067y4fWzeuacPWM/oI5ZNrGIl71i1rh7vAWCjW/7xn63O98/WdnhCRGFx1hkm8SsnkfYCVSpzpkAAJTF8CTZ1LH8exvauwwaXJ3mIRrJb/UmKg5VwYl/tx3YOWzi5byHnSso8XKvUOkJo9fWkJEY0kB3AUgUkRF0Tr1EqcgvlsQogjhZKNOBenfVbr0VtMIvstY1QCvzNB/SRAAtOWgN6rS3dZmbn0wVgy3RWGzRVhjzCCoi9C4LRRgKEYRFFNdirW+7VN7NmWSkZPx/33g4CJ3V9BeArMAwlMUwLYfuVHKNpfpmnx/CiW5/Y7+RKF3X1LPv9q+NGoVIM60ySBkBDQG1umZOq9KG5hCxxDwie3mJgJd0+un+H9iX19fQcZyvoqRqPiK14qJwESmNd21BqMj1wEEknScCfQ1Ba7CxL6nJVC3exZkR36sLWqOxqVqj8CZoAEpj8BbGt/N85C+UA1d02uBcq6ZYdZc59BXgs2wDi8661BKCONShCeAvNAAiEg0NSx5FacVPlGFHVtscXFsP2zOHvljmLj10K85o6lP8fst08jr0brVrLKVJWTMbPST1/SqOQS4T0JkIBvBHDQ1or9keSxeKu+DIkYrbjXmUELZzOOFP5qxBavwXSwDb5lMCCKwek6GM83odyrTbKkjS3kvqIXiJrI+ymDPNORAAmQQOUJ6Apw56b4ySllnYSpw12wHK2YPtyA672oJHfjM4QKKm5J9dTQ/plPjB8tLDDt9nrk9iMeOd7f1B4z2iXZQ0/Vg4f7el6Llsvb8TkcPA4FlxnI1B58D0il4tJSv2xsW/rnUjMKrlDp7cDV1W5wnYo3Q0qQAAn4QECPH0DtQ+Mf4xRQ87W61mpjmvYbKwy4oF5EiizqT024qjeVaoISM0kCJFB2AsV21cCg/LNBZoy23TfQQ5ECCdCoFAiM4iRAAqURGNrcuyQxEF+eGOxdndnDylTj0ED8w5D1XHEOw7PRVCflykuARqW8PKmNBEjAgQD67I+FUbhLptTT6MI6G2JH1NWpn2CH4sMcokzyHurrfTOMxdWTPB1ucJDXSocgevtMgGMqPgOmehIIO4EdffFX2Za4BBxOg1GYdMAUjAs2i1R/GxqMfw3rM5bPbV86ZUaYNjoYvP8MussugA6jOsuyxWNh516t8uMZ05EACZBA+QlsH+jptKR1I/aEPBXaTXpF9LoMvTvxJmWprVLJKPa0egn8joWOugJyuKUxITrHjzQuIFq4RTn7K9zPn6UngcAT2DlyyNbG+r0xZNTEoOjy6FbMMTAkx+ididGKwZIU/adg910alIKZlS2C6cMuW4JURAIkEA4C4+tKrqxkadH1sma3PftrlUyTaU0mQKMymQfvSIAEykgAC+VuRkV/exlVuqnaKaR9Tmdn5wtuQgzzlwCNir98qZ0EQk9gXyR5ISA86jOIBLY1eWc5Vpb7nM9pr55GZdo/YhaQBKpLoLX16D0YONeHSP0Qn+JGSVyLIH+vIvIEHAj2iKsYAytCgEalIpiZCAmEm4AeOEdX2HnYSPI0mJVV5aCBbrXNGM6/pLGt64Tm1u6y6CxHvsKug1OKw/4LYPlJoAoEhvp73iot630wMCci+ZYCsqDHS/6Ez61o/dzGWV4FkPMQLdeUYhoVD9AMJgES8JdAYrDnOGxYfBQqo8XoG2vF52CMjxyMnrJRpLwDiyMTUlqbMMv4ycZh9SQNiT/Pg0bFH67USgIkQAKhJFAuo8IxlVD+fFhoEiABEvCHAI2KP1yplQRIgARCSYBGJZSPnYUmARIgAX8I0Kj4w5VaSYAESCCUBGhUQvnYWWgSIAES8IcAjYo/XKmVBEiABEJJgEYllI+dhSYBEiABfwjQqPjDlVpJgARIIJQEaFRC+dhZaBIgARLwhwCNij9cqZUESIAEQkmARiWUj52FJgESIAF/CET9UUutJEACJBAsAjv64q+yLbEiWLmafrmhUZl+z5QlIgESyEMgib32LWHX5wmiVxkJsPurjDCpigRIgATCToBGJey/AJafBEiABMpIgEaljDCpigRIgATCToBGJey/AJafBEiABMpIgEaljDCpigRIgATCToBGJey/AJafBEiABMpIgEaljDCpigRIgATCToDrVML+C2D5SYAESMCdgELwHneRA6HywCWvSIAESGD6ElBKSfGPf3DxY6GPeGREyVhspNBolCcBEiABEiABEiABEiABEiABEiABEiABEiABEiABEiABEiABEiABEiABEiABEiABEiABEiABEiABEiABEiABEiABEiABEiABEiABEiABEiABEiCBQBD4fyUJPcoz2c9NAAAAAElFTkSuQmCC" alt="Industry Night" style="width:100%;height:auto;opacity:0.9;display:block;">
+    <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-tertiary);">Admin Console</div>
+  </div>
+
+  <div class="role-switcher">
+    <button class="role-btn active" onclick="setRole('platform', this)" title="Full access">Admin</button>
+    <button class="role-btn" onclick="setRole('moderator', this)" title="Users, Moderation, Jobs">Mod</button>
+    <button class="role-btn" onclick="setRole('eventops', this)" title="Dashboard, Event Ops, Events, Posh">Ops</button>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Platform</div>
+    <div class="nav-item active" onclick="nav('dashboard',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      Dashboard
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Events</div>
+    <div class="nav-item" onclick="nav('eventops',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 5v3l2.5 1.5"/><circle cx="8" cy="8" r="1" fill="currentColor" stroke="none"/></svg>
+      Event Ops
+    </div>
+    <div class="nav-item" onclick="nav('events',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="12" rx="1.5"/><path d="M5 1v4M11 1v4M1 7h14"/></svg>
+      Events
+    </div>
+    <div class="nav-item" onclick="nav('posh',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+      Posh Orders <span class="nav-badge warn">3</span>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Tickets &amp; Media</div>
+    <div class="nav-item" onclick="nav('tickets',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 6h14M1 10h14"/><rect x="1" y="3" width="14" height="10" rx="1.5"/><path d="M5 3v10M11 3v10"/></svg>
+      Tickets
+    </div>
+    <div class="nav-item role-platform-only" onclick="nav('images',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="12" rx="1.5"/><circle cx="5.5" cy="6" r="1.5"/><path d="M1 11l4-4 3 3 2-2 5 5"/></svg>
+      Images
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Commercial</div>
+    <div class="nav-item" onclick="nav('customers',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="5" width="14" height="10" rx="1.5"/><path d="M5 5V3.5a3 3 0 016 0V5"/></svg>
+      Customers
+    </div>
+    <div class="nav-item" onclick="nav('products',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l2.5 4.5H14l-3 2.5 1 4L8 10l-4 2 1-4L2 5.5h3.5L8 1z"/></svg>
+      Products
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Community</div>
+    <div class="nav-item" onclick="nav('moderation',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h5"/><circle cx="13" cy="10" r="2.5"/><path d="M13 8.5V10l1 1"/></svg>
+      Moderation <span class="nav-badge">7</span>
+    </div>
+    <div class="nav-item" onclick="nav('jobs',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="5" width="14" height="10" rx="1.5"/><path d="M5 5V4a3 3 0 016 0v1M6 10h4"/></svg>
+      Jobs Board <span class="new-pill">New</span>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Analytics</div>
+    <div class="nav-item" onclick="nav('analytics',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 14L5 8l3 4 3-6 3 4"/></svg>
+      Analytics <span class="new-pill">New</span>
+    </div>
+    <div class="nav-item" onclick="nav('dataproducts',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 12V7M8 12V4M12 12V9"/><rect x="1" y="1" width="14" height="14" rx="2"/></svg>
+      Data Products <span class="new-pill">New</span>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Users</div>
+    <div class="nav-item" onclick="nav('users',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+      Social Users
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">System</div>
+    <div class="nav-item" onclick="nav('search',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+      Search
+    </div>
+    <div class="nav-item" onclick="nav('help',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M6 6a2 2 0 114 0c0 1.5-2 2-2 3.5M8 12.5v.5"/></svg>
+      Help
+    </div>
+    <div class="nav-item role-platform-only" onclick="nav('auditlog',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1.5" width="12" height="13" rx="1.5"/><path d="M5 5h6M5 8h6M5 11h3"/></svg>
+      Audit Log
+    </div>
+    <div class="nav-item role-platform-only" onclick="nav('adminusers',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="2.5"/><path d="M1 13c0-2.8 2.2-5 5-5"/><circle cx="12" cy="11" r="3"/><path d="M12 9.5V11l1 1"/></svg>
+      Admin Users
+    </div>
+    <div class="nav-item role-platform-only" onclick="nav('settings',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6L13 13M3 13l1.4-1.4M11.6 4.4L13 3"/></svg>
+      Settings
+      <svg style="margin-left:auto;opacity:0.4;" width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4l4 4-4 4"/></svg>
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="admin-profile">
+      <div class="admin-avatar">JR</div>
+      <div>
+        <div class="admin-name">Jeff Rhodes</div>
+        <div class="admin-role">Platform Admin</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MAIN AREA
+═══════════════════════════════════════════════════════════ -->
+<div class="main">
+  <!-- Top Bar -->
+  <header class="topbar">
+    <div class="topbar-title" id="topbar-title">Dashboard</div>
+    <div class="topbar-search">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+      Search anything…
+    </div>
+    <div class="topbar-icon-btn" title="Notifications">
+      <div class="notif-dot"></div>
+      <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5a4.5 4.5 0 00-4.5 4.5v3l-1.5 2h12L12.5 9V6A4.5 4.5 0 008 1.5z"/><path d="M6.5 13.5a1.5 1.5 0 003 0"/></svg>
+    </div>
+    <div class="topbar-icon-btn" title="Help">
+      <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M6 6a2 2 0 114 0c0 1.5-2 2-2 3.5M8 12.5v.5"/></svg>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- ═══ DASHBOARD ═══ -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-sub">Platform overview · Last updated just now</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary btn-sm">Export</button>
+          <button class="btn btn-primary btn-sm">+ Create Event</button>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:rgba(124,58,237,0.12);color:var(--accent-light);font-size:16px;">👥</div>
+          <div class="stat-label">Total Users</div>
+          <div class="stat-value">1,247</div>
+          <div class="stat-delta">↑ 42 this week</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:rgba(16,185,129,0.12);color:var(--success);font-size:16px;">✓</div>
+          <div class="stat-label">Verified Users</div>
+          <div class="stat-value">843</div>
+          <div class="stat-delta">↑ 28 this week</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:rgba(27,156,252,0.12);color:var(--accent-cool);font-size:16px;">🔗</div>
+          <div class="stat-label">Connections Made</div>
+          <div class="stat-value">4,891</div>
+          <div class="stat-delta">↑ 312 this week</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:rgba(255,61,142,0.12);color:var(--accent-energy);font-size:16px;">📅</div>
+          <div class="stat-label">Upcoming Events</div>
+          <div class="stat-value">3</div>
+          <div class="stat-delta" style="color:var(--text-secondary);">Next: Apr 4 · Soho</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Pending Review</span>
+            <span class="badge badge-flagged">7 items</span>
+          </div>
+          <div class="card-body">
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--bg-elevated);border-radius:6px;">
+                <div>
+                  <div style="font-size:13px;font-weight:500;color:var(--warning);">5 Community Posts</div>
+                  <div style="font-size:12px;color:var(--text-secondary);">Flagged by AI moderation · avg confidence 74%</div>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="nav('moderation', document.querySelector('[onclick*=\"moderation\"]'))">Review →</button>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--bg-elevated);border-radius:6px;">
+                <div>
+                  <div style="font-size:13px;font-weight:500;color:var(--accent-cool);">2 Event Wrap Reports</div>
+                  <div style="font-size:12px;color:var(--text-secondary);">Ready for review · AI drafts complete</div>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="nav('dataproducts', document.querySelector('[onclick*=\"dataproducts\"]'))">Review →</button>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--bg-elevated);border-radius:6px;">
+                <div>
+                  <div style="font-size:13px;font-weight:500;">3 Unreconciled Posh Orders</div>
+                  <div style="font-size:12px;color:var(--text-secondary);">Phone match failed · manual review needed</div>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="nav('posh', document.querySelector('[onclick*=\"posh\"]'))">Review →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Recent Events</span>
+            <button class="btn btn-ghost btn-sm">See all</button>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <table style="width:100%;">
+              <tbody>
+                <tr><td style="padding:12px 16px;">
+                  <div class="cell-user">
+                    <div class="event-thumb">🎨</div>
+                    <div><div class="cell-name">Industry Night Vol. 12</div><div class="cell-sub">Apr 4 · Soho, NYC · 340 tickets</div></div>
+                  </div>
+                </td><td style="padding:12px 16px;"><span class="badge badge-published">Published</span></td></tr>
+                <tr><td style="padding:12px 16px;">
+                  <div class="cell-user">
+                    <div class="event-thumb">📸</div>
+                    <div><div class="cell-name">Industry Night Vol. 11</div><div class="cell-sub">Mar 7 · Brooklyn · 298 attended</div></div>
+                  </div>
+                </td><td style="padding:12px 16px;"><span class="badge badge-completed">Completed</span></td></tr>
+                <tr><td style="padding:12px 16px;">
+                  <div class="cell-user">
+                    <div class="event-thumb">✂️</div>
+                    <div><div class="cell-name">Industry Night Vol. 10</div><div class="cell-sub">Feb 7 · Soho · 312 attended</div></div>
+                  </div>
+                </td><td style="padding:12px 16px;"><span class="badge badge-completed">Completed</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ EVENTS ═══ -->
+    <div class="page" id="page-events">
+      <div class="page-header">
+        <div><div class="page-title">Events</div><div class="page-sub">Manage IN events — create, publish, and track attendance</div></div>
+        <button class="btn btn-primary">+ Create Event</button>
+      </div>
+      <div class="table-container">
+        <div class="table-toolbar">
+          <div class="table-search">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+            Search events…
+          </div>
+          <div class="filter-chip active">All</div>
+          <div class="filter-chip">Upcoming</div>
+          <div class="filter-chip">Completed</div>
+          <div class="filter-chip">Draft</div>
+          <div style="margin-left:auto;">
+            <button class="btn btn-secondary btn-sm">Image Catalog</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Event</th><th>Date</th><th>Venue</th><th>Tickets</th><th>Check-ins</th><th>Partners</th><th>Status</th><th></th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td><div class="cell-user"><div class="event-thumb">🎨</div><div><div class="cell-name">Industry Night Vol. 12</div><div class="cell-sub">3 images · code: 7821</div></div></div></td>
+              <td style="color:var(--text-secondary);">Apr 4, 2026</td>
+              <td style="color:var(--text-secondary);">Soho Arts Club</td>
+              <td>340</td><td>—</td><td>4</td>
+              <td><span class="badge badge-published">Published</span></td>
+              <td><div class="table-actions"><button class="btn btn-ghost btn-sm">Edit</button><button class="btn btn-ghost btn-sm" onclick="nav('eventdetail', null)">View</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-user"><div class="event-thumb">📸</div><div><div class="cell-name">Industry Night Vol. 11</div><div class="cell-sub">5 images · code: 4492</div></div></div></td>
+              <td style="color:var(--text-secondary);">Mar 7, 2026</td>
+              <td style="color:var(--text-secondary);">Brooklyn Loft</td>
+              <td>298</td><td>271</td><td>3</td>
+              <td><span class="badge badge-completed">Completed</span></td>
+              <td><div class="table-actions"><button class="btn btn-ghost btn-sm">View</button><button class="btn btn-secondary btn-sm">Wrap Report</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-user"><div class="event-thumb">💄</div><div><div class="cell-name">Industry Night Vol. 13</div><div class="cell-sub">Draft · 0 images</div></div></div></td>
+              <td style="color:var(--text-secondary);">May 2, 2026</td>
+              <td style="color:var(--text-secondary);">—</td>
+              <td>—</td><td>—</td><td>0</td>
+              <td><span class="badge badge-draft">Draft</span></td>
+              <td><div class="table-actions"><button class="btn btn-ghost btn-sm">Edit</button><button class="btn btn-danger btn-sm">Delete</button></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ EVENT DETAIL ═══ -->
+    <div class="page" id="page-eventdetail">
+      <div class="page-header">
+        <div>
+          <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:4px;">
+            <span style="cursor:pointer;color:var(--accent-light);" onclick="nav('events', document.querySelector('[onclick*=\'events\']'))">← Events</span>
+          </div>
+          <div class="page-title">Industry Night Vol. 12</div>
+          <div class="page-sub" style="display:flex;align-items:center;gap:10px;">Apr 4, 2026 · Soho Arts Club · <span class="badge badge-published">Published</span></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary">Edit Event</button>
+          <button class="btn btn-danger">Unpublish</button>
+        </div>
+      </div>
+
+      <div class="tabs" id="ed-tabs">
+        <div class="tab active" onclick="switchEventDetailTab('details', this)">Details</div>
+        <div class="tab" onclick="switchEventDetailTab('media', this)">Images &amp; Partners <span class="tab-count">7</span></div>
+        <div class="tab" onclick="switchEventDetailTab('ops', this)"><span class="live-dot" style="margin-right:6px;"></span>Event Ops</div>
+      </div>
+
+      <!-- Tab: Details -->
+      <div id="ed-tab-details">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Event Info</span></div>
+            <div class="card-body">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 24px;">
+                <div><div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Date</div><div style="font-size:13px;font-weight:500;">Apr 4, 2026</div></div>
+                <div><div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Time</div><div style="font-size:13px;font-weight:500;">7:00 PM – 11:00 PM</div></div>
+                <div style="grid-column:1/-1;"><div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Venue</div><div style="font-size:13px;font-weight:500;">Soho Arts Club</div><div style="font-size:12px;color:var(--text-secondary);">110 Prince St, New York, NY 10012</div></div>
+                <div><div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Market</div><div style="font-size:13px;font-weight:500;">New York City</div></div>
+                <div><div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Capacity</div><div style="font-size:13px;font-weight:500;">400</div></div>
+                <div style="grid-column:1/-1;"><div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Posh Event ID</div><div style="font-size:12px;font-family:monospace;color:var(--accent-light);">posh-ev-vol12-apr2026</div></div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div class="card">
+              <div class="card-header"><span class="card-title">Publish Gate</span><span class="badge badge-published">✓ All clear</span></div>
+              <div class="card-body" style="padding:12px 20px;">
+                <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
+                  <div style="display:flex;align-items:center;gap:8px;"><span style="color:var(--success);">✓</span> Posh Event ID set</div>
+                  <div style="display:flex;align-items:center;gap:8px;"><span style="color:var(--success);">✓</span> Venue name set</div>
+                  <div style="display:flex;align-items:center;gap:8px;"><span style="color:var(--success);">✓</span> 3 images uploaded</div>
+                  <div style="display:flex;align-items:center;gap:8px;"><span style="color:var(--success);">✓</span> Market assigned (NYC)</div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><span class="card-title">Activation Code</span></div>
+              <div class="card-body" style="text-align:center;padding:24px 20px;">
+                <div style="font-size:48px;font-weight:700;font-family:monospace;letter-spacing:8px;color:var(--accent-light);">7821</div>
+                <div style="font-size:12px;color:var(--text-secondary);margin-top:8px;">Attendees enter this in the social app to check in</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:20px;">
+          <div class="card-header"><span class="card-title">Description</span><button class="btn btn-ghost btn-sm">Edit</button></div>
+          <div class="card-body"><div style="font-size:13px;line-height:1.7;color:var(--text-secondary);">Industry Night Vol. 12 returns to the iconic Soho Arts Club for an evening celebrating the city's most creative professionals. Photographers, stylists, makeup artists, and directors come together in one of New York's premier cultural spaces. Open bar, live DJ, and networking all night.</div></div>
+        </div>
+      </div>
+
+      <!-- Tab: Images & Partners -->
+      <div id="ed-tab-media" style="display:none;">
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header"><span class="card-title">Event Images <span class="tab-count">3 / 5</span></span><button class="btn btn-primary btn-sm">+ Upload</button></div>
+          <div class="card-body">
+            <div class="event-img-grid">
+              <div class="event-img-tile" title="Hero — shown first in social app">🎨<div class="hero-star">★</div><div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.75));border-radius:0 0 8px 8px;padding:6px 8px;font-size:10px;color:white;display:flex;justify-content:space-between;"><span>Hero ★</span><span style="cursor:pointer;color:rgba(255,120,120,1);">✕</span></div></div>
+              <div class="event-img-tile">📸<div style="position:absolute;top:6px;right:6px;cursor:pointer;opacity:0.7;font-size:14px;" title="Set as hero">☆</div></div>
+              <div class="event-img-tile">✨<div style="position:absolute;top:6px;right:6px;cursor:pointer;opacity:0.7;font-size:14px;" title="Set as hero">☆</div></div>
+              <div class="event-img-tile" style="border-style:dashed;opacity:0.4;flex-direction:column;gap:4px;"><div style="font-size:22px;">+</div><div style="font-size:11px;color:var(--text-secondary);">Add image</div></div>
+            </div>
+            <div style="font-size:12px;color:var(--text-tertiary);">★ Hero image is displayed first in the social app feed. Click ☆ on any image to promote it to hero.</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Partners <span class="tab-count">4</span></span><button class="btn btn-secondary btn-sm">+ Add Partner</button></div>
+          <div class="card-body">
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <div class="partner-chip"><div class="partner-logo" style="background:linear-gradient(135deg,#1a237e,#7C3AED);">VB</div><div><div style="font-size:12px;font-weight:600;">VibeBrand Co.</div><div style="font-size:10px;color:var(--text-secondary);">Platinum Sponsor</div></div><span style="margin-left:8px;color:var(--text-tertiary);cursor:pointer;">✕</span></div>
+              <div class="partner-chip"><div class="partner-logo" style="background:linear-gradient(135deg,#4a148c,#FF3D8E);">LS</div><div><div style="font-size:12px;font-weight:600;">LuxeStyle Agency</div><div style="font-size:10px;color:var(--text-secondary);">Gold Sponsor</div></div><span style="margin-left:8px;color:var(--text-tertiary);cursor:pointer;">✕</span></div>
+              <div class="partner-chip"><div class="partner-logo" style="background:linear-gradient(135deg,#0d47a1,#1B9CFC);">FJ</div><div><div style="font-size:12px;font-weight:600;">Flash Jones Studio</div><div style="font-size:10px;color:var(--text-secondary);">Vendor Space</div></div><span style="margin-left:8px;color:var(--text-tertiary);cursor:pointer;">✕</span></div>
+              <div class="partner-chip"><div class="partner-logo" style="background:linear-gradient(135deg,#1b5e20,#10B981);">MX</div><div><div style="font-size:12px;font-weight:600;">MixedMedia Co.</div><div style="font-size:10px;color:var(--text-secondary);">Silver Sponsor</div></div><span style="margin-left:8px;color:var(--text-tertiary);cursor:pointer;">✕</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Event Ops -->
+      <div id="ed-tab-ops" style="display:none;">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);">
+          <div class="stat-card"><div class="stat-label">Tickets Sold</div><div class="stat-value">340</div><div class="stat-delta" style="color:var(--text-secondary);">Posh + walk-in</div></div>
+          <div class="stat-card"><div class="stat-label">Checked In</div><div class="stat-value" style="color:var(--success);">187</div><div class="stat-delta">↑ 12 last 10 min</div></div>
+          <div class="stat-card"><div class="stat-label">Wristbands Issued</div><div class="stat-value" style="color:var(--accent-light);" id="ed-wb-count">142</div><div class="stat-delta" style="color:var(--text-secondary);">of 187 checked in</div></div>
+          <div class="stat-card"><div class="stat-label">Wristband Queue</div><div class="stat-value" style="color:var(--warning);" id="ed-pending-count">45</div><div class="stat-delta" style="color:var(--warning);">people waiting</div></div>
+        </div>
+
+        <div class="sub-tabs">
+          <div class="sub-tab active" onclick="switchEventOpsTab('activation', this)">📱 Activation Code</div>
+          <div class="sub-tab" onclick="switchEventOpsTab('checkin', this)">🚪 Check-in</div>
+          <div class="sub-tab" onclick="switchEventOpsTab('wristbands', this)">⌚ Wristbands <span class="tab-count" id="wb-pending-badge" style="background:rgba(245,158,11,0.2);color:var(--warning);">45</span></div>
+        </div>
+
+        <!-- Sub-tab: Activation Code -->
+        <div id="ed-ops-activation">
+          <div style="display:flex;gap:20px;">
+            <div class="card" style="flex:1;text-align:center;">
+              <div class="card-header" style="justify-content:center;"><span class="card-title">Activation Code</span></div>
+              <div class="card-body" style="padding:40px 24px;">
+                <div style="font-size:80px;font-weight:700;font-family:monospace;letter-spacing:12px;color:var(--accent-light);margin-bottom:16px;">7821</div>
+                <div style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">Attendees enter this code in the Industry Night app to check in to tonight's event</div>
+                <button class="btn btn-secondary">Copy Code</button>
+              </div>
+            </div>
+            <div class="card" style="flex:1;text-align:center;">
+              <div class="card-header" style="justify-content:center;"><span class="card-title">QR Code</span></div>
+              <div class="card-body" style="padding:32px 24px;">
+                <svg viewBox="0 0 120 120" width="200" height="200" style="margin:0 auto;display:block;" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" fill="#1E1E1E" rx="4"/><rect x="8" y="8" width="34" height="34" fill="none" stroke="#A855F7" stroke-width="3" rx="2"/><rect x="16" y="16" width="18" height="18" fill="#A855F7" rx="1"/><rect x="78" y="8" width="34" height="34" fill="none" stroke="#A855F7" stroke-width="3" rx="2"/><rect x="86" y="16" width="18" height="18" fill="#A855F7" rx="1"/><rect x="8" y="78" width="34" height="34" fill="none" stroke="#A855F7" stroke-width="3" rx="2"/><rect x="16" y="86" width="18" height="18" fill="#A855F7" rx="1"/><rect x="52" y="8" width="6" height="6" fill="#A855F7" rx="1"/><rect x="62" y="8" width="6" height="6" fill="#A855F7" rx="1"/><rect x="52" y="18" width="6" height="6" fill="#A855F7" rx="1"/><rect x="68" y="22" width="6" height="6" fill="#A855F7" rx="1"/><rect x="56" y="30" width="6" height="6" fill="#A855F7" rx="1"/><rect x="64" y="36" width="6" height="6" fill="#A855F7" rx="1"/><rect x="8" y="52" width="6" height="6" fill="#A855F7" rx="1"/><rect x="18" y="52" width="6" height="6" fill="#A855F7" rx="1"/><rect x="30" y="52" width="6" height="6" fill="#A855F7" rx="1"/><rect x="8" y="62" width="6" height="6" fill="#A855F7" rx="1"/><rect x="24" y="62" width="6" height="6" fill="#A855F7" rx="1"/><rect x="32" y="68" width="6" height="6" fill="#A855F7" rx="1"/><rect x="52" y="52" width="6" height="6" fill="#A855F7" rx="1"/><rect x="62" y="52" width="6" height="6" fill="#A855F7" rx="1"/><rect x="52" y="64" width="6" height="6" fill="#A855F7" rx="1"/><rect x="68" y="58" width="6" height="6" fill="#A855F7" rx="1"/><rect x="78" y="52" width="6" height="6" fill="#A855F7" rx="1"/><rect x="90" y="52" width="6" height="6" fill="#A855F7" rx="1"/><rect x="100" y="52" width="6" height="6" fill="#A855F7" rx="1"/><rect x="78" y="62" width="6" height="6" fill="#A855F7" rx="1"/><rect x="88" y="68" width="6" height="6" fill="#A855F7" rx="1"/><rect x="52" y="78" width="6" height="6" fill="#A855F7" rx="1"/><rect x="64" y="84" width="6" height="6" fill="#A855F7" rx="1"/><rect x="74" y="78" width="6" height="6" fill="#A855F7" rx="1"/><rect x="82" y="90" width="6" height="6" fill="#A855F7" rx="1"/><rect x="94" y="78" width="6" height="6" fill="#A855F7" rx="1"/><rect x="52" y="100" width="6" height="6" fill="#A855F7" rx="1"/><rect x="62" y="106" width="6" height="6" fill="#A855F7" rx="1"/><rect x="74" y="96" width="6" height="6" fill="#A855F7" rx="1"/><rect x="88" y="100" width="6" height="6" fill="#A855F7" rx="1"/><rect x="100" y="90" width="6" height="6" fill="#A855F7" rx="1"/><rect x="106" y="82" width="6" height="6" fill="#A855F7" rx="1"/></svg>
+                <div style="font-size:12px;color:var(--text-secondary);margin-top:12px;">Scan to open the social app check-in screen</div>
+                <button class="btn btn-secondary" style="margin-top:16px;">Download QR</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sub-tab: Check-in -->
+        <div id="ed-ops-checkin" style="display:none;">
+          <div class="grid-2">
+            <div class="card" style="max-height:480px;display:flex;flex-direction:column;">
+              <div class="card-header"><span class="card-title">Live Attendee Stream</span><div style="display:flex;gap:6px;"><div class="filter-chip active" style="font-size:11px;">All</div><div class="filter-chip" style="font-size:11px;">Unverified</div></div></div>
+              <div style="overflow-y:auto;flex:1;">
+                <div class="checkin-row"><div class="checkin-status in"></div><div class="avatar" style="background:linear-gradient(135deg,#7C3AED,#FF3D8E);width:28px;height:28px;font-size:10px;">KM</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">Kezia Monroe</div><div style="font-size:11px;color:var(--text-secondary);">Posh · PSH-88612 · 8:14 PM</div></div><span class="badge badge-verified" style="font-size:10px;">✓</span></div>
+                <div class="checkin-row"><div class="checkin-status in"></div><div class="avatar" style="background:linear-gradient(135deg,#0d47a1,#1B9CFC);width:28px;height:28px;font-size:10px;">TR</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">Tyrone Reid</div><div style="font-size:11px;color:var(--text-secondary);">Posh · PSH-88649 · 8:11 PM</div></div><span class="badge badge-verified" style="font-size:10px;">✓</span></div>
+                <div class="checkin-row"><div class="checkin-status in"></div><div class="avatar" style="background:linear-gradient(135deg,#880e4f,#FF3D8E);width:28px;height:28px;font-size:10px;">DN</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">Destiny Nguyen</div><div style="font-size:11px;color:var(--text-secondary);">Walk-in · 8:09 PM</div></div><span class="badge badge-unverified" style="font-size:10px;">App</span></div>
+                <div class="checkin-row"><div class="checkin-status in"></div><div class="avatar" style="background:linear-gradient(135deg,#1b5e20,#10B981);width:28px;height:28px;font-size:10px;">OA</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">Omar Adeyemi</div><div style="font-size:11px;color:var(--text-secondary);">Posh · PSH-88701 · 8:07 PM</div></div><span class="badge badge-verified" style="font-size:10px;">✓</span></div>
+                <div style="text-align:center;padding:14px;color:var(--text-tertiary);font-size:12px;">+ 183 more check-ins tonight</div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:16px;">
+              <div class="card"><div class="card-header"><span class="card-title">QR / Code Lookup</span></div><div class="card-body"><div style="display:flex;gap:8px;margin-bottom:12px;"><input style="flex:1;background:var(--bg-elevated);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text-primary);font-size:13px;font-family:inherit;" placeholder="Enter ticket ID or phone…"><button class="btn btn-primary">Look Up</button></div><div style="background:var(--bg-elevated);border-radius:6px;padding:12px;font-size:12px;color:var(--text-secondary);">Enter a Posh order ID, phone number, or scan QR to pull up ticket status.</div></div></div>
+              <div class="card"><div class="card-header"><span class="card-title">Check-in Pace</span></div><div class="card-body"><div class="chart-placeholder" style="height:120px;"><div class="chart-bars" style="height:80px;"><div class="chart-bar" style="height:20%;"></div><div class="chart-bar" style="height:35%;"></div><div class="chart-bar" style="height:60%;"></div><div class="chart-bar" style="height:80%;"></div><div class="chart-bar" style="height:95%;"></div><div class="chart-bar highlight" style="height:70%;"></div></div></div><div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;text-align:right;">7:00pm → 8:30pm · per 15-min window</div></div></div>
+              <button class="btn btn-primary" style="width:100%;justify-content:center;">+ Manual Check-In</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sub-tab: Wristbands -->
+        <div id="ed-ops-wristbands" style="display:none;">
+          <div class="tooltip-note">⚡ Queue auto-updates as attendees check in. Oldest check-ins shown first — these people have been waiting longest. Click a row to issue their wristband.</div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Wristband Queue</span>
+              <div style="display:flex;align-items:center;gap:16px;font-size:13px;">
+                <span>✓ Issued: <strong id="wb-issued-display" style="color:var(--success);">142</strong></span>
+                <span>⏳ Pending: <strong id="wb-pending-display" style="color:var(--warning);">45</strong></span>
+              </div>
+            </div>
+            <div id="wb-row-1" class="wb-row" onclick="issueWristband(1)">
+              <div style="font-size:11px;font-weight:700;color:var(--text-tertiary);width:24px;text-align:center;flex-shrink:0;">1</div>
+              <div class="avatar" style="background:linear-gradient(135deg,#7C3AED,#FF3D8E);width:36px;height:36px;font-size:12px;flex-shrink:0;">AW</div>
+              <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">Aisha Williams</div><div style="font-size:11px;color:var(--text-secondary);">Photographer · Checked in 7:48 PM <span style="color:var(--warning);">(42 min ago)</span></div></div>
+              <span class="badge badge-verified" style="font-size:10px;flex-shrink:0;">Posh</span>
+              <button class="btn-issue" onclick="event.stopPropagation();issueWristband(1)">Issue Wristband →</button>
+            </div>
+            <div id="wb-row-2" class="wb-row" onclick="issueWristband(2)">
+              <div style="font-size:11px;font-weight:700;color:var(--text-tertiary);width:24px;text-align:center;flex-shrink:0;">2</div>
+              <div class="avatar" style="background:linear-gradient(135deg,#0d47a1,#1B9CFC);width:36px;height:36px;font-size:12px;flex-shrink:0;">DV</div>
+              <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">Darius Vance</div><div style="font-size:11px;color:var(--text-secondary);">Hair Stylist · Checked in 7:53 PM <span style="color:var(--warning);">(37 min ago)</span></div></div>
+              <span class="badge badge-verified" style="font-size:10px;flex-shrink:0;">Posh</span>
+              <button class="btn-issue" onclick="event.stopPropagation();issueWristband(2)">Issue Wristband →</button>
+            </div>
+            <div id="wb-row-3" class="wb-row" onclick="issueWristband(3)">
+              <div style="font-size:11px;font-weight:700;color:var(--text-tertiary);width:24px;text-align:center;flex-shrink:0;">3</div>
+              <div class="avatar" style="background:linear-gradient(135deg,#880e4f,#EC4899);width:36px;height:36px;font-size:12px;flex-shrink:0;">SM</div>
+              <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">Simone Marcus</div><div style="font-size:11px;color:var(--text-secondary);">Makeup Artist · Checked in 7:58 PM <span style="color:var(--text-secondary);">(32 min ago)</span></div></div>
+              <span class="badge badge-unverified" style="font-size:10px;flex-shrink:0;">Walk-in</span>
+              <button class="btn-issue" onclick="event.stopPropagation();issueWristband(3)">Issue Wristband →</button>
+            </div>
+            <div id="wb-row-4" class="wb-row" onclick="issueWristband(4)">
+              <div style="font-size:11px;font-weight:700;color:var(--text-tertiary);width:24px;text-align:center;flex-shrink:0;">4</div>
+              <div class="avatar" style="background:linear-gradient(135deg,#1b5e20,#10B981);width:36px;height:36px;font-size:12px;flex-shrink:0;">LJ</div>
+              <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">Leon Jefferson</div><div style="font-size:11px;color:var(--text-secondary);">Director · Checked in 8:04 PM <span style="color:var(--text-secondary);">(26 min ago)</span></div></div>
+              <span class="badge badge-verified" style="font-size:10px;flex-shrink:0;">Posh</span>
+              <button class="btn-issue" onclick="event.stopPropagation();issueWristband(4)">Issue Wristband →</button>
+            </div>
+            <div class="wb-row issued">
+              <div style="width:24px;text-align:center;flex-shrink:0;color:var(--success);">✓</div>
+              <div class="avatar" style="background:linear-gradient(135deg,#2d1b69,#7C3AED);width:36px;height:36px;font-size:12px;flex-shrink:0;">KC</div>
+              <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;color:var(--text-secondary);">Kezia Monroe</div><div style="font-size:11px;color:var(--text-tertiary);">Photographer · Wristband issued 8:17 PM</div></div>
+              <span style="font-size:12px;color:var(--success);flex-shrink:0;">Wristband issued</span>
+            </div>
+            <div class="wb-row issued">
+              <div style="width:24px;text-align:center;flex-shrink:0;color:var(--success);">✓</div>
+              <div class="avatar" style="background:linear-gradient(135deg,#4a148c,#FF3D8E);width:36px;height:36px;font-size:12px;flex-shrink:0;">TR</div>
+              <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;color:var(--text-secondary);">Tyrone Reid</div><div style="font-size:11px;color:var(--text-tertiary);">Videographer · Wristband issued 8:15 PM</div></div>
+              <span style="font-size:12px;color:var(--success);flex-shrink:0;">Wristband issued</span>
+            </div>
+            <div style="text-align:center;padding:14px;color:var(--text-tertiary);font-size:12px;">+ 40 more pending · + 140 already issued · showing 4 oldest pending, 2 most recently issued</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ═══ POSH ORDERS ═══ -->
+    <div class="page" id="page-posh">
+      <div class="page-header">
+        <div><div class="page-title">Posh Orders</div><div class="page-sub">Incoming ticket purchases · reconciliation status</div></div>
+        <button class="btn btn-secondary">Export CSV</button>
+      </div>
+      <div class="tooltip-note">
+        ℹ️ Posh orders are automatically linked to IN users when phone numbers match. Orders without a match need manual review.
+      </div>
+      <div class="metrics-row">
+        <div class="metric-mini"><div class="metric-mini-val">312</div><div class="metric-mini-label">Total Orders</div></div>
+        <div class="metric-mini"><div class="metric-mini-val" style="color:var(--success);">309</div><div class="metric-mini-label">Linked to User</div></div>
+        <div class="metric-mini"><div class="metric-mini-val" style="color:var(--warning);">3</div><div class="metric-mini-label">Unresolved</div></div>
+      </div>
+      <div class="table-container">
+        <div class="table-toolbar">
+          <div class="filter-chip active">All</div>
+          <div class="filter-chip" style="border-color:rgba(245,158,11,0.3);color:var(--warning);">Unlinked (3)</div>
+        </div>
+        <table>
+          <thead><tr><th>Buyer</th><th>Phone</th><th>Event</th><th>Order ID</th><th>Date</th><th>IN User</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div class="cell-name">Maya Johnson</div></td>
+              <td style="color:var(--text-secondary);font-family:monospace;font-size:12px;">+1 347-555-0182</td>
+              <td style="color:var(--text-secondary);">Vol. 12</td>
+              <td style="color:var(--text-tertiary);font-family:monospace;font-size:11px;">PSH-88721</td>
+              <td style="color:var(--text-secondary);">Mar 28</td>
+              <td><div class="cell-user" style="gap:6px;"><div class="avatar" style="background:linear-gradient(135deg,#7C3AED,#FF3D8E);width:24px;height:24px;font-size:10px;">MJ</div><span style="font-size:13px;">@maya.j</span></div></td>
+              <td><span class="reconcile-pill reconcile-linked">● Linked</span></td>
+              <td><button class="btn btn-ghost btn-sm" style="opacity:0.4">View User</button></td>
+            </tr>
+            <tr>
+              <td><div class="cell-name">Darius Webb</div></td>
+              <td style="color:var(--text-secondary);font-family:monospace;font-size:12px;">+1 646-555-0934</td>
+              <td style="color:var(--text-secondary);">Vol. 12</td>
+              <td style="color:var(--text-tertiary);font-family:monospace;font-size:11px;">PSH-88734</td>
+              <td style="color:var(--text-secondary);">Mar 29</td>
+              <td style="color:var(--text-tertiary);">Not in system</td>
+              <td><span class="reconcile-pill reconcile-unlinked">⚠ Unlinked</span></td>
+              <td><button class="btn btn-secondary btn-sm">Link / Add User</button></td>
+            </tr>
+            <tr>
+              <td><div class="cell-name">Priya Nair</div></td>
+              <td style="color:var(--text-secondary);font-family:monospace;font-size:12px;">+1 929-555-0011</td>
+              <td style="color:var(--text-secondary);">Vol. 12</td>
+              <td style="color:var(--text-tertiary);font-family:monospace;font-size:11px;">PSH-88756</td>
+              <td style="color:var(--text-secondary);">Mar 30</td>
+              <td style="color:var(--text-tertiary);">Not in system</td>
+              <td><span class="reconcile-pill reconcile-unlinked">⚠ Unlinked</span></td>
+              <td><button class="btn btn-secondary btn-sm">Link / Add User</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ CUSTOMERS ═══ -->
+    <div class="page" id="page-customers">
+      <div class="page-header">
+        <div><div class="page-title">Customers</div><div class="page-sub">Partners, sponsors, vendors, and job posting accounts</div></div>
+        <button class="btn btn-primary">+ Add Customer</button>
+      </div>
+      <div class="table-container">
+        <div class="table-toolbar">
+          <div class="table-search"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>Search customers…</div>
+          <div class="filter-chip active">All</div>
+          <div class="filter-chip">Sponsors</div>
+          <div class="filter-chip">Vendors</div>
+          <div class="filter-chip">Job Posters</div>
+        </div>
+        <table>
+          <thead><tr><th>Customer</th><th>Products</th><th>Active Since</th><th>Tier</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div class="cell-user"><div class="avatar" style="background:linear-gradient(135deg,#1a237e,#7C3AED);">VB</div><div><div class="cell-name">VibeBrand Co.</div><div class="cell-sub">Sponsorship · Discounts · Data</div></div></div></td>
+              <td>3 active</td><td style="color:var(--text-secondary);">Jan 2026</td>
+              <td><span class="badge badge-platinum">Platinum</span></td>
+              <td><span class="badge badge-published">Active</span></td>
+              <td><div class="table-actions"><button class="btn btn-ghost btn-sm">View</button><button class="btn btn-ghost btn-sm">Edit</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-user"><div class="avatar" style="background:linear-gradient(135deg,#4a148c,#FF3D8E);">LS</div><div><div class="cell-name">LuxeStyle Agency</div><div class="cell-sub">Sponsorship · Event Partner</div></div></div></td>
+              <td>2 active</td><td style="color:var(--text-secondary);">Feb 2026</td>
+              <td><span class="badge badge-gold">Gold</span></td>
+              <td><span class="badge badge-published">Active</span></td>
+              <td><div class="table-actions"><button class="btn btn-ghost btn-sm">View</button><button class="btn btn-ghost btn-sm">Edit</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-user"><div class="avatar" style="background:linear-gradient(135deg,#0d47a1,#1B9CFC);">FJ</div><div><div class="cell-name">Flash Jones Studio</div><div class="cell-sub">Job Poster · Vendor Space</div></div></div></td>
+              <td>1 active</td><td style="color:var(--text-secondary);">Mar 2026</td>
+              <td><span class="badge badge-silver">Silver</span></td>
+              <td><span class="badge badge-published">Active</span></td>
+              <td><div class="table-actions"><button class="btn btn-ghost btn-sm">View</button><button class="btn btn-ghost btn-sm">Edit</button></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ PRODUCTS ═══ -->
+    <div class="page" id="page-products">
+      <div class="page-header">
+        <div><div class="page-title">Product Catalog</div><div class="page-sub">Sponsorships, vendor space, and data products</div></div>
+        <button class="btn btn-primary">+ Add Product</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+        <div class="card"><div class="card-header"><span class="card-title">🏆 Sponsorships</span><span class="badge badge-published">4 active</span></div><div class="card-body"><div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Logo placement, event association, social proof in app.</div><div style="font-size:12px;color:var(--text-tertiary);">Platinum · Gold · Silver · Bronze tiers</div></div></div>
+        <div class="card"><div class="card-header"><span class="card-title">🏪 Vendor Space</span><span class="badge badge-published">2 active</span></div><div class="card-body"><div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Physical or virtual vendor presence at IN events.</div><div style="font-size:12px;color:var(--text-tertiary);">Per-event assignment</div></div></div>
+        <div class="card"><div class="card-header"><span class="card-title">📊 Data Products</span><span class="badge badge-pending">1 pending</span></div><div class="card-body"><div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Event Wrap Reports, Market Intelligence, influence data.</div><div style="font-size:12px;color:var(--text-tertiary);">$5K–$20K/quarter</div></div></div>
+      </div>
+    </div>
+
+    <!-- ═══ MODERATION ═══ -->
+    <div class="page" id="page-moderation">
+      <div class="page-header">
+        <div><div class="page-title">Moderation</div><div class="page-sub">AI-flagged content review queue · Two-stage pipeline</div></div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span style="font-size:12px;color:var(--text-secondary);">Model:</span>
+          <div class="filter-chip active">Haiku → Sonnet</div>
+          <button class="btn btn-secondary btn-sm">Settings</button>
+        </div>
+      </div>
+
+      <div class="metrics-row">
+        <div class="metric-mini"><div class="metric-mini-val">847</div><div class="metric-mini-label">Total Posts (30 days)</div></div>
+        <div class="metric-mini"><div class="metric-mini-val" style="color:var(--success);">821</div><div class="metric-mini-label">Auto-Approved</div></div>
+        <div class="metric-mini"><div class="metric-mini-val" style="color:var(--warning);">7</div><div class="metric-mini-label">Pending Review</div></div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active">Community Posts <span class="tab-count" style="background:rgba(245,158,11,0.2);color:var(--warning);">5</span></div>
+        <div class="tab">Job Postings <span class="tab-count">1</span></div>
+        <div class="tab">Professional Reviews <span class="tab-count">1</span></div>
+        <div class="tab">Auto-Rejected <span class="tab-count" style="background:rgba(239,68,68,0.12);color:var(--error);">2</span></div>
+        <div class="tab" style="margin-left:auto;color:var(--text-tertiary);font-size:12px;">Metrics →</div>
+      </div>
+
+      <div class="mod-item">
+        <div class="mod-content">
+          <div class="mod-author">
+            <div class="avatar" style="background:linear-gradient(135deg,#7C3AED,#1B9CFC);width:28px;height:28px;font-size:11px;">KM</div>
+            <div><div class="mod-author-name">Kezia Monroe <span class="badge badge-verified" style="margin-left:4px;font-size:10px;">Verified</span></div><div class="mod-author-sub">Hair Stylist · 2 hours ago</div></div>
+            <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+              <span class="llm-tag llm-haiku">Haiku</span>
+              <span class="llm-tag llm-sonnet">→ Sonnet</span>
+            </div>
+          </div>
+          <div class="mod-text">"Anyone know a good photographer for editorial shoots? Looking for someone who can do natural lighting, I have a booking next week and my usual guy is booked. DM if interested, budget is negotiable 📸"</div>
+          <div class="mod-meta">
+            <div class="confidence-bar">
+              <span>Violation confidence:</span>
+              <div class="confidence-fill"><div class="confidence-fill-inner" style="width:38%;background:var(--warning);"></div></div>
+              <span style="color:var(--warning);font-weight:600;">38%</span>
+            </div>
+            <span class="badge badge-review">Flagged: solicitation</span>
+          </div>
+        </div>
+        <div class="mod-actions">
+          <button class="btn btn-primary btn-sm">✓ Approve</button>
+          <button class="btn btn-danger btn-sm">✕ Remove</button>
+          <button class="btn btn-ghost btn-sm" style="font-size:11px;">View Profile</button>
+        </div>
+      </div>
+
+      <div class="mod-item">
+        <div class="mod-content">
+          <div class="mod-author">
+            <div class="avatar" style="background:linear-gradient(135deg,#FF3D8E,#F59E0B);width:28px;height:28px;font-size:11px;">TR</div>
+            <div><div class="mod-author-name">Tyrone Reid</div><div class="mod-author-sub">Photographer · 5 hours ago</div></div>
+            <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+              <span class="llm-tag llm-haiku">Haiku</span>
+            </div>
+          </div>
+          <div class="mod-text">"just got booked for my first editorial with [MAJOR BRAND] 🙌 been grinding for 3 years and the IN community has been everything for the referrals. thank you all fr"</div>
+          <div class="mod-meta">
+            <div class="confidence-bar">
+              <span>Violation confidence:</span>
+              <div class="confidence-fill"><div class="confidence-fill-inner" style="width:12%;background:var(--success);"></div></div>
+              <span style="color:var(--success);font-weight:600;">12%</span>
+            </div>
+            <span class="badge badge-review">Flagged: brand name</span>
+          </div>
+        </div>
+        <div class="mod-actions">
+          <button class="btn btn-primary btn-sm">✓ Approve</button>
+          <button class="btn btn-danger btn-sm">✕ Remove</button>
+          <button class="btn btn-ghost btn-sm" style="font-size:11px;">View Profile</button>
+        </div>
+      </div>
+
+      <div style="text-align:center;padding:16px;color:var(--text-tertiary);font-size:13px;">+ 3 more items in queue</div>
+    </div>
+
+    <!-- ═══ JOBS BOARD ═══ -->
+    <div class="page" id="page-jobs">
+      <div class="page-header">
+        <div><div class="page-title">Jobs Board</div><div class="page-sub">Manage creative job postings and hire confirmations</div></div>
+        <button class="btn btn-primary">+ Post Job</button>
+      </div>
+      <div class="tabs">
+        <div class="tab active">Active Jobs <span class="tab-count">14</span></div>
+        <div class="tab">Hire Confirmations <span class="tab-count" style="background:rgba(245,158,11,0.2);color:var(--warning);">3</span></div>
+        <div class="tab">Pending Review <span class="tab-count" style="background:rgba(239,68,68,0.12);color:var(--error);">1</span></div>
+        <div class="tab">Closed</div>
+      </div>
+      <div class="table-container">
+        <div class="table-toolbar">
+          <div class="table-search"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>Search jobs…</div>
+          <div class="filter-chip active">All Specialties</div>
+          <div class="filter-chip">Photography</div>
+          <div class="filter-chip">Hair</div>
+          <div class="filter-chip">Remote</div>
+        </div>
+        <table>
+          <thead><tr><th>Job Title</th><th>Posted By</th><th>Specialty</th><th>Rate</th><th>Location</th><th>Applications</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div><div class="cell-name">Editorial Photographer — Spring Campaign</div><div class="job-row-detail" style="margin-top:4px;"><span class="job-tag">📅 Apr 10–12</span><span class="job-tag">⏱ 3 days</span></div></div></td>
+              <td><div class="cell-user" style="gap:6px;"><div class="avatar" style="background:linear-gradient(135deg,#0d47a1,#1B9CFC);width:24px;height:24px;font-size:10px;">FJ</div><span style="font-size:12px;">Flash Jones Studio</span></div></td>
+              <td><span style="font-size:12px;color:var(--text-secondary);">Photography</span></td>
+              <td style="font-size:13px;font-weight:600;color:var(--success);">$800/day</td>
+              <td style="font-size:12px;color:var(--text-secondary);">Soho, NYC</td>
+              <td>7</td>
+              <td><span class="badge badge-open">Open</span></td>
+              <td><div class="table-actions"><button class="btn btn-ghost btn-sm">View</button><button class="btn btn-ghost btn-sm">Edit</button></div></td>
+            </tr>
+            <tr>
+              <td><div><div class="cell-name">Hair Stylist — Music Video (BTS)</div><div class="job-row-detail" style="margin-top:4px;"><span class="job-tag">📅 Apr 15</span><span class="job-tag">🌐 Remote ok</span></div></div></td>
+              <td><div class="cell-user" style="gap:6px;"><div class="avatar" style="background:linear-gradient(135deg,#4a148c,#FF3D8E);width:24px;height:24px;font-size:10px;">LS</div><span style="font-size:12px;">LuxeStyle Agency</span></div></td>
+              <td><span style="font-size:12px;color:var(--text-secondary);">Hair</span></td>
+              <td style="font-size:13px;font-weight:600;color:var(--success);">$400 flat</td>
+              <td style="font-size:12px;color:var(--text-secondary);">Brooklyn, NYC</td>
+              <td>12</td>
+              <td><span class="badge badge-open">Open</span></td>
+              <td><div class="table-actions"><button class="btn btn-ghost btn-sm">View</button></div></td>
+            </tr>
+            <tr>
+              <td><div><div class="cell-name">MUA — Brand Campaign (Confirmed Hire)</div><div class="job-row-detail" style="margin-top:4px;"><span class="job-tag">📅 Mar 20</span><span class="job-tag">⭐ Rating pending</span></div></div></td>
+              <td><div class="cell-user" style="gap:6px;"><div class="avatar" style="background:linear-gradient(135deg,#1a237e,#7C3AED);width:24px;height:24px;font-size:10px;">VB</div><span style="font-size:12px;">VibeBrand Co.</span></div></td>
+              <td><span style="font-size:12px;color:var(--text-secondary);">Makeup</span></td>
+              <td style="font-size:13px;font-weight:600;">$600 flat</td>
+              <td style="font-size:12px;color:var(--text-secondary);">Manhattan</td>
+              <td>—</td>
+              <td><span class="badge badge-filled">Filled ✓</span></td>
+              <td><div class="table-actions"><button class="btn btn-secondary btn-sm">View Rating</button></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ ANALYTICS ═══ -->
+    <div class="page" id="page-analytics">
+      <div class="page-header">
+        <div><div class="page-title">Analytics</div><div class="page-sub">Platform metrics, influence scores, and network insights</div></div>
+        <div style="display:flex;gap:8px;">
+          <div class="filter-chip active">Last 30 days</div>
+          <div class="filter-chip">Last 90 days</div>
+          <button class="btn btn-secondary btn-sm">Export</button>
+        </div>
+      </div>
+      <div class="tooltip-note">ℹ️ Analytics pipeline is in development. Influence scores run nightly via PageRank-variant (event attendance × connections × post engagement). Data populates after next event.</div>
+
+      <div class="stats-grid" style="margin-bottom:20px;">
+        <div class="stat-card"><div class="stat-label">Connections / Event</div><div class="stat-value">16.3</div><div class="stat-delta">↑ 2.1 vs last event</div></div>
+        <div class="stat-card"><div class="stat-label">Cross-Specialty Rate</div><div class="stat-value">68%</div><div class="stat-delta">↑ 5% this month</div></div>
+        <div class="stat-card"><div class="stat-label">Community Posts</div><div class="stat-value">847</div><div class="stat-delta">↑ 130 this month</div></div>
+        <div class="stat-card"><div class="stat-label">Jobs Placed via IN</div><div class="stat-value">23</div><div class="stat-delta" style="color:var(--accent-light);">↑ New metric</div></div>
+      </div>
+
+      <div class="grid-2" style="margin-bottom:20px;">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Connections by Event</span><span style="font-size:12px;color:var(--text-secondary);">Last 6 events</span></div>
+          <div class="card-body">
+            <div class="chart-placeholder">
+              <div class="chart-bars">
+                <div class="chart-bar" style="height:45%;"></div>
+                <div class="chart-bar" style="height:60%;"></div>
+                <div class="chart-bar" style="height:52%;"></div>
+                <div class="chart-bar" style="height:75%;"></div>
+                <div class="chart-bar" style="height:80%;"></div>
+                <div class="chart-bar highlight" style="height:95%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Specialty Distribution</span><span style="font-size:12px;color:var(--text-secondary);">Verified users</span></div>
+          <div class="card-body" style="padding-top:8px;">
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;align-items:center;gap:10px;"><span style="width:80px;font-size:12px;color:var(--text-secondary);">Photography</span><div style="flex:1;height:8px;background:var(--bg-elevated);border-radius:4px;overflow:hidden;"><div style="height:100%;width:34%;background:var(--accent);border-radius:4px;"></div></div><span style="font-size:12px;width:30px;text-align:right;">34%</span></div>
+              <div style="display:flex;align-items:center;gap:10px;"><span style="width:80px;font-size:12px;color:var(--text-secondary);">Hair</span><div style="flex:1;height:8px;background:var(--bg-elevated);border-radius:4px;overflow:hidden;"><div style="height:100%;width:24%;background:var(--accent-energy);border-radius:4px;"></div></div><span style="font-size:12px;width:30px;text-align:right;">24%</span></div>
+              <div style="display:flex;align-items:center;gap:10px;"><span style="width:80px;font-size:12px;color:var(--text-secondary);">Makeup</span><div style="flex:1;height:8px;background:var(--bg-elevated);border-radius:4px;overflow:hidden;"><div style="height:100%;width:18%;background:var(--accent-cool);border-radius:4px;"></div></div><span style="font-size:12px;width:30px;text-align:right;">18%</span></div>
+              <div style="display:flex;align-items:center;gap:10px;"><span style="width:80px;font-size:12px;color:var(--text-secondary);">Styling</span><div style="flex:1;height:8px;background:var(--bg-elevated);border-radius:4px;overflow:hidden;"><div style="height:100%;width:12%;background:var(--accent-gold);border-radius:4px;"></div></div><span style="font-size:12px;width:30px;text-align:right;">12%</span></div>
+              <div style="display:flex;align-items:center;gap:10px;"><span style="width:80px;font-size:12px;color:var(--text-secondary);">Other</span><div style="flex:1;height:8px;background:var(--bg-elevated);border-radius:4px;overflow:hidden;"><div style="height:100%;width:12%;background:var(--bg-hover);border-radius:4px;"></div></div><span style="font-size:12px;width:30px;text-align:right;">12%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-title">Influence Score Leaders</span><span style="font-size:12px;color:var(--text-secondary);">PageRank · event attendance + connections + posts · nightly refresh</span></div>
+        <div class="card-body" style="padding:0;">
+          <table><thead><tr><th>#</th><th>User</th><th>Specialty</th><th>Events</th><th>Connections</th><th>Posts</th><th>Influence</th></tr></thead>
+          <tbody>
+            <tr><td style="color:var(--accent-gold);font-weight:700;">1</td><td><div class="cell-user"><div class="avatar" style="background:linear-gradient(135deg,#7C3AED,#FF3D8E);font-size:11px;">KM</div><div><div class="cell-name">Kezia Monroe</div></div></div></td><td style="color:var(--text-secondary);">Hair</td><td>12</td><td>87</td><td>34</td><td><span style="font-weight:700;color:var(--accent-light);">94.2</span></td></tr>
+            <tr><td style="color:var(--text-secondary);font-weight:700;">2</td><td><div class="cell-user"><div class="avatar" style="background:linear-gradient(135deg,#0d47a1,#1B9CFC);font-size:11px;">TR</div><div><div class="cell-name">Tyrone Reid</div></div></div></td><td style="color:var(--text-secondary);">Photography</td><td>10</td><td>71</td><td>28</td><td><span style="font-weight:700;color:var(--accent-light);">88.7</span></td></tr>
+            <tr><td style="color:var(--text-secondary);font-weight:700;">3</td><td><div class="cell-user"><div class="avatar" style="background:linear-gradient(135deg,#4a148c,#FF3D8E);font-size:11px;">MJ</div><div><div class="cell-name">Maya Johnson</div></div></div></td><td style="color:var(--text-secondary);">Makeup</td><td>9</td><td>64</td><td>41</td><td><span style="font-weight:700;color:var(--accent-light);">82.1</span></td></tr>
+          </tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ DATA PRODUCTS ═══ -->
+    <div class="page" id="page-dataproducts">
+      <div class="page-header">
+        <div><div class="page-title">Data Products</div><div class="page-sub">Event Wrap Reports · AI-generated drafts ready for review</div></div>
+        <button class="btn btn-secondary">Configure Templates</button>
+      </div>
+      <div class="tooltip-note">ℹ️ Event Wrap Reports are auto-generated 24 hours after each event ends. Review and edit with AI assistance before sending to customers.</div>
+
+      <div class="tabs">
+        <div class="tab active">Pending Review <span class="tab-count" style="background:rgba(245,158,11,0.2);color:var(--warning);">2</span></div>
+        <div class="tab">Sent</div>
+        <div class="tab">All Reports</div>
+      </div>
+
+      <div class="report-card">
+        <div class="report-icon">📊</div>
+        <div class="report-meta">
+          <div class="report-title">Event Wrap Report — Industry Night Vol. 11</div>
+          <div class="report-detail">Mar 7, 2026 · Brooklyn Loft · AI draft generated Mar 8 · Ready for review</div>
+          <div class="report-tags">
+            <span class="badge badge-pending">Pending Review</span>
+            <span style="font-size:11px;color:var(--text-secondary);">Recipients: VibeBrand Co., LuxeStyle Agency, Flash Jones Studio</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;">
+          <button class="btn btn-primary btn-sm">Review &amp; Edit ✦ AI</button>
+          <button class="btn btn-secondary btn-sm">Preview PDF</button>
+        </div>
+      </div>
+
+      <div class="report-card">
+        <div class="report-icon">📊</div>
+        <div class="report-meta">
+          <div class="report-title">Event Wrap Report — Industry Night Vol. 10</div>
+          <div class="report-detail">Feb 7, 2026 · Soho Arts Club · AI draft generated Feb 8 · Awaiting final approval</div>
+          <div class="report-tags">
+            <span class="badge badge-pending">Pending Review</span>
+            <span style="font-size:11px;color:var(--text-secondary);">Recipients: VibeBrand Co., LuxeStyle Agency</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;">
+          <button class="btn btn-primary btn-sm">Review &amp; Edit ✦ AI</button>
+          <button class="btn btn-secondary btn-sm">Preview PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ USERS ═══ -->
+    <div class="page" id="page-users">
+      <div class="page-header">
+        <div><div class="page-title">Social Users</div><div class="page-sub">1,247 registered · 843 verified</div></div>
+        <button class="btn btn-primary">+ Add User</button>
+      </div>
+      <div class="table-container">
+        <div class="table-toolbar">
+          <div class="table-search"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>Search users…</div>
+          <div class="filter-chip active">All</div>
+          <div class="filter-chip">Verified</div>
+          <div class="filter-chip">Unverified</div>
+          <div class="filter-chip">Banned</div>
+        </div>
+        <table>
+          <thead><tr><th>User</th><th>Specialty</th><th>Status</th><th>Events</th><th>Connections</th><th>Source</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div class="cell-user"><div class="avatar" style="background:linear-gradient(135deg,#7C3AED,#FF3D8E);font-size:12px;">KM</div><div><div class="cell-name">Kezia Monroe</div><div class="cell-sub">+1 347-555-0182</div></div></div></td>
+              <td><span style="font-size:12px;">Hair <span style="color:var(--accent-gold);">★</span></span></td>
+              <td><span class="badge badge-verified">✓ Verified</span></td>
+              <td>12</td><td>87</td>
+              <td><span style="font-size:11px;color:var(--text-secondary);">Posh</span></td>
+              <td><div class="table-actions"><button class="btn btn-ghost btn-sm">View</button><button class="btn btn-ghost btn-sm">Edit</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-user"><div class="avatar" style="background:linear-gradient(135deg,#0d47a1,#1B9CFC);font-size:12px;">TR</div><div><div class="cell-name">Tyrone Reid</div><div class="cell-sub">+1 646-555-0729</div></div></div></td>
+              <td><span style="font-size:12px;">Photography <span style="color:var(--accent-gold);">★</span></span></td>
+              <td><span class="badge badge-verified">✓ Verified</span></td>
+              <td>10</td><td>71</td>
+              <td><span style="font-size:11px;color:var(--text-secondary);">Posh</span></td>
+              <td><div class="table-actions"><button class="btn btn-ghost btn-sm">View</button><button class="btn btn-ghost btn-sm">Edit</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-user"><div class="avatar" style="background:linear-gradient(135deg,#880e4f,#FF3D8E);font-size:12px;">DN</div><div><div class="cell-name">Destiny Nguyen</div><div class="cell-sub">+1 929-555-0044</div></div></div></td>
+              <td><span style="font-size:12px;">Makeup</span></td>
+              <td><span class="badge badge-unverified">Registered</span></td>
+              <td>0</td><td>0</td>
+              <td><span style="font-size:11px;color:var(--text-secondary);">Posh</span></td>
+              <td><div class="table-actions"><button class="btn btn-ghost btn-sm">View</button><button class="btn btn-ghost btn-sm">Verify</button></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ ADMIN USERS ═══ -->
+    <div class="page" id="page-adminusers">
+      <div class="page-header">
+        <div><div class="page-title">Admin Users</div><div class="page-sub">Manage platform admin accounts · separate from social users</div></div>
+        <button class="btn btn-primary">+ Invite Admin</button>
+      </div>
+      <div class="tooltip-note">ℹ️ Admin users authenticate with email/password and have access to this dashboard. Separate from the social user pool.</div>
+      <div class="table-container">
+        <table>
+          <thead><tr><th>Admin</th><th>Email</th><th>Role</th><th>Last Login</th><th>Created</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div class="cell-user"><div class="avatar" style="background:var(--gradient-brand);font-size:12px;">JR</div><div><div class="cell-name">Jeff Rhodes</div><div class="cell-sub">Platform Owner</div></div></div></td>
+              <td style="color:var(--text-secondary);font-size:13px;">jeff@rhodiuslabs.com</td>
+              <td><span class="badge badge-platinum">Platform Admin</span></td>
+              <td style="color:var(--text-secondary);font-size:12px;">Just now</td>
+              <td style="color:var(--text-secondary);font-size:12px;">Jan 2026</td>
+              <td><div class="table-actions"><button class="btn btn-ghost btn-sm">Edit</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-user"><div class="avatar" style="background:linear-gradient(135deg,#0d47a1,#1B9CFC);font-size:12px;">MA</div><div><div class="cell-name">Marcus A.</div><div class="cell-sub">Event Operations</div></div></div></td>
+              <td style="color:var(--text-secondary);font-size:13px;">marcus@industrynight.net</td>
+              <td><span class="badge badge-published">Platform Admin</span></td>
+              <td style="color:var(--text-secondary);font-size:12px;">3 hours ago</td>
+              <td style="color:var(--text-secondary);font-size:12px;">Feb 2026</td>
+              <td><div class="table-actions"><button class="btn btn-ghost btn-sm">Edit</button><button class="btn btn-danger btn-sm">Deactivate</button></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ EVENT OPS ═══ -->
+    <div class="page" id="page-eventops">
+      <div class="page-header">
+        <div>
+          <div class="page-title"><span class="live-dot"></span>Event Ops</div>
+          <div class="page-sub">Night-of real-time check-in · Industry Night Vol. 12 · Apr 4, 2026</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary">Change Event</button>
+          <button class="btn btn-primary">+ Manual Check-In</button>
+        </div>
+      </div>
+
+      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;">
+        <div class="stat-card"><div class="stat-label">Tickets Sold</div><div class="stat-value">340</div><div class="stat-delta" style="color:var(--text-secondary);">Posh + walk-in</div></div>
+        <div class="stat-card"><div class="stat-label">Checked In</div><div class="stat-value" style="color:var(--success);">187</div><div class="stat-delta">↑ 12 last 10 min</div></div>
+        <div class="stat-card"><div class="stat-label">Remaining</div><div class="stat-value">153</div><div class="stat-delta" style="color:var(--text-secondary);">55% capacity</div></div>
+        <div class="stat-card"><div class="stat-label">Activation Code</div><div class="stat-value" style="font-size:22px;font-family:monospace;letter-spacing:4px;color:var(--accent-light);">7821</div><div class="stat-delta" style="color:var(--text-secondary);">For in-app check-in</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card" style="max-height:480px;display:flex;flex-direction:column;">
+          <div class="card-header">
+            <span class="card-title">Live Attendee Stream</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:12px;color:var(--text-secondary);">Scanning for</span>
+              <div class="filter-chip active" style="font-size:11px;">All Tickets</div>
+              <div class="filter-chip" style="font-size:11px;">Unverified Only</div>
+            </div>
+          </div>
+          <div style="overflow-y:auto;flex:1;">
+            <div class="checkin-row">
+              <div class="checkin-status in"></div>
+              <div class="avatar" style="background:linear-gradient(135deg,#7C3AED,#FF3D8E);width:28px;height:28px;font-size:10px;">KM</div>
+              <div style="flex:1;"><div style="font-size:13px;font-weight:500;">Kezia Monroe</div><div style="font-size:11px;color:var(--text-secondary);">Posh · PSH-88612 · 8:14 PM</div></div>
+              <span class="badge badge-verified" style="font-size:10px;">✓</span>
+            </div>
+            <div class="checkin-row">
+              <div class="checkin-status in"></div>
+              <div class="avatar" style="background:linear-gradient(135deg,#0d47a1,#1B9CFC);width:28px;height:28px;font-size:10px;">TR</div>
+              <div style="flex:1;"><div style="font-size:13px;font-weight:500;">Tyrone Reid</div><div style="font-size:11px;color:var(--text-secondary);">Posh · PSH-88649 · 8:11 PM</div></div>
+              <span class="badge badge-verified" style="font-size:10px;">✓</span>
+            </div>
+            <div class="checkin-row">
+              <div class="checkin-status in"></div>
+              <div class="avatar" style="background:linear-gradient(135deg,#880e4f,#FF3D8E);width:28px;height:28px;font-size:10px;">DN</div>
+              <div style="flex:1;"><div style="font-size:13px;font-weight:500;">Destiny Nguyen</div><div style="font-size:11px;color:var(--text-secondary);">Walk-in · Manual · 8:09 PM</div></div>
+              <span class="badge badge-unverified" style="font-size:10px;">App</span>
+            </div>
+            <div class="checkin-row">
+              <div class="checkin-status in"></div>
+              <div class="avatar" style="background:linear-gradient(135deg,#1b5e20,#10B981);width:28px;height:28px;font-size:10px;">OA</div>
+              <div style="flex:1;"><div style="font-size:13px;font-weight:500;">Omar Adeyemi</div><div style="font-size:11px;color:var(--text-secondary);">Posh · PSH-88701 · 8:07 PM</div></div>
+              <span class="badge badge-verified" style="font-size:10px;">✓</span>
+            </div>
+            <div style="text-align:center;padding:14px;color:var(--text-tertiary);font-size:12px;">+ 183 more check-ins tonight</div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="card">
+            <div class="card-header"><span class="card-title">QR / Code Lookup</span></div>
+            <div class="card-body">
+              <div style="display:flex;gap:8px;margin-bottom:12px;">
+                <input style="flex:1;background:var(--bg-elevated);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text-primary);font-size:13px;font-family:inherit;" placeholder="Enter ticket ID or phone…">
+                <button class="btn btn-primary">Look Up</button>
+              </div>
+              <div style="background:var(--bg-elevated);border-radius:6px;padding:12px;font-size:12px;color:var(--text-secondary);">Enter a Posh order ID, phone number, or scan QR to pull up ticket status.</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Check-In Pace</span></div>
+            <div class="card-body">
+              <div class="chart-placeholder" style="height:120px;">
+                <div class="chart-bars" style="height:80px;">
+                  <div class="chart-bar" style="height:20%;"></div>
+                  <div class="chart-bar" style="height:35%;"></div>
+                  <div class="chart-bar" style="height:60%;"></div>
+                  <div class="chart-bar" style="height:80%;"></div>
+                  <div class="chart-bar" style="height:95%;"></div>
+                  <div class="chart-bar highlight" style="height:70%;"></div>
+                </div>
+              </div>
+              <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;text-align:right;">7:00pm → 8:30pm · per 15-min window</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Connections Fired Tonight</span></div>
+            <div class="card-body" style="display:flex;align-items:center;gap:16px;">
+              <div style="font-size:40px;font-weight:700;color:var(--accent-light);">47</div>
+              <div style="font-size:12px;color:var(--text-secondary);">QR-scan connections made since doors opened. Live network growth at this event.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TICKETS ═══ -->
+    <div class="page" id="page-tickets">
+      <div class="page-header">
+        <div><div class="page-title">Tickets</div><div class="page-sub">Cross-event ticket search, management, and reporting</div></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary">Export CSV</button>
+          <button class="btn btn-primary">+ Issue Ticket</button>
+        </div>
+      </div>
+
+      <div class="tooltip-note">
+        ℹ️ <strong>Saved presets</strong> — click a preset to apply filters instantly. All ticket types are included: Posh purchases, walk-ins, and comps.
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+        <div class="preset-chip active">🎫 All Tickets</div>
+        <div class="preset-chip">⚠️ Unreconciled Posh</div>
+        <div class="preset-chip">🚪 Checked In Tonight</div>
+        <div class="preset-chip">🆓 Comps &amp; Comped</div>
+        <div class="preset-chip">↩️ Refunded</div>
+        <div class="preset-chip">📅 Next Event Only</div>
+        <div style="margin-left:auto;"><button class="btn btn-ghost btn-sm">+ Save Preset</button></div>
+      </div>
+
+      <div class="stats-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px;">
+        <div class="stat-card"><div class="stat-label">Total Tickets</div><div class="stat-value">636</div><div class="stat-delta" style="color:var(--text-secondary);">All events</div></div>
+        <div class="stat-card"><div class="stat-label">Posh</div><div class="stat-value">598</div><div class="stat-delta">94%</div></div>
+        <div class="stat-card"><div class="stat-label">Walk-in / Manual</div><div class="stat-value">38</div><div class="stat-delta" style="color:var(--text-secondary);">6%</div></div>
+        <div class="stat-card"><div class="stat-label">Checked In</div><div class="stat-value">569</div><div class="stat-delta">↑ 89.5%</div></div>
+        <div class="stat-card"><div class="stat-label">Unreconciled</div><div class="stat-value" style="color:var(--warning);">3</div><div class="stat-delta" style="color:var(--warning);">Need attention</div></div>
+      </div>
+
+      <div class="table-container">
+        <div class="table-toolbar">
+          <div class="table-search"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>Search by name, phone, order ID…</div>
+          <div class="filter-chip active">All Events</div>
+          <div class="filter-chip">Vol. 12</div>
+          <div class="filter-chip">Vol. 11</div>
+          <div class="filter-chip" style="margin-left:auto;">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 4h14M4 8h8M7 12h2"/></svg>
+            Filters
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Holder</th><th>Event</th><th>Type</th><th>Order ID</th><th>Status</th><th>Check-in</th><th>IN User</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div class="cell-user"><div class="avatar" style="background:linear-gradient(135deg,#7C3AED,#FF3D8E);font-size:11px;">KM</div><div><div class="cell-name">Kezia Monroe</div><div class="cell-sub">+1 347-555-0182</div></div></div></td>
+              <td style="color:var(--text-secondary);font-size:12px;">Vol. 12</td>
+              <td><span style="font-size:11px;color:var(--text-secondary);">Posh</span></td>
+              <td style="font-family:monospace;font-size:11px;color:var(--text-tertiary);">PSH-88612</td>
+              <td><span class="badge badge-published">Checked In</span></td>
+              <td style="font-size:12px;color:var(--text-secondary);">Apr 4 · 8:14 PM</td>
+              <td><span style="font-size:12px;color:var(--accent-light);">@kezia.m</span></td>
+              <td><div class="table-actions"><button class="btn btn-ghost btn-sm">View</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-user"><div class="avatar" style="background:linear-gradient(135deg,#4a148c,#1B9CFC);font-size:11px;">DW</div><div><div class="cell-name">Darius Webb</div><div class="cell-sub">+1 646-555-0934</div></div></div></td>
+              <td style="color:var(--text-secondary);font-size:12px;">Vol. 12</td>
+              <td><span style="font-size:11px;color:var(--text-secondary);">Posh</span></td>
+              <td style="font-family:monospace;font-size:11px;color:var(--text-tertiary);">PSH-88734</td>
+              <td><span class="badge badge-pending">Purchased</span></td>
+              <td style="font-size:12px;color:var(--text-tertiary);">—</td>
+              <td style="color:var(--warning);font-size:12px;">⚠ Not in system</td>
+              <td><div class="table-actions"><button class="btn btn-secondary btn-sm">Link User</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-user"><div class="avatar" style="background:linear-gradient(135deg,#1b5e20,#10B981);font-size:11px;">OA</div><div><div class="cell-name">Omar Adeyemi</div><div class="cell-sub">+1 718-555-0032</div></div></div></td>
+              <td style="color:var(--text-secondary);font-size:12px;">Vol. 11</td>
+              <td><span style="font-size:11px;color:var(--text-secondary);">Walk-in</span></td>
+              <td style="font-family:monospace;font-size:11px;color:var(--text-tertiary);">TKT-0291</td>
+              <td><span class="badge badge-published">Checked In</span></td>
+              <td style="font-size:12px;color:var(--text-secondary);">Mar 7 · 9:02 PM</td>
+              <td><span style="font-size:12px;color:var(--accent-light);">@omar.a</span></td>
+              <td><div class="table-actions"><button class="btn btn-ghost btn-sm">View</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-user"><div class="avatar" style="background:linear-gradient(135deg,#880e4f,#FF3D8E);font-size:11px;">DN</div><div><div class="cell-name">Destiny Nguyen</div><div class="cell-sub">+1 929-555-0044</div></div></div></td>
+              <td style="color:var(--text-secondary);font-size:12px;">Vol. 12</td>
+              <td><span style="font-size:11px;color:var(--text-secondary);">Posh</span></td>
+              <td style="font-family:monospace;font-size:11px;color:var(--text-tertiary);">PSH-88801</td>
+              <td><span class="reconcile-pill reconcile-error">Refunded</span></td>
+              <td style="font-size:12px;color:var(--text-tertiary);">—</td>
+              <td style="font-size:12px;color:var(--text-secondary);">@destiny.n</td>
+              <td><div class="table-actions"><button class="btn btn-ghost btn-sm">View</button></div></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid var(--border);">
+          <div style="font-size:12px;color:var(--text-secondary);">Showing 4 of 636 tickets</div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-ghost btn-sm">← Prev</button>
+            <button class="btn btn-ghost btn-sm">Next →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ IMAGES ═══ -->
+    <div class="page" id="page-images">
+      <div class="page-header">
+        <div><div class="page-title">Images</div><div class="page-sub">Media catalog across all events, customers, and community</div></div>
+        <div style="display:flex;gap:8px;" id="images-toolbar">
+          <button class="btn btn-secondary btn-sm" id="images-select-btn" onclick="toggleImageSelect()">Select</button>
+          <button class="btn btn-danger btn-sm" id="images-delete-btn" style="display:none;" onclick="alert('Bulk delete: 0 selected')">Delete Selected (0)</button>
+        </div>
+      </div>
+
+      <div class="tabs" id="images-tabs">
+        <div class="tab active" onclick="switchImgTab('event-media',this)">Event Media <span class="tab-count">47</span></div>
+        <div class="tab" onclick="switchImgTab('brand-assets',this)">Brand Assets <span class="tab-count">12</span></div>
+        <div class="tab disabled" title="Community tab — live when Community feature ships">Community <span class="tab-count" style="background:rgba(160,160,160,0.08);color:var(--text-tertiary);">—</span></div>
+        <div class="tab" onclick="switchImgTab('cleanup',this)">Cleanup <span class="tab-count" style="background:rgba(239,68,68,0.1);color:var(--error);">8</span></div>
+      </div>
+
+      <!-- Event Media sub-tab -->
+      <div id="img-tab-event-media">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <div class="table-search" style="max-width:260px;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>Filter by event…</div>
+          <div class="filter-chip active">All Events</div>
+          <div class="filter-chip">Vol. 12</div>
+          <div class="filter-chip">Vol. 11</div>
+          <div style="margin-left:auto;font-size:12px;color:var(--text-secondary);">47 images · 5 events</div>
+        </div>
+        <div class="img-grid">
+          <div class="img-tile" onclick="selectImg(this)">
+            <div class="img-tile-thumb">🌆</div>
+            <div class="img-tile-check">✓</div>
+            <div class="img-tile-meta"><div class="img-tile-name">vol12-hero.jpg</div><div class="img-tile-sub">Vol. 12 · Hero · 2.1 MB</div></div>
+          </div>
+          <div class="img-tile" onclick="selectImg(this)">
+            <div class="img-tile-thumb">🎨</div>
+            <div class="img-tile-check">✓</div>
+            <div class="img-tile-meta"><div class="img-tile-name">vol12-crowd-01.jpg</div><div class="img-tile-sub">Vol. 12 · 1.8 MB</div></div>
+          </div>
+          <div class="img-tile" onclick="selectImg(this)">
+            <div class="img-tile-thumb">📸</div>
+            <div class="img-tile-check">✓</div>
+            <div class="img-tile-meta"><div class="img-tile-name">vol12-backstage.jpg</div><div class="img-tile-sub">Vol. 12 · 1.4 MB</div></div>
+          </div>
+          <div class="img-tile" onclick="selectImg(this)">
+            <div class="img-tile-thumb">✨</div>
+            <div class="img-tile-check">✓</div>
+            <div class="img-tile-meta"><div class="img-tile-name">vol11-hero.jpg</div><div class="img-tile-sub">Vol. 11 · Hero · 2.3 MB</div></div>
+          </div>
+          <div class="img-tile" onclick="selectImg(this)">
+            <div class="img-tile-thumb">💫</div>
+            <div class="img-tile-check">✓</div>
+            <div class="img-tile-meta"><div class="img-tile-name">vol11-stage.jpg</div><div class="img-tile-sub">Vol. 11 · 1.1 MB</div></div>
+          </div>
+          <div class="img-tile" onclick="selectImg(this)">
+            <div class="img-tile-thumb">🌟</div>
+            <div class="img-tile-check">✓</div>
+            <div class="img-tile-meta"><div class="img-tile-name">vol10-hero.jpg</div><div class="img-tile-sub">Vol. 10 · Hero · 2.0 MB</div></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;border:2px dashed var(--border);border-radius:8px;aspect-ratio:4/3;cursor:pointer;color:var(--text-tertiary);font-size:12px;flex-direction:column;gap:6px;" onclick="alert('Upload to event')">
+            <div style="font-size:24px;">+</div>
+            <div>Upload Image</div>
+          </div>
+        </div>
+        <div style="padding:0 20px 16px;font-size:12px;color:var(--text-secondary);">Showing 6 of 47 · <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:12px;">Load More</button></div>
+      </div>
+
+      <!-- Brand Assets sub-tab -->
+      <div id="img-tab-brand-assets" style="display:none;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <div class="table-search" style="max-width:260px;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>Filter by customer…</div>
+          <div class="filter-chip active">All Customers</div>
+          <div class="filter-chip">VibeBrand</div>
+          <div class="filter-chip">LuxeStyle</div>
+        </div>
+        <div class="img-grid">
+          <div class="img-tile" onclick="selectImg(this)">
+            <div class="img-tile-thumb" style="background:linear-gradient(135deg,#1a237e,#7C3AED);">VB</div>
+            <div class="img-tile-check">✓</div>
+            <div class="img-tile-meta"><div class="img-tile-name">vibebrand-logo.png</div><div class="img-tile-sub">VibeBrand · Logo · 420 KB</div></div>
+          </div>
+          <div class="img-tile" onclick="selectImg(this)">
+            <div class="img-tile-thumb" style="background:linear-gradient(135deg,#4a148c,#FF3D8E);">LS</div>
+            <div class="img-tile-check">✓</div>
+            <div class="img-tile-meta"><div class="img-tile-name">luxestyle-logo.png</div><div class="img-tile-sub">LuxeStyle · Logo · 380 KB</div></div>
+          </div>
+          <div class="img-tile" onclick="selectImg(this)">
+            <div class="img-tile-thumb" style="background:linear-gradient(135deg,#0d47a1,#1B9CFC);">FJ</div>
+            <div class="img-tile-check">✓</div>
+            <div class="img-tile-meta"><div class="img-tile-name">flashjones-banner.png</div><div class="img-tile-sub">Flash Jones · Banner · 850 KB</div></div>
+          </div>
+        </div>
+        <div style="padding:0 20px 16px;font-size:12px;color:var(--text-secondary);">Showing 3 of 12</div>
+      </div>
+
+      <!-- Community sub-tab -->
+      <div id="img-tab-community" style="display:none;">
+        <div class="empty-state" style="border:1px dashed var(--border);border-radius:10px;">
+          <div class="empty-state-icon">🖼️</div>
+          <div class="empty-state-title">Community Images</div>
+          <div class="empty-state-sub">Community posts and user-uploaded media will appear here when the Community module ships.</div>
+          <button class="btn btn-secondary" disabled style="opacity:0.4;cursor:not-allowed;">Browse Community Images</button>
+          <div style="font-size:11px;color:var(--text-tertiary);margin-top:12px;">Coming in Track C4 · Community Feature</div>
+        </div>
+      </div>
+
+      <!-- Cleanup sub-tab -->
+      <div id="img-tab-cleanup" style="display:none;">
+        <div class="tooltip-note" style="margin-bottom:16px;">
+          ⚠️ <strong>Cleanup Queue</strong> — orphaned images (event deleted), low-resolution uploads, and storage anomalies. Nightly cron identifies candidates. Review before bulk delete.
+        </div>
+        <div class="table-container">
+          <div class="table-toolbar">
+            <div class="filter-chip active">All Issues (8)</div>
+            <div class="filter-chip">Orphaned (5)</div>
+            <div class="filter-chip">Low-res (3)</div>
+            <div style="margin-left:auto;"><button class="btn btn-danger btn-sm">Delete All Orphaned</button></div>
+          </div>
+          <table>
+            <thead><tr><th>Image</th><th>Issue</th><th>References</th><th>Size</th><th>Identified</th><th></th></tr></thead>
+            <tbody>
+              <tr>
+                <td><div class="cell-user"><div class="img-tile-thumb" style="width:36px;height:36px;border-radius:4px;font-size:18px;">🌆</div><div><div class="cell-name" style="font-size:12px;">draft-event-img-01.jpg</div></div></div></td>
+                <td><span class="badge badge-flagged">Orphaned</span></td>
+                <td style="font-size:12px;color:var(--text-tertiary);">0 — event deleted</td>
+                <td style="font-size:12px;color:var(--text-secondary);">1.9 MB</td>
+                <td style="font-size:12px;color:var(--text-secondary);">Mar 25</td>
+                <td><div class="table-actions"><button class="btn btn-danger btn-sm">Delete</button></div></td>
+              </tr>
+              <tr>
+                <td><div class="cell-user"><div class="img-tile-thumb" style="width:36px;height:36px;border-radius:4px;font-size:18px;">📸</div><div><div class="cell-name" style="font-size:12px;">vol09-thumb-blurry.jpg</div></div></div></td>
+                <td><span class="badge badge-review">Low-res</span></td>
+                <td><span style="font-size:12px;color:var(--text-secondary);">1 ref · <button class="btn btn-ghost btn-sm" style="padding:1px 6px;font-size:11px;" onclick="alert('Vol. 9 event detail')">Show</button></span></td>
+                <td style="font-size:12px;color:var(--text-secondary);">48 KB</td>
+                <td style="font-size:12px;color:var(--text-secondary);">Mar 25</td>
+                <td><div class="table-actions"><button class="btn btn-danger btn-sm">Delete</button><button class="btn btn-ghost btn-sm">Keep</button></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:16px;padding:14px;background:var(--bg-elevated);border-radius:8px;font-size:12px;color:var(--text-secondary);">
+          Detailed cleanup tooling spec deferred — full implementation tracked in a future track. This shell will be wired in B3.
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ SEARCH ═══ -->
+    <div class="page" id="page-search">
+      <div class="page-header">
+        <div><div class="page-title">Search</div><div class="page-sub">Find anything across users, events, tickets, jobs, and customers</div></div>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:20px;">
+        <input type="text" placeholder="Search users, events, tickets, jobs, customers..." style="flex:1;padding:10px 14px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:14px;outline:none;">
+        <div style="display:flex;gap:8px;">
+          <span style="padding:6px 12px;background:var(--accent-purple);color:#fff;border-radius:6px;font-size:13px;cursor:pointer;">All</span>
+          <span style="padding:6px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;">Users</span>
+          <span style="padding:6px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;">Events</span>
+          <span style="padding:6px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;">Tickets</span>
+          <span style="padding:6px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;">Jobs</span>
+          <span style="padding:6px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;">Customers</span>
+        </div>
+      </div>
+      <!-- Recent / suggested -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-tertiary);margin-bottom:12px;">Recent Searches</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <span style="padding:4px 12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text-secondary);">@jayla.creative</span>
+          <span style="padding:4px 12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text-secondary);">Industry Night ATL Vol. 12</span>
+          <span style="padding:4px 12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text-secondary);">ticket #8821</span>
+          <span style="padding:4px 12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text-secondary);">+14045550193</span>
+        </div>
+      </div>
+      <!-- Results placeholder -->
+      <div class="card">
+        <div style="color:var(--text-tertiary);font-size:13px;text-align:center;padding:48px 0;">Enter a search term above to find matching records.<br><br>
+          <span style="font-size:11px;">Search spans: users (name, phone, email), events (name, date, venue), tickets (ID, order #, name), jobs (title, company, location), customers (company name, contact)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ HELP ═══ -->
+    <div class="page" id="page-help">
+      <div class="page-header">
+        <div><div class="page-title">Help &amp; Documentation</div><div class="page-sub">Guides, checklists, and walkthroughs for platform operators</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:240px 1fr;gap:20px;">
+        <!-- Help nav -->
+        <div>
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div style="padding:10px 14px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-tertiary);">Getting Started</div>
+            <div style="padding:10px 14px;font-size:13px;color:var(--accent-purple);border-left:3px solid var(--accent-purple);cursor:pointer;">Platform Overview</div>
+            <div style="padding:10px 14px;font-size:13px;cursor:pointer;">User Roles</div>
+            <div style="padding:10px 14px;font-size:13px;cursor:pointer;">First-time Setup Checklist</div>
+            <div style="padding:10px 14px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-tertiary);margin-top:4px;">Event Management</div>
+            <div style="padding:10px 14px;font-size:13px;cursor:pointer;">Creating an Event</div>
+            <div style="padding:10px 14px;font-size:13px;cursor:pointer;">Publishing &amp; Posh Sync</div>
+            <div style="padding:10px 14px;font-size:13px;cursor:pointer;">Event Ops on Show Night</div>
+            <div style="padding:10px 14px;font-size:13px;cursor:pointer;">Managing Tickets</div>
+            <div style="padding:10px 14px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-tertiary);margin-top:4px;">Revenue &amp; Partners</div>
+            <div style="padding:10px 14px;font-size:13px;cursor:pointer;">Customer &amp; Discount Setup</div>
+            <div style="padding:10px 14px;font-size:13px;cursor:pointer;">Job Poster Accounts</div>
+            <div style="padding:10px 14px;font-size:13px;cursor:pointer;">Data Products &amp; Exports</div>
+            <div style="padding:10px 14px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-tertiary);margin-top:4px;">Operations</div>
+            <div style="padding:10px 14px;font-size:13px;cursor:pointer;">Moderation Guide</div>
+            <div style="padding:10px 14px;font-size:13px;cursor:pointer;">Audit Log Reference</div>
+            <div style="padding:10px 14px;font-size:13px;cursor:pointer;">API Key Management</div>
+          </div>
+        </div>
+        <!-- Help content -->
+        <div>
+          <div class="card">
+            <div style="font-size:18px;font-weight:600;margin-bottom:8px;">Platform Overview</div>
+            <div style="font-size:13px;color:var(--text-secondary);line-height:1.7;">
+              Industry Night is a platform for discovering, promoting, and managing industry events for creative workers — hair stylists, makeup artists, photographers, videographers, directors, and producers.
+              <br><br>
+              The Admin Console (this application) is for platform operators. The Social App (iOS/Android) is for attendees.
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px;">
+              <div style="background:var(--bg-secondary);border-radius:8px;padding:14px;">
+                <div style="font-size:12px;font-weight:600;margin-bottom:4px;">Events</div>
+                <div style="font-size:12px;color:var(--text-secondary);">Create, publish, and manage industry nights with Posh ticketing sync.</div>
+              </div>
+              <div style="background:var(--bg-secondary);border-radius:8px;padding:14px;">
+                <div style="font-size:12px;font-weight:600;margin-bottom:4px;">Community</div>
+                <div style="font-size:12px;color:var(--text-secondary);">Moderate feed posts, verify users, manage specialties.</div>
+              </div>
+              <div style="background:var(--bg-secondary);border-radius:8px;padding:14px;">
+                <div style="font-size:12px;font-weight:600;margin-bottom:4px;">Revenue</div>
+                <div style="font-size:12px;color:var(--text-secondary);">Manage sponsors, vendors, job posters, and data product exports.</div>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="margin-top:16px;">
+            <div style="font-size:14px;font-weight:600;margin-bottom:12px;">First-time Setup Checklist</div>
+            <div style="font-size:13px;color:var(--text-secondary);">
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);"><span style="color:#4CAF50;font-size:16px;">✓</span> Create admin account</div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);"><span style="color:#4CAF50;font-size:16px;">✓</span> Configure markets (Settings → Markets)</div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-tertiary);font-size:16px;">○</span> Set Posh webhook secret (Settings → API Key Status)</div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-tertiary);font-size:16px;">○</span> Create your first event</div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 0;"><span style="color:var(--text-tertiary);font-size:16px;">○</span> Add your first customer/sponsor</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ AUDIT LOG ═══ -->
+    <div class="page" id="page-auditlog">
+      <div class="page-header">
+        <div><div class="page-title">Audit Log</div><div class="page-sub">All admin and system actions — who did what, when, and with what result</div></div>
+        <button class="btn btn-secondary btn-sm">Export CSV</button>
+      </div>
+
+      <!-- Filter bar -->
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <div class="filter-chip active">All Actions</div>
+          <div class="filter-chip">login</div>
+          <div class="filter-chip">create</div>
+          <div class="filter-chip">update</div>
+          <div class="filter-chip">delete</div>
+          <div class="filter-chip">ban / unban</div>
+          <div class="filter-chip">verify / reject</div>
+          <div class="filter-chip">checkin</div>
+        </div>
+        <div style="display:flex;gap:6px;margin-left:auto;">
+          <div class="filter-chip">All Results</div>
+          <div class="filter-chip" style="color:#e57373;">Failures only</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <div class="filter-chip">All Actors</div>
+          <div class="filter-chip">Admin</div>
+          <div class="filter-chip">User</div>
+          <div class="filter-chip">System</div>
+        </div>
+        <input type="text" placeholder="Date range…" style="padding:6px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);font-size:12px;width:160px;">
+      </div>
+
+      <!-- Table -->
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:140px;">Actor</th>
+              <th style="width:80px;">Type</th>
+              <th style="width:90px;">Action</th>
+              <th>Entity</th>
+              <th style="width:80px;">Result</th>
+              <th style="width:110px;">IP Address</th>
+              <th style="width:140px;">Time</th>
+              <th style="width:32px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Row 1 — admin action, success, expandable -->
+            <tr style="cursor:pointer;" onclick="toggleAuditRow('ar1')">
+              <td style="font-size:12px;font-weight:500;">Jeff Rhodes</td>
+              <td><span class="badge badge-draft" style="font-size:10px;">admin</span></td>
+              <td><span class="badge badge-published" style="font-size:10px;">create</span></td>
+              <td style="font-size:12px;color:var(--text-secondary);">events · <span style="color:var(--text-primary);">Industry Night Vol. 12</span></td>
+              <td><span style="font-size:11px;color:#4caf50;">● success</span></td>
+              <td style="font-size:11px;color:var(--text-tertiary);">98.143.22.17</td>
+              <td style="font-size:11px;color:var(--text-secondary);">Mar 26 · 10:14 AM</td>
+              <td style="font-size:11px;color:var(--text-tertiary);">›</td>
+            </tr>
+            <tr id="ar1" style="display:none;background:var(--bg-primary);">
+              <td colspan="8" style="padding:12px 16px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:12px;">
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Route</div><code style="font-size:11px;">POST /admin/events</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Request ID</div><code style="font-size:11px;">req_8f3a2c11</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">User Agent</div><div style="color:var(--text-secondary);">Chrome 131 / macOS</div></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Old Values</div><div style="color:var(--text-tertiary);">—</div></div>
+                  <div style="grid-column:span 2;"><div style="color:var(--text-tertiary);margin-bottom:4px;">New Values</div><code style="font-size:11px;">{ "name": "Industry Night Vol. 12", "status": "draft", "poshEventId": null }</code></div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Row 2 — verify -->
+            <tr style="cursor:pointer;" onclick="toggleAuditRow('ar2')">
+              <td style="font-size:12px;font-weight:500;">Jeff Rhodes</td>
+              <td><span class="badge badge-draft" style="font-size:10px;">admin</span></td>
+              <td><span class="badge badge-completed" style="font-size:10px;">verify</span></td>
+              <td style="font-size:12px;color:var(--text-secondary);">users · <span style="color:var(--text-primary);">Kezia Monroe</span></td>
+              <td><span style="font-size:11px;color:#4caf50;">● success</span></td>
+              <td style="font-size:11px;color:var(--text-tertiary);">98.143.22.17</td>
+              <td style="font-size:11px;color:var(--text-secondary);">Mar 26 · 9:48 AM</td>
+              <td style="font-size:11px;color:var(--text-tertiary);">›</td>
+            </tr>
+            <tr id="ar2" style="display:none;background:var(--bg-primary);">
+              <td colspan="8" style="padding:12px 16px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:12px;">
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Route</div><code style="font-size:11px;">PATCH /admin/users/:id</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Request ID</div><code style="font-size:11px;">req_7b91ef44</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">User Agent</div><div style="color:var(--text-secondary);">Chrome 131 / macOS</div></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Old Values</div><code style="font-size:11px;">{ "verificationStatus": "pending" }</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">New Values</div><code style="font-size:11px;">{ "verificationStatus": "verified" }</code></div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Row 3 — failed login -->
+            <tr style="cursor:pointer;" onclick="toggleAuditRow('ar3')">
+              <td style="font-size:12px;color:var(--text-tertiary);">unknown</td>
+              <td><span class="badge badge-review" style="font-size:10px;">admin</span></td>
+              <td><span class="badge badge-cancelled" style="font-size:10px;">login</span></td>
+              <td style="font-size:12px;color:var(--text-secondary);">admin_users · <span style="color:var(--text-primary);">jeff@industrynight.net</span></td>
+              <td><span style="font-size:11px;color:#e57373;">✕ failure</span></td>
+              <td style="font-size:11px;color:#e57373;">203.0.113.42</td>
+              <td style="font-size:11px;color:var(--text-secondary);">Mar 26 · 9:02 AM</td>
+              <td style="font-size:11px;color:var(--text-tertiary);">›</td>
+            </tr>
+            <tr id="ar3" style="display:none;background:var(--bg-primary);">
+              <td colspan="8" style="padding:12px 16px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:12px;">
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Route</div><code style="font-size:11px;">POST /admin/auth/login</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Request ID</div><code style="font-size:11px;">req_2d04ac77</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">User Agent</div><div style="color:var(--text-secondary);">curl/8.1.2</div></div>
+                  <div style="grid-column:span 3;"><div style="color:var(--text-tertiary);margin-bottom:4px;">Failure Reason</div><div style="color:#e57373;">invalid_credentials</div></div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Row 4 — system checkin -->
+            <tr style="cursor:pointer;" onclick="toggleAuditRow('ar4')">
+              <td style="font-size:12px;color:var(--text-tertiary);">System</td>
+              <td><span class="badge badge-draft" style="font-size:10px;">system</span></td>
+              <td><span class="badge badge-review" style="font-size:10px;">checkin</span></td>
+              <td style="font-size:12px;color:var(--text-secondary);">tickets · <span style="color:var(--text-primary);">PSH-88612</span></td>
+              <td><span style="font-size:11px;color:#4caf50;">● success</span></td>
+              <td style="font-size:11px;color:var(--text-tertiary);">10.0.1.4</td>
+              <td style="font-size:11px;color:var(--text-secondary);">Apr 4 · 8:14 PM</td>
+              <td style="font-size:11px;color:var(--text-tertiary);">›</td>
+            </tr>
+            <tr id="ar4" style="display:none;background:var(--bg-primary);">
+              <td colspan="8" style="padding:12px 16px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:12px;">
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Route</div><code style="font-size:11px;">POST /events/:id/checkin</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Request ID</div><code style="font-size:11px;">req_5e19bb02</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Metadata</div><code style="font-size:11px;">{ "eventId": "evt_vol12", "method": "qr_scan" }</code></div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Row 5 — ban -->
+            <tr style="cursor:pointer;" onclick="toggleAuditRow('ar5')">
+              <td style="font-size:12px;font-weight:500;">Jeff Rhodes</td>
+              <td><span class="badge badge-draft" style="font-size:10px;">admin</span></td>
+              <td><span class="badge badge-cancelled" style="font-size:10px;">ban</span></td>
+              <td style="font-size:12px;color:var(--text-secondary);">users · <span style="color:var(--text-primary);">@darius.throwaway</span></td>
+              <td><span style="font-size:11px;color:#4caf50;">● success</span></td>
+              <td style="font-size:11px;color:var(--text-tertiary);">98.143.22.17</td>
+              <td style="font-size:11px;color:var(--text-secondary);">Mar 25 · 2:31 PM</td>
+              <td style="font-size:11px;color:var(--text-tertiary);">›</td>
+            </tr>
+            <tr id="ar5" style="display:none;background:var(--bg-primary);">
+              <td colspan="8" style="padding:12px 16px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:12px;">
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Route</div><code style="font-size:11px;">PATCH /admin/users/:id</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Request ID</div><code style="font-size:11px;">req_9c33fd81</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">User Agent</div><div style="color:var(--text-secondary);">Chrome 131 / macOS</div></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">Old Values</div><code style="font-size:11px;">{ "banned": false }</code></div>
+                  <div><div style="color:var(--text-tertiary);margin-bottom:4px;">New Values</div><code style="font-size:11px;">{ "banned": true }</code></div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination stub -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;">
+        <div style="font-size:12px;color:var(--text-tertiary);">Showing 1–25 of 1,847 events</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary btn-sm" disabled>← Prev</button>
+          <button class="btn btn-secondary btn-sm">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ SETTINGS (v2 — sub-tab layout) ═══ -->
+    <div class="page" id="page-settings">
+      <div class="page-header">
+        <div><div class="page-title">Settings</div><div class="page-sub">Platform configuration, markets, audit log, and API controls</div></div>
+      </div>
+      <div class="settings-layout">
+        <div class="settings-nav" id="settings-nav">
+          <div class="settings-nav-item active" onclick="switchSettingsTab('general',this)">General</div>
+          <div class="settings-nav-item" onclick="switchSettingsTab('markets',this)">Markets</div>
+          <div class="settings-nav-item" onclick="switchSettingsTab('audit',this)">Audit Log</div>
+          <div class="settings-nav-item" onclick="switchSettingsTab('platform',this)">Platform Config</div>
+          <div class="settings-nav-item" onclick="switchSettingsTab('api',this)">API Key Status</div>
+        </div>
+        <div>
+
+          <!-- General -->
+          <div id="settings-tab-general">
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-header"><span class="card-title">Maintenance Mode</span></div>
+                <div class="card-body">
+                  <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Puts the API in maintenance mode — all requests return 503. Use before database migrations or deployments.</div>
+                  <button class="btn btn-secondary">Enable Maintenance Mode</button>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header"><span class="card-title">Specialties</span></div>
+                <div class="card-body">
+                  <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Reference data for user specialty selection.</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">
+                    <span class="filter-chip">Hair</span><span class="filter-chip">Makeup</span><span class="filter-chip">Photography</span><span class="filter-chip">Videography</span><span class="filter-chip">Styling</span><span class="filter-chip">Modeling</span><span class="filter-chip">Nails</span><span class="filter-chip">Lashes</span>
+                  </div>
+                  <button class="btn btn-secondary btn-sm">+ Add Specialty</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Markets -->
+          <div id="settings-tab-markets" style="display:none;">
+            <div class="page-header" style="margin-bottom:20px;">
+              <div><div style="font-size:16px;font-weight:600;">Markets</div><div style="font-size:13px;color:var(--text-secondary);">Geographic markets — events are assigned to one market</div></div>
+              <button class="btn btn-primary">+ Add Market</button>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead><tr><th>Market</th><th>Events</th><th>Users</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><div class="cell-name">New York City</div></td>
+                    <td>9</td><td style="color:var(--text-secondary);">847</td>
+                    <td><span class="badge badge-published">Active</span></td>
+                    <td><div class="table-actions"><button class="btn btn-ghost btn-sm">Edit</button></div></td>
+                  </tr>
+                  <tr>
+                    <td><div class="cell-name">Atlanta</div></td>
+                    <td>2</td><td style="color:var(--text-secondary);">312</td>
+                    <td><span class="badge badge-published">Active</span></td>
+                    <td><div class="table-actions"><button class="btn btn-ghost btn-sm">Edit</button></div></td>
+                  </tr>
+                  <tr>
+                    <td><div class="cell-name">Los Angeles</div></td>
+                    <td>0</td><td style="color:var(--text-secondary);">88</td>
+                    <td><span class="badge badge-draft">Planned</span></td>
+                    <td><div class="table-actions"><button class="btn btn-ghost btn-sm">Edit</button></div></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Audit Log -->
+          <div id="settings-tab-audit" style="display:none;">
+            <div class="card" style="display:flex;align-items:center;gap:16px;padding:20px 24px;">
+              <svg width="32" height="32" viewBox="0 0 16 16" fill="none" stroke="var(--accent-purple)" stroke-width="1.5"><rect x="2" y="1.5" width="12" height="13" rx="1.5"/><path d="M5 5h6M5 8h6M5 11h3"/></svg>
+              <div style="flex:1;">
+                <div style="font-size:14px;font-weight:600;margin-bottom:2px;">Audit Log has moved</div>
+                <div style="font-size:13px;color:var(--text-secondary);">Full audit log viewer is now a top-level page in the System section.</div>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="nav('auditlog', document.querySelector('[onclick=\'nav(\'auditlog\',this)\']'))">Open Audit Log &rarr;</button>
+            </div>
+          </div>
+
+          <!-- Platform Config -->
+          <div id="settings-tab-platform" style="display:none;">
+            <div style="font-size:16px;font-weight:600;margin-bottom:16px;">Platform Config</div>
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-header"><span class="card-title">AI Moderation</span></div>
+                <div class="card-body">
+                  <div style="display:flex;flex-direction:column;gap:10px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">First-pass model</span><div class="filter-chip active">claude-haiku-4-5</div></div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">Escalation model</span><div class="filter-chip active">claude-sonnet-4-6</div></div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">Auto-reject threshold</span><div class="filter-chip active">≥ 90%</div></div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">Human review threshold</span><div class="filter-chip active">≥ 30%</div></div>
+                  </div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header"><span class="card-title">Content Moderation Scanning</span></div>
+                <div class="card-body">
+                  <div style="display:flex;flex-direction:column;gap:10px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">Image scanning</span><div class="filter-chip active">AWS Rekognition</div></div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">CSAM detection</span><div class="filter-chip active">PhotoDNA</div></div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">NCMEC reporting</span><span class="badge badge-published">Automatic</span></div>
+                    <div style="font-size:11px;color:var(--text-tertiary);">18 U.S.C. § 2258A compliance — quarantine + proactive report on detection</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top:16px;">
+              <div class="card">
+                <div class="card-header"><span class="card-title">Security Log Forwarding</span><span class="badge badge-draft" style="margin-left:8px;">Future</span></div>
+                <div class="card-body">
+                  <div style="display:flex;flex-direction:column;gap:10px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">CloudWatch Logs export</span><span style="font-size:12px;color:var(--text-tertiary);">Not configured</span></div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">External SIEM forwarding</span><span style="font-size:12px;color:var(--text-tertiary);">Not configured</span></div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">Audit log retention</span><div class="filter-chip active">12 months</div></div>
+                    <div style="font-size:11px;color:var(--text-tertiary);">When configured, audit_log rows stream nightly to CloudWatch Logs Insights. External SIEM (Splunk, Datadog) can subscribe to the CloudWatch log group.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="settings-tab-api" style="display:none;">
+            <div style="font-size:16px;font-weight:600;margin-bottom:16px;">API Key Status</div>
+            <div class="table-container">
+              <table>
+                <thead><tr><th>Service</th><th>Status</th><th>Last Used</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td style="font-size:13px;font-weight:500;">Twilio Verify</td>
+                    <td><span class="badge badge-published">● Connected</span></td>
+                    <td style="font-size:12px;color:var(--text-secondary);">Just now</td>
+                    <td style="font-size:12px;color:var(--text-secondary);">SMS OTP · ac_xxxx</td>
+                  </tr>
+                  <tr>
+                    <td style="font-size:13px;font-weight:500;">AWS S3</td>
+                    <td><span class="badge badge-published">● Connected</span></td>
+                    <td style="font-size:12px;color:var(--text-secondary);">2 min ago</td>
+                    <td style="font-size:12px;color:var(--text-secondary);">industrynight-assets-dev</td>
+                  </tr>
+                  <tr>
+                    <td style="font-size:13px;font-weight:500;">AWS SES</td>
+                    <td><span class="badge badge-published">● Connected</span></td>
+                    <td style="font-size:12px;color:var(--text-secondary);">Mar 25</td>
+                    <td style="font-size:12px;color:var(--text-secondary);">Welcome + invite emails</td>
+                  </tr>
+                  <tr>
+                    <td style="font-size:13px;font-weight:500;">AWS Rekognition</td>
+                    <td><span class="badge badge-draft">○ Not configured</span></td>
+                    <td style="font-size:12px;color:var(--text-tertiary);">—</td>
+                    <td style="font-size:12px;color:var(--warning);">Required for C3 image moderation</td>
+                  </tr>
+                  <tr>
+                    <td style="font-size:13px;font-weight:500;">Posh Webhook</td>
+                    <td><span class="badge badge-published">● Active</span></td>
+                    <td style="font-size:12px;color:var(--text-secondary);">Mar 26</td>
+                    <td style="font-size:12px;color:var(--text-secondary);">Secret configured</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div><!-- /settings right col -->
+      </div><!-- /settings-layout -->
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+function nav(pageId, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + pageId).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const titles = {
+    dashboard: 'Dashboard',
+    eventops: 'Event Ops',
+    events: 'Events',
+    posh: 'Posh Orders',
+    tickets: 'Tickets',
+    images: 'Images',
+    customers: 'Customers',
+    products: 'Product Catalog',
+    moderation: 'Moderation',
+    jobs: 'Jobs Board',
+    analytics: 'Analytics',
+    dataproducts: 'Data Products',
+    users: 'Social Users',
+    adminusers: 'Admin Users',
+    settings: 'Settings',
+    search: 'Search',
+    help: 'Help',
+    auditlog: 'Audit Log',
+    eventdetail: 'Vol. 12 · Event Detail'
+  };
+  document.getElementById('topbar-title').textContent = titles[pageId] || pageId;
+}
+
+function setRole(role, btn) {
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const sidebar = document.querySelector('.sidebar');
+  if (role === 'platform') {
+    sidebar.classList.remove('role-limited');
+    document.querySelectorAll('.role-platform-only').forEach(el => el.style.display = '');
+  } else {
+    sidebar.classList.add('role-limited');
+    document.querySelectorAll('.role-platform-only').forEach(el => el.style.display = 'none');
+  }
+}
+
+function switchImgTab(tab, el) {
+  document.querySelectorAll('#images-tabs .tab').forEach(t => t.classList.remove('active'));
+  if (el && !el.classList.contains('disabled')) el.classList.add('active');
+  const ids = ['event-media', 'brand-assets', 'community', 'cleanup'];
+  ids.forEach(id => {
+    const el2 = document.getElementById('img-tab-' + id);
+    if (el2) el2.style.display = (id === tab) ? '' : 'none';
+  });
+}
+
+function switchSettingsTab(tab, el) {
+  document.querySelectorAll('#settings-nav .settings-nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const ids = ['general', 'markets', 'audit', 'platform', 'api'];
+  ids.forEach(id => {
+    const el2 = document.getElementById('settings-tab-' + id);
+    if (el2) el2.style.display = (id === tab) ? '' : 'none';
+  });
+}
+
+function switchEventDetailTab(tab, el) {
+  document.querySelectorAll('#ed-tabs .tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  ['details','media','ops'].forEach(id => {
+    const p = document.getElementById('ed-tab-'+id);
+    if (p) p.style.display = (id===tab) ? '' : 'none';
+  });
+}
+
+function switchEventOpsTab(tab, el) {
+  document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  ['activation','checkin','wristbands'].forEach(id => {
+    const p = document.getElementById('ed-ops-'+id);
+    if (p) p.style.display = (id===tab) ? '' : 'none';
+  });
+}
+
+let wbPending = 45, wbIssued = 142;
+function issueWristband(rowId) {
+  const row = document.getElementById('wb-row-'+rowId);
+  if (!row || row.classList.contains('issued')) return;
+  row.classList.add('issued');
+  row.onclick = null;
+  const btn = row.querySelector('.btn-issue');
+  if (btn) btn.style.display = 'none';
+  const badge = row.querySelector('.badge');
+  if (badge) badge.style.display = 'none';
+  const sp = document.createElement('span');
+  sp.style.cssText = 'font-size:12px;color:var(--success);font-weight:500;flex-shrink:0;';
+  sp.textContent = 'Wristband issued';
+  row.appendChild(sp);
+  wbPending = Math.max(0, wbPending-1);
+  wbIssued++;
+  [['wb-pending-display',wbPending],['wb-issued-display',wbIssued],['wb-pending-badge',wbPending],['ed-pending-count',wbPending],['ed-wb-count',wbIssued]].forEach(([elId,val]) => {
+    const el = document.getElementById(elId); if (el) el.textContent = val;
+  });
+  if (wbPending === 0) { const el = document.getElementById('ed-pending-count'); if (el) el.style.color='var(--success)'; }
+}
+
+function toggleAuditRow(id) {
+  const row = document.getElementById(id);
+  if (row) row.style.display = row.style.display === 'none' ? '' : 'none';
+}
+
+let selectMode = false;
+function toggleImageSelect() {
+  selectMode = !selectMode;
+  const btn = document.getElementById('images-select-btn');
+  const delBtn = document.getElementById('images-delete-btn');
+  btn.textContent = selectMode ? 'Cancel' : 'Select';
+  delBtn.style.display = selectMode ? '' : 'none';
+  if (!selectMode) {
+    document.querySelectorAll('.img-tile.selected').forEach(t => t.classList.remove('selected'));
+  }
+}
+
+function selectImg(tile) {
+  if (!selectMode) return;
+  tile.classList.toggle('selected');
+  const count = document.querySelectorAll('.img-tile.selected').length;
+  document.getElementById('images-delete-btn').textContent = `Delete Selected (${count})`;
+}
+
+// Tab/chip switching
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab') && !e.target.classList.contains('disabled')) {
+    const tabs = e.target.closest('.tabs');
+    if (tabs && tabs.id !== 'images-tabs') {
+      tabs.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      e.target.classList.add('active');
+    }
+  }
+  if (e.target.classList.contains('filter-chip')) {
+    const parent = e.target.closest('.table-toolbar') || e.target.closest('.card-body');
+    if (parent) {
+      parent.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      e.target.classList.add('active');
+    }
+  }
+});
+</script>
+</body>
+</html>

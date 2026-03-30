@@ -3,7 +3,7 @@
 **Type:** Operational / Governance  
 **Owner:** Track Control Agent  
 **Created:** 2026-03-26  
-**Status:** In Planning — X2-A1 not yet started
+**Status:** In Progress — X2-A1 ✅ complete + Jeff-signed-off (2026-03-29). X2-A2 ready to execute.
 
 ---
 
@@ -119,6 +119,8 @@ List of docs in `docs/` that appear outdated relative to current implementation 
 **Depends on:** X2-A1 complete + Jeff review and approval  
 **Gate:** Jeff review of both output documents before X2-B begins
 
+**Scope expansion (locked 2026-03-29):** `docs/product/user-stories.md` now covers all three actor groups — admin, social app, and system — not just admin. See below.
+
 ### What Track Control Does
 
 Using the approved X2-A1 inventory and Jeff's product decisions from the review, write two first-class guidance documents.
@@ -131,22 +133,27 @@ Structured as:
 - New/revised requirements (incorporating lessons from B0 parity review)
 - Intentional divergences from Flutter explicitly documented with rationale
 - Revised implementation phases — corrected against track coverage gaps
-- React admin architecture spec (§5) — updated nav structure, corrected NAV_PERMISSIONS map, sidebar grouping pattern, corrected screen inventory
+- React admin architecture spec (§5) — updated nav structure, corrected NAV_PERMISSIONS map, sidebar grouping pattern, corrected screen inventory. Nav decisions from Jeff X2-A1 signoff baked in: Tickets top-level, Images top-level, Platform nav (not "Settings"), Markets under Platform.
 - Schema migration plan (updated to reflect C0/X1 what was actually applied)
 
 v2 archived to `docs/archive/master_plan_v2.md` (or existing archive folder if present).
 
-**Output 2: `docs/codex/track-X/admin-user-stories.md`**
+**Output 2: `docs/product/user-stories.md` (expanded — three sections)**
+
+This replaces / supersedes the B-track-only v1.0 of `user-stories.md`. Covers the full platform actor inventory.
+
+---
+
+### Section A: Admin Stories
 
 Actor profiles:
 - `platformAdmin` — full access; manages the platform
 - `moderator` — content safety; scoped to users + moderation
-- `eventOps` — venue-night operations; mobile-optimized; check-in focused
-- `system` — automated actors (nightly jobs, SSE, webhooks, FCM)
+- `eventOps` — venue-night operations; mobile-optimized; tablet-first; check-in / wristband focused
 
-Story format:
+Story format (human actors):
 ```
-US-[ID]: [Short title]
+US-B[ID]: [Short title]
 Actor: [role]
 Workflow: As a [role], I need to [action] so that [outcome].
 Current state: ✅ Flutter / ⚠️ Stubbed / ❌ Not built
@@ -155,7 +162,73 @@ API dependency: [endpoint] / ❌ Missing
 Priority: P0 / P1 / P2
 ```
 
-Granularity: one story per workflow. "Manage event images" is one story. The hero-image swap interaction within that workflow is not a separate story — it's a detail in the B3 screen spec.
+Source: X2-A1 inventory Sections 2 and 4. Consolidate and restructure the inline stories from B0–B3 prompt specs into this section. Do not duplicate — the prompt files reference this doc.
+
+---
+
+### Section B: Social App Stories
+
+Actor profiles:
+- `socialUser` — a creative worker (hair stylist, photographer, videographer, etc.) who has downloaded the app, attended an event, and is engaged with the community
+- `newUser` — a first-time user who has just installed the app; may not yet have attended an event or set up a profile
+- `jobPoster` — a paying subscriber who posts job opportunities on the Jobs Board (E-track; paid subscription tier)
+- `jobSeeker` — a social user browsing and applying to jobs
+
+Source: Reverse-engineer from Flutter feature screens (`packages/social-app/lib/features/`), A-track inline stories (A0–A3), E1 (jobs social UI), F2 (social search), and vision docs (`app_rationale_treatise.md`, `v1.0_requirements.md`, `industry_night_app_developer_context_handoff.md`).
+
+Story format (human actors — same as admin but with A/E/F prompt refs):
+```
+US-A[ID]: [Short title]
+Actor: [role]
+Workflow: As a [role], I need to [action] so that [outcome].
+Current state: ✅ Flutter built / ⚠️ Stubbed / ❌ Not built
+Coverage: [A/E/F-prompt ID] / ❌ Not specced
+API dependency: [endpoint] / ❌ Missing
+Priority: P0 / P1 / P2
+```
+
+---
+
+### Section C: System Stories
+
+System stories describe automated platform behaviors — things the system must do without any human initiating the action. They are first-class requirements with testable contracts.
+
+System story format:
+```
+US-SYS[ID]: [Short title]
+Trigger: [event that initiates the behavior]
+Action: The system [what it does automatically]
+SLA: [time bound, if applicable]
+Failure behavior: [what happens if it fails — never silently swallow; never block primary flow]
+Observable signal: [how we know it worked — DB column, audit log entry, metric, notification]
+Coverage: [C/D prompt ID] / ❌ Not specced
+Priority: P0 / P1 / P2
+```
+
+Inventory (Track Control populates all of these with full story text):
+
+**Event-triggered:**
+- Posh `new_order` webhook received → posh_orders record + invite SMS/email (idempotent)
+- QR scan → mutual connection + FCM notification to scanned user (≤5s SLA)
+- Post submitted → LLM moderation pass; hold if flagged, approve if clean (≤30s SLA)
+- Comment submitted → same moderation pass
+- Image uploaded (event or customer media) → content scan before S3 URL made public; hard-block if flagged illegal/CSAM content (**architecture flag:** requires dedicated scan service — AWS Rekognition or equivalent — not just LLM; may surface new prompt C5)
+- Profile photo uploaded → sharp validation; reject non-image; store to S3
+
+**Scheduled / nightly:**
+- Nightly analytics aggregation → `analytics_connections_daily`, `analytics_users_daily`, `analytics_influence` populated
+- Post-event report generation → `analytics_events` populated after event `status = completed`
+- Event wrap report auto-generation → PDF/JSON summary available to admin (D2)
+- GDPR/CCPA export processing → `data_export_requests` processed async; file delivered
+
+**Always-on infrastructure:**
+- SSE check-in stream → stays alive for event duration; client auto-reconnects on drop; last 50 events replayed on reconnect
+- FCM delivery → fire-and-forget; never blocks primary flow; failures logged not surfaced to user
+- SIEM forwarding stub → security events routed to CloudWatch Logs target (C4)
+
+> **Architecture flag for X2-B:** Image content scanning for illegal/CSAM content is a hard-block behavior (not `pending_review`), requires a dedicated service evaluation, and may not be covered by any current C/D prompt. X2-B should assess whether a new prompt (C5 or similar) is warranted.
+
+---
 
 **What Track Control does NOT do in X2-A2:**  
 - No product priority decisions without explicit Jeff input from the X2-A1 review
@@ -229,9 +302,10 @@ Execute the approved X2-B patch plan:
 
 ## Definition of Done for X2
 
-- [ ] X2-A1 inventory complete and Jeff-approved
-- [ ] X2-A2 master_plan_v3.md and admin-user-stories.md complete and Jeff-approved
-- [ ] X2-B patch plan complete and Jeff-approved; B0 re-run verdict issued
+- [x] X2-A1 inventory complete and Jeff-approved (2026-03-29)
+- [ ] X2-A2 master_plan_v3.md complete and Jeff-approved
+- [ ] X2-A2 user-stories.md complete (all three sections: admin, social app, system) and Jeff-approved
+- [ ] X2-B patch plan complete and Jeff-approved; B0 re-run verdict issued; image content scan architecture flag resolved (C5 or absorbed)
 - [ ] X2-C patches applied; stale docs archived; carry-forward template updated; tracks.md updated
 - [ ] B1 unblocked (dependency satisfied)
 - [ ] All X2 artifacts committed to `chore/X2-spec-rebase` branch → PR → merged to integration
