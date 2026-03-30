@@ -1,10 +1,10 @@
 # Industry Night — User Stories
 
-**Version:** 1.0 — B-Track (React Admin App)  
-**Status:** Draft — Jeff review pending  
-**Last Updated:** 2026-03-26  
-**Scope:** Track B (B0–B3) — React Admin App: scaffold, auth, event ops, and full admin parity  
-**Next scope:** A-Track (social app), C-Track (backend), D/E/F/G-Track expansions — to be added after B-track review
+**Version:** 2.0 — All Actors (Admin, Social App, System)
+**Status:** Draft — Jeff review pending
+**Last Updated:** 2026-03-30
+**Scope:** All tracks — Admin (B track, US-B prefix), Social App (A track, US-A prefix), System (C/D/E tracks, US-SYS prefix)
+**Supersedes:** v1.0 (B-track only, 2026-03-26)
 
 ---
 
@@ -20,9 +20,18 @@ This document is **fuel for Track Execution (TE) agents.** It defines explicit f
 
 **Format:** Table per actor group. Columns: Workflow | Story | Acceptance Signal | Track/Prompt
 
+**User story ID prefixes:**
+- `US-B` — Admin (React admin app, B track)
+- `US-A` — Social App (Flutter social app, A/E track)
+- `US-SYS` — System actors (automated pipelines, backend services, C/D/E track)
+
+IDs are assigned as each story is formally referenced in a prompt spec or amendment. Tables without IDs are pending assignment.
+
 ---
 
-## Actors — B Track
+## Section A — Admin App (React) — Actor: B Track
+
+**Actors for this section:**
 
 | Actor | Description | Role Value |
 |-------|-------------|------------|
@@ -222,7 +231,7 @@ This document is **fuel for Track Execution (TE) agents.** It defines explicit f
 
 The following are intentionally deferred to later tracks. TEs should not implement these speculatively:
 
-- Social app screens (Track A)
+- Social app screens (Track A — see Section B of this document)
 - SSE backend endpoint (Track C1)
 - FCM push notifications (Track C2)
 - Image storage backend changes (Track C3)
@@ -234,7 +243,360 @@ The following are intentionally deferred to later tracks. TEs should not impleme
 
 ---
 
-*Next section to be added: A-Track (Social App) — pending Jeff review of B-Track section.*
+*[Section A — Admin App ends here]*
+
+---
+
+## Section B — Social App (Flutter) — Actor: Social User
+
+**Actors for this section:**
+
+| Actor | Description | App Context |
+|-------|-------------|-------------|
+| **Social User** | Creative professional (hair stylist, MUA, photographer, etc.) using the app to discover events and network | Flutter social app (iOS, Android) |
+| **New User** | First-time user going through onboarding before attending their first event | Flutter social app |
+| **Job Seeker** | Verified creative professional browsing and applying to jobs | Flutter social app (Phase 4+) |
+| **Job Poster** (employer) | Business or agent posting job listings via the social app or job poster portal | Flutter social app + job poster portal (Phase 4+) |
+
+---
+
+### Auth + Onboarding
+
+| Workflow | Story | Acceptance Signal | Track |
+|----------|-------|-------------------|-------|
+| Phone login | As a new user, I enter my phone number and receive an SMS code, then enter the code to log in — I do not need to create a password | SMS code received within 30s; 6-digit entry auto-submits on last digit; correct code → authenticated | A0 |
+| Dev code auto-fill | As a developer using a +1555555xxxx test number, the code returned by the API is auto-filled into the verify screen | devCode visible in API response; code pre-filled; one tap to confirm | A0 |
+| Account auto-creation | As a first-time user, I am automatically registered when I verify my phone — I do not click "create account" separately | No separate registration step; verify success → account exists → profile setup | A0 |
+| Profile setup (name) | As a new user, I set my display name and optionally add my specialties and bio during onboarding | Name required; specialties and bio optional; "Save & Continue" proceeds to main app | A0 |
+| Specialty selection | As a user, I select one or more specialties (e.g., Hair Stylist, MUA, Photographer) from a platform-managed list | Specialty chips selectable; multi-select; primary specialty designation | A2 |
+| Profile photo — onboarding | As a new user, I can add a profile photo during onboarding | Photo picker opens; image uploaded and shown in profile; fallback initials if skipped | A0 |
+| Profile photo — edit | As an existing user, I can update my profile photo from the Edit Profile screen | Photo picker opens; image uploaded; profile updates after save | A0 |
+| Delete account | As a user, I can permanently delete my account and all associated data from the app | Delete option in Settings; confirmation step; account deleted; auth tokens invalidated; logout triggered | A0 |
+| Session persistence | As a returning user, I open the app and am already logged in — I do not re-enter my phone number | Access token / refresh token restored from secure storage; auto-refresh on startup | A0 |
+| Token auto-refresh | As a user, my session continues seamlessly after 15 minutes without me having to log in again | `ApiClient.onTokenExpired` triggers refresh; new access token stored; in-flight request retried | A0 |
+
+---
+
+### Events
+
+| Workflow | Story | Acceptance Signal | Track |
+|----------|-------|-------------------|-------|
+| Browse events | As a user, I see a list of upcoming events with name, date, venue, and hero image | Events list screen loads from `GET /events`; published events shown; hero image displayed | Pre-A0 |
+| Event detail | As a user, I tap an event to see full details: name, dates, venue, description, and all images | Event detail screen loads from `GET /events/:id`; all available images shown | Pre-A0 |
+| Check in — activation code | As a user at an event, I enter the activation code (given at the door) to check in | Activation code screen; code submission calls `POST /events/:id/checkin`; success confirmation | Pre-A0 |
+| Check in — QR scan | As a user at an event, I can scan the venue's QR code instead of entering the code manually | QR scanner opens; decodes code; auto-submits; same success flow | Pre-A0 |
+| Already checked in | As a user who has already checked in, tapping the check-in button shows me I'm already in rather than failing silently | 409 response from API → friendly "You're already checked in" message; no duplicate ticket | Pre-A0 |
+
+---
+
+### Networking — QR Connections
+
+| Workflow | Story | Acceptance Signal | Track |
+|----------|-------|-------------------|-------|
+| Show my QR code | As a user, I open the Connect tab and see my personal QR code, ready to be scanned | QR code renders from `GET /users/me/qr`; displayed in Connect tab center | Pre-A0 |
+| Scan someone's QR code | As a user, I tap the scan button, point my camera at another user's QR code, and the app creates a mutual connection instantly | QR scanner opens; scans code; `POST /connections` called; connection confirmed | Pre-A0 |
+| Celebration overlay | As a user who just scanned someone, I see a celebration animation with the other person's name and photo | Celebration overlay renders 1–2 seconds after connection success | Pre-A0 |
+| Connection notification — scanned user | As a user whose QR was just scanned, I see a notification or update in the app (without scanning anything) that someone connected with me | Polling `GET /connections` every 4 seconds; new connection → banner or Connect tab badge update | Pre-A0 |
+| Already connected | As a user who tries to scan someone I'm already connected with, I see a friendly "Already connected" message rather than an error | 409 response → friendly message; no duplicate connection created | Pre-A0 |
+| Auto-verification | As a user who has never connected before, my first QR connection automatically updates my verification status | After first connection, `verified` status reflected on profile | Pre-A0 |
+| Connections list | As a user, I can see a list of everyone I've connected with (name, specialty, avatar) | Connections list screen loads from `GET /connections`; all connections shown | A2 |
+
+---
+
+### Community Board
+
+| Workflow | Story | Acceptance Signal | Track |
+|----------|-------|-------------------|-------|
+| Browse feed | As a user, I open the Community tab and see the latest posts from the platform community with photos, text, and like counts | Feed loads from `GET /posts`; real posts displayed; infinite scroll works | A1 |
+| Retention — quick load | As a hair stylist who checks the board daily, the feed loads in under 3 seconds on LTE and I can scroll without interruption | Feed latency <3s; no blocking spinner while scrolling; skeleton placeholders | A1 |
+| Create post | As a verified user, I tap the compose button, write my post (with optional type tag), and see it appear in the feed after submitting | Create post screen; `POST /posts` called; new post appears optimistically in feed | A1 |
+| Like a post | As a user, I double-tap or tap the heart icon on any post to like it; the count increases immediately | Like registered via `POST /posts/:id/like`; optimistic update; count increments | A1 |
+| Unlike a post | As a user who liked a post, tapping the heart again unlikes it and the count decrements | Unlike via `DELETE /posts/:id/like`; optimistic update; count decrements | A1 |
+| Comment on a post | As a user, I tap the comment icon, type a comment, and see it appear immediately in the thread | Comment submitted via `POST /posts/:id/comments`; optimistic append | A1 |
+| Delete own comment | As a user who wrote a comment, I can delete my own comment by long-pressing or via a "Delete" option | Delete via `DELETE /posts/:id/comments/:commentId`; comment removed from thread | A1 |
+| Report a post | As a user who sees spam or inappropriate content, I can report the post with one tap | Report action available on any post; report submitted; user sees "Thanks for reporting" confirmation | A1 |
+| Post detail | As a user, tapping a post expands it to show the full content and all comments | Post detail screen loads `GET /posts/:id`; all comments visible | A1 |
+| Infinite scroll | As a casual browser, I scroll down and more posts load automatically — I don't need to tap "load more" | Next page fetched when user scrolls within ~200px of bottom; no gap | A1 |
+| Post author tap | As a user reading the feed, tapping a post author's name or avatar takes me to their profile | Author tap → navigate to `/users/:authorId`; UserProfileScreen loads | A2 |
+
+---
+
+### User Search + Profiles
+
+| Workflow | Story | Acceptance Signal | Track |
+|----------|-------|-------------------|-------|
+| Search users | As a user, I type a name or specialty in the Search tab and see matching profiles appear | Search calls `GET /users?q=` with debounce; results list renders within 300ms of stopping typing | A2 |
+| Recent searches | As a returning user, the search screen shows my recent searches before I type | Recent search pills shown on screen focus; tapping a pill pre-fills and runs search | A2 |
+| Empty search state | As a user who searches and finds nothing, I see a clear "No results" message — not a blank screen | EmptyState widget shown with search term and suggestion | A2 |
+| View another user's profile | As a user who found someone interesting, I tap their name and see their full profile: photo, name, specialties, bio, post count, connection count, and their recent posts | UserProfileScreen loads; all sections populated; connection status visible | A2 |
+| Connect from profile | As a user viewing someone's profile, I can initiate a connection (if QR codes aren't available) | Connect button visible on other user's profile if not yet connected | A2 |
+| View my own profile | As a user tapping my own name, I see "my profile" view with an Edit button instead of a Connect button | Own profile: Edit button visible; Connect button hidden | A2 |
+| Edit profile | As a user, I navigate to Edit Profile and update my bio, specialties, or social links | Edit profile screen pre-populated; `PATCH /users/me` submitted on save; profile updates | A2 |
+| Social links | As a user, I add my Instagram, TikTok, or website link to my profile | Social links fields in edit profile; displayed on user profile screen for others to tap | A2 |
+
+---
+
+### Perks + Sponsors
+
+| Workflow | Story | Acceptance Signal | Track |
+|----------|-------|-------------------|-------|
+| Browse perks | As a creative professional, I open the Perks tab and see available discounts and offers from event sponsors | Perks screen loads from `GET /discounts`; all active discounts visible with logo and description | A3 |
+| Perk — view details | As a user interested in a perk, I tap it and see full details: sponsor name, logo, offer description, and "I Used This" button | Perk detail / sponsor detail screen loads; all fields populated | A3 |
+| Redeem a perk | As a user who used a perk (e.g., free haircut), I tap "I Used This" to self-report the redemption | `POST /discounts/:id/redeem` called; button changes to "✓ Used" state; idempotent | A3 |
+| Already-redeemed state | As a returning user who already redeemed a perk, I see the "✓ Used" state immediately on load | Redemption status loaded on screen init; correct state shown without repeat API call | A3 |
+| Offline graceful degradation | As a user with no internet connection opening the Perks tab, I see cached content with a subtle "offline" indicator | Cached perks shown if available; offline indicator rendered; no crash | A3 |
+| Sponsor discovery | As a user browsing perks, I can see which sponsor is offering each perk and navigate to their profile | Sponsor name + logo tap → sponsor detail screen | A3 |
+
+---
+
+### Settings + Account
+
+| Workflow | Story | Acceptance Signal | Track |
+|----------|-------|-------------------|-------|
+| Access settings | As a user, I tap the gear icon or "Settings" option on my profile to access account settings | Settings screen accessible from profile; renders correctly | A0 |
+| Log out | As a user, I can log out of the app from Settings | Logout calls `POST /auth/logout`; tokens cleared; navigated back to phone entry screen | A0 |
+| Delete account — confirm | As a user who decides to leave, I can initiate account deletion from Settings with a clear warning about what will be lost | Delete flow shows a confirmation step; cannot be accidentally triggered | A0 |
+
+---
+
+### Jobs Board (Phase 4+)
+
+| Workflow | Story | Acceptance Signal | Track |
+|----------|-------|-------------------|-------|
+| Jobs tab visibility | As a user, the Jobs tab only appears in the bottom navigation when the `feature.jobs_board` platform flag is enabled | Jobs tab hidden when flag off; 4-tab nav shown; Jobs appears as 5th tab when enabled | E1 |
+| Browse jobs | As a creative professional, I open the Jobs tab and see available job listings with type, specialty requirements, and compensation | Jobs list loads from `GET /jobs`; cards show title, type badge, compensation, specialty chips, location | E1 |
+| Filter jobs | As a job seeker, I filter by specialty, job type (freelance, full-time, etc.), and location type | Filter chips on jobs list; each selection refreshes list with debounce | E1 |
+| Job detail | As a job seeker, I tap a job listing to see the full description, requirements, and compensation details | Job detail screen loads from `GET /jobs/:id`; all sections visible | E1 |
+| Apply to a job | As a job seeker, I tap "Apply" and submit my application with an optional cover note | Apply sheet opens; `POST /jobs/:id/apply` called; button changes to "✓ Applied" | E1 |
+| Track applications | As a job seeker, I can see all my pending and confirmed applications in one place | Applications list screen; filter by status (pending, accepted, rejected) | E1 |
+| Post a job | As a verified job poster, I can create a job listing with title, description, specialty, and compensation | Job posting flow; `POST /jobs` called (employer-verified accounts only) | E1 |
+| Hire confirmation | As a job poster, I can initiate a hire confirmation after hiring someone; both parties must confirm | Hire confirmation flow; both parties receive notification; bidirectional confirm required | E2 |
+| Rate a worker | As a job poster who completed a hire confirmation, I can leave a verified rating for the worker | Rating form available only post-hire confirmation; `POST /ratings` called | E2 |
+
+---
+
+*[Section B — Social App ends here]*
+
+---
+
+## Section C — System Actors (Automated Pipelines + Backend Services)
+
+**About system stories:** These define what the system (not a human) must do in response to triggers. Each story follows the format:
+
+> **When** [trigger] → **the system must** [action] **within** [SLA] → **on failure** [fallback behavior] → **observable via** [signal]
+
+These stories drive Track C (backend services), Track D (moderation + analytics), and Track E (jobs) backend specs. They are testable as integration or unit tests.
+
+---
+
+### US-SYS-001 — Posh Webhook: New Order
+
+| Field | Value |
+|-------|-------|
+| **Trigger** | `POST /webhooks/posh` with `new_order` event and valid `X-Posh-Signature` header |
+| **Action** | Validate HMAC signature; upsert `posh_orders` row (idempotent on `posh_order_id`); if buyer phone matches existing user, link `user_id`; send invite SMS (if no user) or welcome SMS (if user exists); send welcome email |
+| **SLA** | Webhook returns `200` within 500ms; SMS delivery via Twilio is async |
+| **Failure: invalid signature** | Return `401`; no record created; log attempt |
+| **Failure: SMS unavailable** | Write `posh_orders` row; skip SMS; log warning; return `200` (webhook must acknowledge) |
+| **Observable via** | `posh_orders` row in DB; `audit_log` entry; Twilio send log |
+| **Track** | Pre-existing (webhooks.ts) + C1 missing endpoint additions |
+
+---
+
+### US-SYS-002 — QR Scan → Mutual Connection → FCM Notification
+
+| Field | Value |
+|-------|-------|
+| **Trigger** | `POST /connections` with valid JWT and `targetUserId` |
+| **Action** | Create mutual connection record (idempotent: 409 if already exists); set both users to `verified` if first connection; send FCM push to `targetUser.fcm_token` with title "New Connection!" and `type: 'new_connection'` data payload |
+| **SLA** | Connection record created within 200ms; FCM send is fire-and-forget (non-blocking) |
+| **Failure: already connected** | Return `409`; no duplicate; no FCM send |
+| **Failure: FCM unavailable** | Connection still created; FCM skipped silently; log warning |
+| **Failure: targetUser has no fcm_token** | FCM send skipped silently; no error |
+| **Observable via** | `connections` row; `users.verification_status` updated; FCM delivery log (when available) |
+| **Track** | C2 (FCM) |
+
+---
+
+### US-SYS-003 — Event Check-In → SSE Broadcast
+
+| Field | Value |
+|-------|-------|
+| **Trigger** | Attendee submits activation code via social app (`POST /events/:id/checkin`) |
+| **Action** | Create or validate ticket; broadcast `checkin` SSE event to all connected admin clients subscribed to `GET /admin/events/:id/checkins/stream` with attendee name, avatar, specialty, ticket type (Posh / walk-in), timestamp |
+| **SLA** | SSE event delivered to connected admin clients within 500ms of API response |
+| **Failure: no admin clients connected** | Ticket created; SSE broadcast attempted; no failure if no subscribers |
+| **Failure: SSE connection dropped** | Client auto-reconnects via `EventSource`; receives snapshot of last 50 check-ins on reconnect |
+| **Observable via** | `tickets` row; admin React Event Ops screen updates in real time |
+| **Track** | C1 |
+
+---
+
+### US-SYS-004 — Wristband Issued → FCM to Attendee
+
+| Field | Value |
+|-------|-------|
+| **Trigger** | Event Ops staff taps "Issue Wristband" in React admin → `PATCH /admin/events/:eventId/attendees/:ticketId/wristband` |
+| **Action** | Set `tickets.wristband_issued_at = NOW()`; look up attendee's `fcm_token`; send FCM push with title "🎉 You're in!" and `type: 'wristband_confirmed'`, `eventId` data; broadcast `wristband` SSE event to all admin clients on the event's stream |
+| **SLA** | DB write within 100ms; FCM fire-and-forget; SSE broadcast within 500ms |
+| **Failure: FCM** | Wristband still marked issued; FCM skipped silently |
+| **Failure: attendee has no fcm_token** | Wristband still marked; FCM skipped |
+| **Observable via** | `tickets.wristband_issued_at`; admin feed shows ✅ update; attendee phone receives push |
+| **Track** | C1 (endpoint), C2 (FCM integration) |
+
+---
+
+### US-SYS-005 — Post Created → Moderation Queue
+
+| Field | Value |
+|-------|-------|
+| **Trigger** | `POST /posts` succeeds → post record created with `moderation_status = 'pending'` |
+| **Action** | Enqueue moderation job (Bull queue or SQS) with `{postId, content, authorId, timestamp}`; Stage 1: invoke Haiku classifier; if confidence > 0.7 → auto-approve or auto-reject; if 0.3 ≤ confidence ≤ 0.7 → Stage 2: invoke Sonnet classifier; if still ambiguous → flag for human review; write result to `moderation_results`; update `posts.moderation_status` and `posts.is_hidden` |
+| **SLA** | Stage 1 (Haiku) completes within 2s; Stage 2 (Sonnet) within 10s; human-flagged posts visible in admin queue within 30s |
+| **Failure: LLM unavailable** | Post remains `moderation_status = 'pending'`; `is_hidden = false` (fail-open, posts visible); admin notified via queue backlog alert |
+| **Failure: queue full** | Post remains pending; admin alert fired; SLA degraded gracefully |
+| **Observable via** | `posts.moderation_status`; `moderation_results` row; admin React Moderation queue shows flagged posts |
+| **Track** | D0 |
+
+---
+
+### US-SYS-006 — Image Upload → CSAM Scan + S3 Write
+
+| Field | Value |
+|-------|-------|
+| **Trigger** | `POST /admin/events/:id/images` or `POST /users/me/photo` receives multipart image file |
+| **Action** | Run CSAM scan (AWS Rekognition ModerationLabels + NCMEC hash check) synchronously before any S3 write; if scan flags explicit content → return `422 Unprocessable Content`, write scan decision to audit log (NOT flagged content metadata), stop; if clean → resize/compress via sharp, upload to S3, create `image_assets` record, compute pHash, check near-duplicates, return asset |
+| **SLA** | Scan + upload completes within 3s for images ≤ 5MB |
+| **Failure: scan service unavailable** | Return `503 Service Unavailable`; no S3 write; no partial asset record; admin sees error |
+| **Failure: S3 unavailable** | Return `503`; no asset record; scan result discarded |
+| **Observable via** | `image_assets` row on success; `audit_log` entry for rejected uploads; no S3 object written on rejection |
+| **Architecture flag** | **UNRESOLVED — requires Jeff decision before C3 executes.** See `docs/product/master_plan_v3.md` §7 for options analysis. |
+| **Track** | C3 (image assets + CSAM gate) |
+
+---
+
+### US-SYS-007 — Nightly Analytics Aggregation
+
+| Field | Value |
+|-------|-------|
+| **Trigger** | Nightly cron job at 02:00 UTC (configurable via `platform_config`) |
+| **Action** | Aggregate daily stats into `analytics_connections_daily`, `analytics_users_daily`, `analytics_events`; recompute `analytics_influence` scores (PageRank variant weighted by attendance, connections, post engagement). All writes are idempotent (upsert on date key). |
+| **SLA** | Job completes within 60 minutes; if > 60 min, send alert |
+| **Failure: DB unavailable** | Retry 3× with exponential backoff; log failure; skip day (next night's run will compute cumulative) |
+| **Failure: influence computation error** | Log error per user; skip that user; continue batch |
+| **Observable via** | `analytics_*` table row counts; `llm_usage_log` entries for LLM calls (if any); alert if job fails |
+| **Track** | D1 |
+
+---
+
+### US-SYS-008 — Event Wrap Report Generation
+
+| Field | Value |
+|-------|-------|
+| **Trigger** | 24 hours after `events.end_time` for any event with `status = 'completed'` |
+| **Action** | Collect event data (attendance, connections made, posts created, top influencers, Posh order count, walk-in count, check-in duration histogram); draft report using Sonnet LLM; store draft in `event_wrap_reports`; create admin notification for review; wait for admin approval before distribution |
+| **SLA** | Draft generated within 5 minutes of trigger; admin notification within 1 minute of draft |
+| **Failure: LLM unavailable** | Log failure; retry in 1 hour; alert admin after 3 failures |
+| **Failure: event has no data** | Generate minimal report ("No attendance data available"); still create record |
+| **Observable via** | `event_wrap_reports` row; admin React Analytics → Event Reports screen shows pending review; `llm_usage_log` entry |
+| **Track** | D1 |
+
+---
+
+### US-SYS-009 — FCM Token Refresh + Stale Token Cleanup
+
+| Field | Value |
+|-------|-------|
+| **Trigger** | Flutter app `onTokenRefresh` callback fires; OR FCM API returns `messaging/registration-token-not-registered` on any send attempt |
+| **Action (refresh)** | `PATCH /users/me/device-token` with new token → update `users.fcm_token` |
+| **Action (stale on send)** | Set `users.fcm_token = NULL` for the affected user; log stale token event |
+| **SLA** | Token update lands in DB within 200ms of API call |
+| **Failure: API unavailable on refresh** | SDK retries next app launch; no data loss |
+| **Observable via** | `users.fcm_token` column; FCM send log (delivery rate recovers after cleanup) |
+| **Track** | C2 |
+
+---
+
+### US-SYS-010 — Platform Config Hot Reload
+
+| Field | Value |
+|-------|-------|
+| **Trigger** | `PATCH /admin/platform-config/:key` succeeds |
+| **Action** | Update `platform_config` row; create `audit_log` entry (action: `update`, entity: `platform_config`, entity_id: key, old_val, new_val); broadcast config change to any subscribed services (if polling interval applies); feature flags take effect on next config read by API services |
+| **SLA** | DB write within 100ms; audit log within 100ms; feature flag effective within the API service's config poll interval (default: next request) |
+| **Failure: invalid value for key** | Return `400` with validation error; no write; no audit entry |
+| **Observable via** | `platform_config` row; `audit_log` entry; feature behavior changes on next relevant API call |
+| **Track** | C4 |
+
+---
+
+### US-SYS-011 — GDPR Data Export Request
+
+| Field | Value |
+|-------|-------|
+| **Trigger** | `POST /users/me/export` called by authenticated social user |
+| **Action** | Create `data_export_requests` row with `status = 'pending'`; enqueue async export job; job collects: profile, connections, posts, comments, tickets, ratings, redemptions; package as JSON archive; upload to private S3 URL (signed, 48h expiry); send download link via SES email; update row to `status = 'complete'` |
+| **SLA** | Email delivered within 60 minutes of request |
+| **Failure: S3 unavailable** | Retry; alert admin after 3 failures; user receives "export delayed" email |
+| **Failure: SES unavailable** | Store S3 URL in DB; retry email; user sees pending status in app |
+| **Observable via** | `data_export_requests` status; S3 object; SES send log |
+| **Track** | C1 (endpoint) |
+
+---
+
+### US-SYS-012 — Job Application Status Change → FCM
+
+| Field | Value |
+|-------|-------|
+| **Trigger** | Job poster changes application status (`PATCH /jobs/:id/applications/:appId`) to `accepted` or `rejected` (Phase 4+) |
+| **Action** | Update `job_applications.status`; send FCM push to applicant with title "Application Update" and `type: 'job_application_status'`, `status`, `jobTitle` data |
+| **SLA** | FCM fire-and-forget; non-blocking |
+| **Failure: FCM unavailable** | Status update still persists; FCM skipped silently |
+| **Observable via** | `job_applications.status`; applicant notification received |
+| **Track** | E1 (job board), C2 (FCM integration) |
+
+---
+
+### US-SYS-013 — Hire Confirmation: Bidirectional Confirm → Rating Unlock
+
+| Field | Value |
+|-------|-------|
+| **Trigger** | Second party confirms hire via `PATCH /hire-confirmations/:id` with `confirmed = true` |
+| **Action** | Set `hire_confirmations.status = 'confirmed'`; set both-party `confirmed_at` timestamps; unlock rating capability (job poster can now call `POST /ratings` for this hire); send FCM to both parties confirming the hire |
+| **SLA** | DB write + FCM within 300ms |
+| **Failure: FCM** | Hire still confirmed; FCM skipped silently |
+| **Observable via** | `hire_confirmations.status = 'confirmed'`; rating endpoint no longer returns 403 for this hire; FCM delivery |
+| **Track** | E2 |
+
+---
+
+### US-SYS-014 — Admin Login Audit Logging
+
+| Field | Value |
+|-------|-------|
+| **Trigger** | `POST /admin/auth/login` completes (success or failure) |
+| **Action** | On success: write `audit_log` entry (action: `login`, actor: adminUserId, ip_address, user_agent); set `admin_users.last_login_at = NOW()`. On failure (wrong password): write `audit_log` entry (actor: null, email attempted, ip_address, failure_reason) |
+| **SLA** | Audit log written within 100ms of response |
+| **Failure: audit log DB write fails** | Login still succeeds (auth flow is not blocked by audit); log the audit failure to stderr |
+| **Observable via** | `audit_log` rows with action `login`; admin React Platform → Audit Log screen |
+| **Track** | B1 (auth) |
+
+---
+
+### US-SYS-015 — Influence Score: Daily Recomputation
+
+| Field | Value |
+|-------|-------|
+| **Trigger** | Nightly cron job (same batch as US-SYS-007, or separate job at 03:00 UTC) |
+| **Action** | For each active user: compute influence score as weighted PageRank variant — inputs: event attendance count (weight 1×), QR connection count (weight 2×), post like count (weight 0.5×), verified status bonus (1.5× multiplier); upsert `analytics_influence` row; update `users.influence_score` (denormalized for fast sorting) |
+| **SLA** | Full recomputation completes within 30 minutes for ≤ 50,000 users |
+| **Failure: computation error for a user** | Skip that user; log error; continue batch; previous score retained |
+| **Observable via** | `analytics_influence` rows; `users.influence_score` field; admin Analytics → Influence Scores leaderboard |
+| **Track** | D2 |
+
+---
+
+*[Section C — System Actors ends here]*
 
 ---
 
