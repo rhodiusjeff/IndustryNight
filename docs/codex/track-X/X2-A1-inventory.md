@@ -2,7 +2,7 @@
 
 **Produced by:** Track Control Agent  
 **Date:** March 26, 2026  
-**Status:** Complete — awaiting Jeff review before X2-A2 begins  
+**Status:** ✅ Jeff signoff received — March 29, 2026. X2-A2 may proceed.  
 **Method:** Systematic code + doc archaeology across all 4 source layers
 
 **Source layers read:**
@@ -293,3 +293,55 @@ Before X2-A2 can produce the Master Plan v3, three nav decisions need Jeff's inp
 3. **Markets nav item** — Standalone nav item (probably under Settings) OR sub-page within Settings page? Currently missing from both B0 nav and §5.3.
 
 All other divergences are either clearly intentional (Jobs, Posh Orders, Analytics, Event Ops, Product placement) or clearly accidental with an obvious fix (removing stale sponsor/vendor references).
+
+---
+
+## Jeff Signoff — March 29, 2026
+
+All three product decisions answered. X2-A2 is unblocked.
+
+### Decision 1: Tickets nav — ✅ Top-level nav item (two-layer model)
+
+**Decision:** Tickets gets a top-level nav item for IN-wide operations. A per-event ticket view also exists within Event Ops (event day management). These are two distinct contexts:
+
+- **Global `/tickets` screen** — IN-wide ticket reports, reconciliation, audit. Covers cross-event queries, Posh order matching, transfer edge cases, global refund management. Exact requirements TBD later in the dev cycle — this is the right nav position for the feature.
+- **Event-level tickets** — accessed from Event Ops / Event Detail during active event management. Covers real-time check-in issues: "I bought on Posh but can't find my order," transfers, walk-ins, wristband confirmation. These are the same ticket records viewed through an event-scoped lens.
+
+**X2-A2 impact:** Add `/tickets` as a top-level nav item in the React admin spec (alongside existing `events`, `users`, `customers`). B3 must spec both the global list screen and the event-scoped view within Event Ops. User stories for the full ticket workflow will be elaborated later in the cycle.
+
+---
+
+### Decision 2: Images nav — ✅ Top-level nav item (two-layer model confirmed)
+
+**Decision:** Top-level `/images` nav item for site-wide image catalog management (as in Flutter). Event-scoped image management (the images shown to mobile users browsing an event) lives within Event Detail — a separate, fully independent context.
+
+- **Global `/images` screen** — site-wide image catalog: all uploaded images across all events, storage management, bulk delete, reuse. Platform-operator view.
+- **Event-scoped images** — uploaded and managed on the Event Detail screen; these are the images surfaced to the social app when a user views a specific event. Hero image designation, sort order, per-event upload. These exist on the event record, not in the global catalog flow (though the catalog does show them globally for ops).
+
+Both layers are already working in Flutter and the API. This confirms Flutter parity in React.
+
+**X2-A2 impact:** Add `/images` as a top-level nav item in the React admin spec. B3 must implement both the global catalog screen and the event-scoped image panel within Event Detail.
+
+---
+
+### Decision 3: Markets nav — ✅ Under Settings, but Settings must be reframed as Platform Settings
+
+**Decision:** Markets stays under the Settings nav section (as modeled in the mockup v2). However, "Settings" as a label is problematic — it implies user/personal preferences. Everything in Settings is IN platform-wide administration: Markets, General config, Audit Log, Platform Config, API Key Status. None of it is user preferences.
+
+**Mockup v2 sub-tabs (correct structure, wrong framing):**
+- General
+- Markets
+- Audit Log
+- Platform Config
+- API Key Status
+
+The mockup subtitle already has the right intent: *"Platform configuration, markets, audit log, and API controls."* The nav label must reflect this.
+
+**X2-A2 decision for master_plan_v3:** The Settings nav item should be renamed. Options for X2-A2 to evaluate:
+- **"Platform"** — clean, unambiguous (Platform → General / Markets / Audit Log / Config / API Keys)
+- **"System"** — standard admin console pattern
+- Keep **"Settings"** but with clear scope labeling throughout the page (subtitle + section headers make it unambiguous)
+
+Jeff preference: the concept is IN site-wide / platform-level settings. X2-A2 should pick the label that makes this unmistakable to a new operator seeing the nav for the first time. Bring a recommendation.
+
+**X2-A2 impact:** Rename or reframe Settings in the React admin spec. The sub-tab list is correct as-is. B3 spec must treat this as platform config only — no user preference content ever lives here.
